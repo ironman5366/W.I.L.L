@@ -14,10 +14,11 @@ def intentparse(command):
     if text in q or text in q.lower():
         i.write("is question")
         return "search"
-    f = open("core/intent/verblist.txt").read()
-    if text in f:
-        i.write("verb")
-        return f
+    f = open("core/intent/verblist.txt").read().split('\n')
+    for item in f:
+        if text.lower()==item.lower():
+            i.write("verb")
+            return item
     for item in tagged:
         if item[1] == 'VB':
             i.write("verb")
@@ -38,13 +39,14 @@ def check2(command, exclude):
     tagged = blob.tags
     i.write("tags are %s"%str(tagged))
     q = open('core/intent/questionwords.txt').read()
-    if text in q or text in q.lower():
+    if text.lower() in q or text in q.lower():
         i.write("is question")
         return "search"
-    f = open("core/intent/verblist.txt").read()
-    if text in f:
-        i.write("verb")
-        return f
+    f = open("core/intent/verblist.txt").read().split('\n')
+    for item in f:
+        if item.lower()==text.lower():
+            i.write("verb")
+            return item
     for item in tagged:
         if item[1] == 'VB':
             i.write("verb")
