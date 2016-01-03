@@ -1,0 +1,4 @@
+type=python
+file=builtins/music
+function=play
+required=command

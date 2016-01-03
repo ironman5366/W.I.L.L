@@ -1,1 +1,0 @@
-Warning - these files are required for W.I.L.L.s operation, edit at your own risk

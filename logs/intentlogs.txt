@@ -1,2 +1,0 @@
-t is youtube vlogbrothers jokes for nerds
-tags are [(u'youtube', u'NNP'), (u'vlogbrothers', u'NNS'), (u'jokes', u'NNS'), (u'for', u'IN'), (u'nerds', u'NNS')]verb

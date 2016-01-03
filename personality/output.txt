@@ -1,2 +1,0 @@
-polite=10
-humor=0

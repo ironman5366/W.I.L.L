@@ -1,9 +1,0 @@
-started session at 2015-10-10 19:00:30.009000
-youtube vlogbrothers jokes for nerdscommand:youtube vlogbrothers jokes for nerds
-command
-context:command
-before isexcept
-isexcept is:False
-parsing operation
-parsing command
-operation came back youtube
