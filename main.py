@@ -22,12 +22,21 @@ def main():
 			return 'error'
 		logs.write("Successfully loaded plugin modules", 'success')
 		logs.write("Using the intent module to parse the command", 'trying')
-		intent.parse(command, plugins)
-		return "Done"
+		parsed=intent.parse(command, plugins)
+		logs.write("Parsed the command", 'success')
+		if parsed.keys()[0]=="execute":
+			logs.write("Executing plugin {0}".format(parsed.values()[0].keys()[0]), 'trying')
+			response=plugs.execute(parsed.values()[0])
+			return response
+		elif parsed.keys()[0]=="questiontriggers":
+			logs.write("Parsing plugins further from list of possible question based plugins", 'working')
+			return "Done"
+			#TODO: Add call to question parsing module
 	except Exception as e:
 		logs.write(e,'error')
 		return str(e)
 if __name__ == "__main__":
+	logs.openlogs()
 	logs.write('''
 
 \                /   |    |              |

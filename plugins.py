@@ -20,3 +20,13 @@ def load():
 	else:
 		logs.write("Plugin directory not found", 'error')
 		return False
+def execute(plugin):
+	logs.write("Executing plugin {0}".format(plugin),'working')
+	for plugdict in plugin.values()[0]:
+		logs.write("Checking dictionary {0}".format(plugdict),'trying')
+		if plugdict.keys()[0]=="type":
+			logs.write("Found type dictionary", 'success')
+			plugtype=plugdict.values()[0]
+			break
+	logs.write("Plugin type is {0}".format(plugtype), 'working')
+	return "Done"
