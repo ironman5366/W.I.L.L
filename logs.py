@@ -1,6 +1,15 @@
 from termcolor import colored
 import datetime
 class logs():
+	def openlogs(self):
+		global logfile
+		if self.keepcheck():
+			try:
+				logfile=open("WILL.log",'a')
+			except IOError:
+				logfile=open("WILL.log",'w')
+		else:
+			logfile=open("WILL.log",'w')
 	def keepcheck(self):
 		f=open("settings.conf")
 		s=f.read()
@@ -46,13 +55,7 @@ class logs():
 		finallog=("{0}: {1}".format(logtime,item))
 		debuglog=("{0}: {1}".format(logtime,logitem))
 		debug=self.debug()
-		if self.keepcheck():
-			try:
-				logfile=open("WILL.log",'a')
-			except IOError:
-				logfile=open("WILL.log",'w')
-		else:
-			logfile=open("WILL.log",'w')
+		logfile=open("WILL.log", 'a')
 		logfile.write('{0}\n'.format(finallog))
 		if debug:
 			print debuglog
