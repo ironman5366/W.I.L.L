@@ -26,7 +26,7 @@ def main():
 		logs.write("Parsed the command", 'success')
 		if parsed.keys()[0]=="execute":
 			logs.write("Executing plugin {0}".format(parsed.values()[0].keys()[0]), 'trying')
-			response=plugs.execute(parsed.values()[0])
+			response=plugs.execute(parsed.values()[0], command)
 			return response
 		elif parsed.keys()[0]=="questiontriggers":
 			logs.write("Parsing plugins further from list of possible question based plugins", 'working')

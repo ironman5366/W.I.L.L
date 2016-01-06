@@ -8,12 +8,12 @@ import wolframalpha
 # import TTS_Talk
 import json as m_json
 import builtins.search.wcycle as wcycle
-
-
+from logs import logs as log
+logs=log()
 # app_id number 2 : TWH856-2RPQQX96K
 def wlfram_search(user_query,appid):
-    print "in wolfram search"
-    print user_query
+    logs.write("in wolfram search",'working')
+    logs.write(user_query,'working')
     try:
         client = wolframalpha.Client(appid)
         res = client.query(user_query)
@@ -29,21 +29,21 @@ def wlfram_search(user_query,appid):
         else:
             google_search(user_query)
     except StopIteration:
-        print "Hit stop iteration, going into google search"
+        logs.write("Hit stop iteration, going into google search", 'working')
         return google_search(user_query)
 
 
 def skwiki(titlequery):
-    print "in skwiki"
-    print titlequery
+    logs.write("in skwiki", 'working')
+    logs.write(titlequery, 'working')
     assert isinstance(titlequery, object)
     path=os.getcwd()
     path+= ("/builtins/search/")
     oscmd="python "+path+"getsummary.py %s" %titlequery
-    print oscmd
+    
     resultvar=os.popen(oscmd).read()  #I don't know why I had to do it like this but theres a dictionary in the wikipedia module that the summary cannot be extracted from in an import
-    print "result fetched"
-    print str(resultvar)
+    logs.write("result fetched", 'success')
+    logs.write(str(resultvar), 'success')
     #	phrase = "According to wikipedia " + wikipedia.summary(titlequery, sentences=1)
     #	pattern = re.compile('/.*?/')
     #	phrase = re.sub(pattern,'',phrase)
@@ -65,7 +65,7 @@ def print_gsearch(results):
 
 
 def google_search(user_query):
-    print "In google search with query: "+str(user_query)
+    logs.write("In google search with query: "+str(user_query), 'working')
     query = user_query
     query = urllib.urlencode({'q': query})
     response = urllib2.urlopen('http://ajax.googleapis.com/ajax/services/search/web?v=1.0&' + query).read()
@@ -78,7 +78,7 @@ def google_search(user_query):
         pattern = re.compile('<.*?>')
         title = re.sub(pattern, '', title)
         if "Wikipedia, the free encyclopedia" in title:
-            print "wiki_bool is true"
+            logs.write("wiki_bool is true", 'working')
             titlelst = title.split('-')
             titlequery = titlelst[0].strip()
             return skwiki(titlequery)
@@ -86,15 +86,19 @@ def google_search(user_query):
             break
 
     if wiki_bool == False:
-        print "wiki_bool is false"
+        logs.write("wiki_bool is false", 'working')
         print_gsearch(results)
 
 
 def main(query):
-    query = query[0]
-    print "In main, query is:"+str(query)
+    query=query[0]
+    firstword=query.split(' ')[0]
+    firstlower=firstword.lower()
+    if firstlower=="search" or firstlower=="google":
+        query=query.split(firstword+" ")[1]
+    logs.write("In main, query is:"+str(query), 'working')
     wcycle.main()
     appid = open('builtins/search/appidfinal.txt').read().rstrip()
     print "going into wolfram search"
     answer= wlfram_search(query,appid)
-    return "answer:;:;:"+answer
+    return answer
