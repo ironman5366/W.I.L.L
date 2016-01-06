@@ -9,20 +9,24 @@ app = Flask(__name__)
 
 @app.route("/")
 def main():
-	command = request.args.get("command", '')
-	logs.write("Command is {0}".format(command),'working')
-	logs.write("Trying to load plugin modules", 'trying')
-	plugins=plugs.load()
-	if plugins==False:
-		logs.write("Could not load plugins", 'error')
-		return "error"
-	elif plugins==[]:
-		logs.write("No plugins found", 'error')
-		return 'error'
-	logs.write("Successfully loaded plugin modules", 'success')
-	logs.write("Using the intent module to parse the command", 'trying')
-	intent.parse(command, plugins)
-	return "Done"
+	try:
+		command = request.args.get("command", '')
+		logs.write("Command is {0}".format(command),'working')
+		logs.write("Trying to load plugin modules", 'trying')
+		plugins=plugs.load()
+		if plugins==False:
+			logs.write("Could not load plugins", 'error')
+			return "error"
+		elif plugins==[]:
+			logs.write("No plugins found", 'error')
+			return 'error'
+		logs.write("Successfully loaded plugin modules", 'success')
+		logs.write("Using the intent module to parse the command", 'trying')
+		intent.parse(command, plugins)
+		return "Done"
+	except Exception as e:
+		logs.write(e,'error')
+		return str(e)
 if __name__ == "__main__":
 	logs.write('''
 

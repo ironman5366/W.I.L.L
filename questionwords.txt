@@ -5,6 +5,13 @@ Why
 What
 Which
 How
+Who's
+Where's
+When's
+Why's
+What's
+Which's
+How's
 -----
 Is
 Are
