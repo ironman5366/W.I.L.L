@@ -76,7 +76,7 @@ def parse(command, plugins):
 	for word in words:
 		questionwords=open("questionwords.txt").read()
 		questions=questionwords.split('-----\n')[0].split('\n')	
-		possiblequestions=questionwords.replace('----\n','').split('\n')
+		possiblequestions=questionwords.replace('-----\n','').split('\n')
 		logs.write("Checking to see if word {0} is a question word".format(word), 'working')
 		for question in questions:
 			logs.write("Checking against question word {0}".format(question), 'working')

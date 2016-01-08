@@ -54,13 +54,17 @@ def skwiki(titlequery):
 
 
 def print_gsearch(results):
+    logs.write("In print_gsearch", 'working')
     phrase = "I was unable to find an answer. Here are some links on the subject"
     # TTS_Talk.tts_talk(phrase)
     for result in results:
         title = result['title']
+        logs.write(title, 'working')
         url = result['url']
+        logs.write(url, 'working')
         pattern = re.compile('<.*?>')
         title = re.sub(pattern, '', title)
+        logs.write(title, 'working')
         return (title).decode('utf8')
 
 
