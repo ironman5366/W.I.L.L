@@ -1,0 +1,1 @@
+[{"name": "search"}, {"type": "python"}, {"require": ["command"]}, {"pos": "verb"}, {"file": "search.py"}, {"function": "main"}, {"returns": "answer"}, {"synonyms": ["google"]}, {"questiontriggers": "any"}]

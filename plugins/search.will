@@ -1,4 +1,0 @@
-type=python
-file=builtins/search/search
-function=main
-required=object
