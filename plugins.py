@@ -51,8 +51,13 @@ def execute(plugin, command):
 		if required==["command"]:
 			finalargs.append(command)
 		else:
-			#TODO: here fetch required arguments
-			return "Done"
+			for item in required:
+				logs.write("Trying to find argument {0}".format(item), 'trying')
+				try:
+					fetched=argfetcher.get(item)
+					logs.write("Fetched the argument {0}. The value was {1}".format(item,fetched),'success')
+				except Exception as e:
+					logs.write("{0} occurred trying to fetch the item", 'error')
 		finalargs=tuple(finalargs)
 		result = getattr(imvar, plugfunction)(finalargs)
 		return result

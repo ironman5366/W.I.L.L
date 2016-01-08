@@ -3,6 +3,7 @@ from flask import request
 import intent
 from logs import logs as log
 import plugins as plugs
+import contentextract
 logs=log()
 
 app = Flask(__name__)
@@ -12,6 +13,9 @@ def main():
 	try:
 		command = request.args.get("command", '')
 		logs.write("Command is {0}".format(command),'working')
+		logs.write("Analyzing content in command", 'trying')
+		contentextract.main(command)
+		logs.write("Analyzed command content", 'success')
 		logs.write("Trying to load plugin modules", 'trying')
 		plugins=plugs.load()
 		if plugins==False:
@@ -28,10 +32,6 @@ def main():
 			logs.write("Executing plugin {0}".format(parsed.values()[0].keys()[0]), 'trying')
 			response=plugs.execute(parsed.values()[0], command)
 			return response
-		elif parsed.keys()[0]=="questiontriggers":
-			logs.write("Parsing plugins further from list of possible question based plugins", 'working')
-			return "Done"
-			#TODO: Add call to question parsing module
 	except Exception as e:
 		logs.write(e,'error')
 		return str(e)
