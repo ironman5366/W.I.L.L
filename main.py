@@ -31,6 +31,7 @@ def main():
 		if parsed.keys()[0]=="execute":
 			logs.write("Executing plugin {0}".format(parsed.values()[0].keys()[0]), 'trying')
 			response=plugs.execute(parsed.values()[0], command)
+			logs.write("Found answer {0}, returning it".format(response), 'success')
 			return response
 	except Exception as e:
 		logs.write(e,'error')
