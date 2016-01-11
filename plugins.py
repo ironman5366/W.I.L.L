@@ -8,15 +8,18 @@ def load():
 	logs.write("In plugin loader",'working')
 	plugins=[]
 	if os.path.isdir("plugins"):
-		plugin=[x[0] for x in os.walk('plugins')][1]
-		logs.write("Loading plugin {0}".format(plugin.split("plugins/")[1]),'trying')
-		logs.write("plugin.json file path should be {0}/plugin.json".format(plugin),'working')
-		if os.path.isfile('{0}/plugin.json'.format(plugin)):
-			pluginfo=json.loads(open('{0}/plugin.json'.format(plugin)).read())
-			plugins.append({plugin.split("plugins/")[1]:pluginfo})
-			logs.write("Loaded plugin {0}".format(plugin.split("plugins/")[1]),'success')
-		else:
-			logs.write("plugin.json file not found for plugin {0}".format(plugin.split("plugins/")[1]),'error')
+		plugindir=list(list(os.walk('plugins'))[0])
+		logs.write("plugindir is {0}".format(plugindir), 'working')
+		for plugin in plugindir[1]:
+			logs.write("Plugin is {0}".format(str(plugin)), 'working')
+			logs.write("Loading plugin {0}".format(plugin),'trying')
+			logs.write("plugin.json file path should be plugins/{0}/plugin.json".format(plugin),'working')
+			if os.path.isfile('plugins/{0}/plugin.json'.format(plugin)):
+				pluginfo=json.loads(open('plugins/{0}/plugin.json'.format(plugin)).read())
+				plugins.append({plugin:pluginfo})
+				logs.write("Loaded plugin {0}".format(plugin),'success')
+			else:
+				logs.write("plugin.json file not found for plugin {0}".format(plugin),'error')
 		return plugins
 	else:
 		logs.write("Plugin directory not found", 'error')

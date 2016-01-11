@@ -1,4 +1,0 @@
-type=python
-file=builtins/youtube
-function=main
-required=command

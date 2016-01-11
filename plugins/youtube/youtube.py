@@ -6,7 +6,6 @@ import os
 import re
 import webbrowser
 
-
 def youtube(vidsearch):
     query_string = urllib.urlencode({"search_query": vidsearch})
     html_content = urllib2.urlopen("http://www.youtube.com/results?" + query_string)
@@ -19,3 +18,4 @@ def main(*args):
     q = args[0]
     print q
     youtube(q)
+    return "Done"

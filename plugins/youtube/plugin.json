@@ -1,1 +1,1 @@
-[{"name": "search"}, {"type": "python"}, {"require": ["command"]}, {"pos": "verb"}, {"file": "youtube.py"}, {"function": "main"}, {"returns": "answer"}, {"synonyms": ["google"]}, {"questiontriggers": "any"}]
+[{"name": "youtube"}, {"type": "python"}, {"require": ["command"]}, {"pos": "verb"}, {"file": "youtube.py"}, {"function": "main"}, {"returns": "completion"}, {"synonyms": []}, {"questiontriggers": "none"}]

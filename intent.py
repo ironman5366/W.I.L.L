@@ -7,7 +7,7 @@ def qparse(questionlist):
 		plugvals=plugin.values()[0]
 		for plugdict in plugvals:
 			logs.write("Checking dictionary {0}".format(plugdict),'trying')
-			if plugdict.keys()[0]=="checkvar":
+			if plugdict.keys()[0]==checkvar:
 				logs.write("Found {0} dictionary".format(checkvar), 'success')
 				checkval=plugdict.values()[0]
 				return checkval
@@ -27,8 +27,10 @@ def qparse(questionlist):
 				logs.write("Plugin name and priority list item match", 'success')
 				prioritized.append({status:plugin})
 	logs.write("Going through list of prioritized plugins", 'trying')
+	logs.write(prioritized, 'working')
 	num=None
 	for plugin in prioritized:
+		logs.write("Looking at plugin {0}".format(plugin), 'working')
 		status=plugin.keys()[0]
 		plugname=plugin.values()[0].keys()[0]
 		logs.write("Plugin {0} has priority {1}".format(plugname,status), 'working')
@@ -66,12 +68,13 @@ def parse(command, plugins):
 				break
 		if firstword.lower()==plugname.lower():
 			logs.write("The command and plugin name match",'success')
-			return plugin
+			return {'execute':plugin}
 		else:
 			for syn in syns:
 				logs.write("Checking synonym {0}".format(syn), 'working')
 				if firstword.lower()==syn:
-					logs.write()
+					logs.write("The command and synonym name match", 'success')
+					return {'execute': plugin}
 			logs.write("The command does not match the plugin name",'trying')
 	for word in words:
 		questionwords=open("questionwords.txt").read()
@@ -84,27 +87,35 @@ def parse(command, plugins):
 				logs.write("Question word {0} found".format(question), 'success')
 				questionplugs=[]
 				for plugin in plugins:
+					plugvals=plugin.values()[0]
+					logs.write("Analyzing plugin {0}".format(plugin), 'working')
 					for plugdict in plugvals:
 						logs.write("Checking dictionary {0}".format(plugdict),'trying')
 						if plugdict.keys()[0]=="questiontriggers":
 							logs.write("Found questiontriggers dictionary", 'success')
 							qts=plugdict.values()[0]
 							break
+					logs.write(qts,'working')
 					if qts=="any":
+						logs.write("Appending plugin {0} to questionplugs".format(plugin), 'working')
 						questionplugs.append(plugin)
-					return qparse(questionplugs)
-		for question in possiblequestions:
-			logs.write("Checking against possible question word {0}".format(question), 'working')
-			if question.lower()==word.lower():
-				logs.write("Possible question word {0} found".format(question), 'success')
-				questionplugs=[]
-				for plugin in plugins:
-					for plugdict in plugvals:
-						logs.write("Checking dictionary {0}".format(plugdict),'trying')
-						if plugdict.keys()[0]=="questiontriggers":
-							logs.write("Found questiontriggers dictionary", 'success')
-							qts=plugdict.values()[0]
-							break
-					if qts=="any":
-						questionplugs.append(plugin)
-					return qparse(questionplugs)
+						return qparse(questionplugs)
+			for question in possiblequestions:
+				logs.write("Checking against possible question word {0}".format(question), 'working')
+				if question.lower()==word.lower():
+					logs.write("Possible question word {0} found".format(question), 'success')
+					questionplugs=[]
+					for plugin in plugins:
+						plugvals=plugin.values()[0]
+						logs.write("Analyzing plugin {0}".format(plugin), 'working')
+						for plugdict in plugvals:
+							plugvals=plugin.values()[0]
+							logs.write("Checking dictionary {0}".format(plugdict),'trying')
+							if plugdict.keys()[0]=="questiontriggers":
+								logs.write("Found questiontriggers dictionary", 'success')
+								qts=plugdict.values()[0]
+								break
+						if qts=="any":
+							logs.write("Appending plugin {0} to questionplugs".format(plugin), 'working')
+							questionplugs.append(plugin)
+							return qparse(questionplugs)
