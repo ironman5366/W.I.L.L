@@ -1,0 +1,1 @@
+[{"name": "execute"}, {"type": "exec"}, {"require": ["command"]}, {"pos": "verb"}, {"returns": "completion"}, {"synonyms": []}, {"questiontriggers": "none"},{"firstword":"no"}, {"structure":"command"}]
