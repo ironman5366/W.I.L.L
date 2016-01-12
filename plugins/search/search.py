@@ -38,9 +38,8 @@ def skwiki(titlequery):
     logs.write(titlequery, 'working')
     assert isinstance(titlequery, object)
     path=os.getcwd()
-    path+= ("/builtins/search/")
+    path+= ("/plugins/search/")
     oscmd="python "+path+"getsummary.py %s" %titlequery
-    
     resultvar=os.popen(oscmd).read()  #I don't know why I had to do it like this but theres a dictionary in the wikipedia module that the summary cannot be extracted from in an import
     logs.write("result fetched", 'success')
     logs.write(str(resultvar), 'success')
