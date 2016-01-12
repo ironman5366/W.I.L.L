@@ -1,0 +1,1 @@
+[{"name": "autoremote"}, {"type": "python"}, {"file":"autoremote.py"},{"function":"main"},{"require": ["command"]}, {"pos": "verb"}, {"returns": "completion"}, {"synonyms": []}, {"questiontriggers": "none"},{"firstword":"no"}]
