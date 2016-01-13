@@ -70,6 +70,8 @@ def print_gsearch(results):
             if "h1" not in line:
                 if "<p>" in line and "</p>" in line:
                     textresult=line.split("<p>")[1].split("</p>")[0]
+                    pattern = re.compile('<.*?>')
+                    textresult = re.sub(pattern,'',textresult)
                     logs.write("Text result is {0}".format(textresult), 'success')
                     break
         if textresult!=None:
