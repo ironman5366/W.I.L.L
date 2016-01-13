@@ -53,18 +53,32 @@ def skwiki(titlequery):
 
 
 def print_gsearch(results):
+    import requests
     logs.write("In print_gsearch", 'working')
-    return "Unfortunately I was unable to find a direct answer from wikipedia, google, or wolframalpha.".decode('utf8')
-    #TODO: Work on this stuff
-    #for result in results:
-    #    title = result['title']
-    #    logs.write(title, 'working')
-    #    url = result['url']
-    #    logs.write(url, 'working')
-    #    pattern = re.compile('<.*?>')
-    #    title = re.sub(pattern, '', title)
-    #    logs.write(title, 'working')
-    #    return (title).decode('utf8')
+    for result in results:
+        title = result['title']
+        logs.write(title, 'working')
+        url = result['url']
+        logs.write(url, 'working')
+        r=requests.get(url).text
+        logs.write("Got html from {0}".format(url),'success')
+        textresult=None
+        for line in r.split('\n'):
+            line=line.encode('ascii','ignore')
+            line=str(line.decode('utf8'))
+            logs.write("Analyzing line {0}".format(line), 'trying')
+            if "h1" not in line:
+                if "<p>" in line and "</p>" in line:
+                    textresult=line.split("<p>")[1].split("</p>")[0]
+                    logs.write("Text result is {0}".format(textresult), 'success')
+                    break
+        if textresult!=None:
+            phrase="According to {0}, {1}".format(url,textresult)
+            return (phrase).decode('utf8')
+        #pattern = re.compile('<.*?>')
+        #title = re.sub(pattern, '', title)
+        #logs.write(title, 'working')
+        
 
 
 def google_search(user_query):
