@@ -10,7 +10,6 @@ Welcome to W.I.L.L.!
 These directories contain the source code and files for W.I.L.L.
 W.I.L.L. stands for Wireless Intelligent Linguistical Liveware and is a personal assistant,
 created and maintained by Will Beddow.
-W.I.L.L. is completely open source, feel free to go nuts!
 
 Adding features/plugins:
 Anybody is welcome to add a plugin, it's in a farily self explanatory folder format with a plugin.json file that anybody who's worked with python, json, or programming before should be able to cleanly reverse engineer. I'm not planning to spend the time and write the documentation, but if somebody wants to I'd be happy to help and publish it. I'm also planning to eventually upload a plugin creation program. 
