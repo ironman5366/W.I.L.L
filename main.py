@@ -22,20 +22,28 @@ def slack():
 		logs.write("Connected to rtm socket", 'success')
     	while True:
     		time.sleep(0.1)
+    		#Get message from rtm socket
         	message=sc.rtm_read()
+        	#If the message isn't empty
         	if message!=[]:
+        		#If the message is text as opposed to a notification. Eventually plan to have other kinds of messages in a backend communications channel.
         		if message[0].keys()[0]=='text':
         			command=message[0].values()[0]
         			logs.write(command,'working')
+        			#The commands are json or plain text. If it isn't a json backend command, interpret it as a "normal" command
         			try:
         				command=json.loads(command)
         			except ValueError:
         				command=[{'type':'command'},{'devices':'all'},{'action':"{0}".format(command)}]
+        			#Json slack commands or management can eventually be formatted like so: [{"type":"management/command",{"devices":"all/mobile/desktop/network/device name"},{"action":"message content"}]
+        			#Not sure if I want to do that in the backend or command channel or what really, but I'm definitely working with it. 
         			commandtype=command[0]
         			devices=command[1]
         			action=command[2]
-        			if devices.values()[0]=='all' or devices.values()[0]=="XPS":
+        			#Replace thisdevicename with whatever you want to name yours in the W.I.L.L slack network (obviously)
+        			if devices.values()[0]=='all' or devices.values()[0]=="thisdevicename":
 	        			logs.write("Checking local W.I.L.L server", 'trying')
+	        			#Hit W.I.L.L with the command. This is also where you could add exceptions or easter eggs
 	        			answer=requests.get('http://127.0.0.1:5000/?context=command&command={0}'.format(action.values()[0])).text
 	        			print sc.api_call( "chat.postMessage", channel="#w_i_l_l", text="{0}".format(answer), username='W.I.L.L')
 	else:
