@@ -3,6 +3,7 @@ import easygui
 import urllib
 import sys
 def main(command):
+	'''A basic debugging oriented client using easygui'''
 	command=urllib.urlencode({"command":command})
 	answer=urllib.urlopen("http://127.0.0.1:5000?context=command&%s"%command).read()
 	easygui.msgbox(answer)
