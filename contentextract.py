@@ -7,11 +7,13 @@ import nameextractor
 logs=log()
 
 def Name_Extract(sentence):
+    '''Use nameextractor.py to try to find names'''
     names = nameextractor.main(sentence)
     return names
 
 
 def Timedate_Extract(sentence):
+    '''Find dates and times'''
     lst = (
         'today', 'tomorrow', 'yesterday', 'am', 'a.m', 'a.m.', 'pm', 'p.m', 'p.m.', 'january', 'february', 'march',
         'april',
@@ -44,6 +46,7 @@ def Timedate_Extract(sentence):
 
 
 def Email_Extract(sentence):
+    '''Use regex to find emails'''
     expression = re.compile(r"(\S+)@(\S+)")
     result = expression.findall(sentence)
     if result != []:
@@ -53,6 +56,7 @@ def Email_Extract(sentence):
 
 
 def Phone_Extract(sentence):
+    '''Use regex to find phone numbers'''
     reg = re.compile(".*?(\(?\d{3}\D{0,3}\d{3}\D{0,3}\d{4}).*?", re.S)
     num = reg.findall(sentence)
     if num != []:
@@ -62,6 +66,7 @@ def Phone_Extract(sentence):
 
 
 def main(sentence):
+    '''Extract data from command'''
     SKtime_date = Timedate_Extract(sentence)
     if SKtime_date != "None":
         SKdate = SKtime_date[0]

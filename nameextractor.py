@@ -2,6 +2,7 @@ contacts = open('contacts.txt').read().split('\n')
 import re
 
 def name_check(word):
+    '''Does the actual searching through of the contacts'''
     for item in contacts:
         icontacts = (item).split(':')
         if icontacts[0] == word or icontacts[0].lower() == word:
@@ -18,6 +19,7 @@ def name_check(word):
 
 
 def main(text):
+    '''Prepares the words for searching'''
     text_words = text.split(" ")
     names = []
     for i in range(0, len(text_words)):

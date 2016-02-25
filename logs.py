@@ -1,8 +1,11 @@
 from termcolor import colored
 import datetime
 class logs():
+	'''Comprehensive logging with colored terminal output and configuration settings'''
 	def openlogs(self):
+		'''Open the logfile'''
 		global logfile
+		#If the settings say to keep the logs every time
 		if self.keepcheck():
 			try:
 				logfile=open("WILL.log",'a')
@@ -11,6 +14,7 @@ class logs():
 		else:
 			logfile=open("WILL.log",'w')
 	def keepcheck(self):
+		'''Check settings to see if the user wants the old logs kept'''
 		f=open("settings.conf")
 		s=f.read()
 		slines=s.split("\n")
@@ -25,6 +29,7 @@ class logs():
 			else:
 				pass
 	def debug(self):
+		'''Check settings to see if terminal output should be displayed'''
 		f=open("settings.conf")
 		s=f.read()
 		slines=s.split("\n")
@@ -39,6 +44,7 @@ class logs():
 			else:
 				pass
 	def write(self, item, logtype):
+		'''Write logs'''
 		logtype=logtype.lower()
 		if logtype=="error":
 			color='red'
