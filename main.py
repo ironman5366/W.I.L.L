@@ -15,6 +15,7 @@ logs=log()
 token = "Your token here" 
 app = Flask(__name__)
 def slack():
+	'''Slack rtm reader started in seprate thread'''
 	logs.write("In slack function in new thread", 'working')
 	sc = SlackClient(token)
 	if sc.rtm_connect():
@@ -42,24 +43,32 @@ def slack():
 
 @app.route("/")
 def main():
+	'''Take command from 127.0.0.1:5000 and run it through various modules'''
 	try:
+		#Get command
 		command = request.args.get("command", '')
 		logs.write("Command is {0}".format(command),'working')
 		logs.write("Analyzing content in command", 'trying')
+		#Run command through contentextract.py
 		contentextract.main(command)
 		logs.write("Analyzed command content", 'success')
 		logs.write("Trying to load plugin modules", 'trying')
+		#Load plugins using plugins.py
 		plugins=plugs.load()
+		#If the plugins encounter an error
 		if plugins==False:
 			logs.write("Could not load plugins", 'error')
 			return "error"
+		#If plugins.py says that there are no plugins found. All functions are a plugin so no point in continuing
 		elif plugins==[]:
 			logs.write("No plugins found", 'error')
 			return 'error'
 		logs.write("Successfully loaded plugin modules", 'success')
 		logs.write("Using the intent module to parse the command", 'trying')
+		#Use intent.py to try to extract intent from command
 		parsed=intent.parse(command, plugins)
 		logs.write("Parsed the command", 'success')
+		#If the intent parser says to execute the following plugin. Leaves room if I ever want to expand the capabilities of the intent module
 		if parsed.keys()[0]=="execute":
 			logs.write("Executing plugin {0}".format(parsed.values()[0].keys()[0]), 'trying')
 			response=plugs.execute(parsed.values()[0], command)
@@ -69,6 +78,7 @@ def main():
 		logs.write(e,'error')
 		return str(e)
 if __name__ == "__main__":
+	'''Open logs, check log settings, and start the flask server and slack thread'''
 	logs.openlogs()
 	logs.write('''
 
