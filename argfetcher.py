@@ -1,4 +1,5 @@
 def get(objectvar, command):
+    '''Gets required arguments from content.tx'''
     args=args[0]
     f = open("args.txt", 'w')
     content=open("content.txt").read().split("\n")
