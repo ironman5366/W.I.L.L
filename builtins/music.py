@@ -1,3 +1,4 @@
+#In development
 import spotify
 config = spotify.Config()
 config.user_agent = 'W.I.L.L'
