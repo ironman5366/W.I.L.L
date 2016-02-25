@@ -4,6 +4,9 @@ import random
 greetfile = open("personality.txt").read()
 greetings = greetfile.split('\n')
 def get_greet(f):
+    '''Fair warning. This module is awful. It's really really messy and has horrible variable names.
+    I wrote it awhile ago as a temporary module and since I plan to add a more detailed personality in down the road I've never fixed it. 
+    If you plan on reading this I'm sorry.'''
     #Get time and determine environmental variables
     t = str(datetime.now()) 
     tt = t.split(' ')
@@ -22,6 +25,7 @@ def get_greet(f):
     olpn = int(ol[0].split('polite=')[1])
     olhn = int(ol[1].split('humor=')[1])
     p = []
+    #I have no clue about his section, I really hate myself for writing it. It's awful I know and just the worst. I have no idea why it works.
     for l in greetings:
         try:
             v = l.split(':')[1]
