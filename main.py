@@ -10,6 +10,7 @@ import json
 import personality
 import os
 import requests
+import time
 logs=log()
 token = "Your token here" 
 app = Flask(__name__)
@@ -19,6 +20,7 @@ def slack():
 	if sc.rtm_connect():
 		logs.write("Connected to rtm socket", 'success')
     	while True:
+    		time.sleep(0.1)
         	message=sc.rtm_read()
         	if message!=[]:
         		if message[0].keys()[0]=='text':
