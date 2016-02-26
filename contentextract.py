@@ -4,7 +4,8 @@ from logs import logs as log
 from dateutil.parser import parse
 
 import nameextractor
-logs=log()
+logs = log()
+
 
 def Name_Extract(sentence):
     '''Use nameextractor.py to try to find names'''
@@ -34,7 +35,8 @@ def Timedate_Extract(sentence):
                 elif "yesterday" in sentence:
                     date_lst[2] = int(date_lst[2]) - 1
 
-                p = [str(date_lst[0]) + "-" + str(date_lst[1]) + "-" + str(date_lst[2]), td_lst[1]]
+                p = [str(date_lst[0]) + "-" + str(date_lst[1]) +
+                     "-" + str(date_lst[2]), td_lst[1]]
                 break
             else:
                 p = "None"
@@ -90,7 +92,8 @@ def main(sentence):
     alphabet = list(string.ascii_lowercase)
     if names not in alphabet:
         names = "None"
-    data = "Time: " + SKtime + "\n" + "Date: " + SKdate + "\n" + "Email: " + SKemail + "\n" + "Phone: " + SKphonenumbers + "\n" + "Names: " + names
+    data = "Time: " + SKtime + "\n" + "Date: " + SKdate + "\n" + "Email: " + \
+        SKemail + "\n" + "Phone: " + SKphonenumbers + "\n" + "Names: " + names
     f = open("content.txt", 'w+')
     f.write(data)
     f.close()
