@@ -1,6 +1,7 @@
 contacts = open('contacts.txt').read().split('\n')
 import re
 
+
 def name_check(word):
     '''Does the actual searching through of the contacts'''
     for item in contacts:
@@ -23,11 +24,11 @@ def main(text):
     text_words = text.split(" ")
     names = []
     for i in range(0, len(text_words)):
-            try:
-                word = text_words[i].lower()
-                check_flag = name_check(word)
-                if check_flag == True:
-                    names.append(text_words[i])
-            except IndexError:
-                pass
+        try:
+            word = text_words[i].lower()
+            check_flag = name_check(word)
+            if check_flag == True:
+                names.append(text_words[i])
+        except IndexError:
+            pass
     return names
