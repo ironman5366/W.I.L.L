@@ -40,11 +40,11 @@ def get_greet(f):
             if class_list[0] == lt or class_list[0] == "Neutral":
                 values_list = class_list[1].split(";")
                 polite_val = int(values_list[0].split('polite=')[1])
-                if polite in range(polite_val-polite_tolerance,
-                                   polite_val+polite_tolerance):
+                if polite in range(polite_val - polite_tolerance,
+                                   polite_val + polite_tolerance):
                     humor_val = int(values_list[1].split("/")[0].split("humor=")[1])
-                    if humor in range(humor_val-humor_tolerance,
-                                      humor_val+humor_tolerance):
+                    if humor in range(humor_val - humor_tolerance,
+                                      humor_val + humor_tolerance):
                         salutation = values_list[1].split("/")[1].split("f=")[1]
                         if salutation == f:
                             phrase_array.append(phrase)
@@ -63,7 +63,8 @@ def get_greet(f):
     finalout = random.choice(phrase_array)
     return finalout
 
-if __name__ == '__main__':
-    f = 'hello'
+# A small test
+if __name__ == "__main__":
+    f = "hello"
     neutral_greeting = get_greet(f)
-    print('Neutral: ' + neutral_greeting)
+    print("Neutral: " + neutral_greeting)
