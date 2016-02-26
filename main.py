@@ -104,6 +104,23 @@ def main():
             logs.write("Found answer {0}, returning it".format(
                 response), 'success')
             return response
+        elif parsed.keys()[0]=="error":
+            logs.write("Parse function returned the error {0}".format(parsed.values()[0]),'working')
+            if parsed.values()[0]=="notfound":
+                #This would have unhandled exceptions if the search plugin was gone, but I can't imagine why it would be
+                logs.write("The error means that the command was not recognized",'working')
+                logs.write("Using the search plugin on the command phrase", 'working')
+                logs.write("Trying to find search plugin", 'trying')
+                for plugin in plugins:
+                    if plugin.keys()[0]=="search":
+                        searchplug=plugin
+                        break
+                logs.write("Found search plugin", 'success')
+                response=plugs.execute(searchplug,command)
+                logs.write("Found answer {0}, returning it".format(response), 'success')
+                return response
+            else:
+                return "Unhandled error {0}. If you get this error message something is broken in the intent module. Please raise an issue on https://github.com/ironman5366/W.I.L.L".format(str(parsed.values()[0]))
     except Exception as e:
         logs.write(e, 'error')
         return str(e)

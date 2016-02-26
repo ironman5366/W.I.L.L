@@ -59,7 +59,11 @@ def qparse(questionlist):
                 if int(item.keys()[0]) == num:
                     logs.write("Highest priority was {0}".format(
                         item.values()[0].keys()[0]), 'success')
-                    return {'execute': item.values()[0]}
+                    try:
+                        return {'execute': item.values()[0]}
+                    except AttributeError:
+                        logs.write("Command not recognized", 'error')
+                        return {'error':'notfound'}
 
 
 def parse(command, plugins):
@@ -86,13 +90,21 @@ def parse(command, plugins):
         if firstword.lower() == plugname.lower():
             logs.write("The command and plugin name match", 'success')
             # Tells main.py to run the plugin
-            return {'execute': plugin}
+            try:
+                return {'execute': plugin}
+            except AttributeError:
+                logs.write("Command not recognized", 'errror')
+                return {'error':'notfound'}
         else:
             for syn in syns:
                 logs.write("Checking synonym {0}".format(syn), 'working')
                 if firstword.lower() == syn:
                     logs.write("The command and synonym name match", 'success')
-                    return {'execute': plugin}
+                    try:
+                        return {'execute': plugin}
+                    except AttributeError:
+                        logs.write("Command not recognized", 'errror')
+                        return {'error':'notfound'}
             logs.write("The command does not match the plugin name", 'trying')
     for word in words:
         # Checks to see if the word is one that I've defined as a question
@@ -161,3 +173,5 @@ def parse(command, plugins):
                                 plugin), 'working')
                             questionplugs.append(plugin)
                             return qparse(questionplugs)
+            logs.write("Command not found", 'error')
+            return {'error':'notfound'}
