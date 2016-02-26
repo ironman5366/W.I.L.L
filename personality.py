@@ -25,7 +25,7 @@ def get_greet(f):
     file = open("output.txt").read().split("\n")
     polite = int(file[0].split("polite=")[1])
     humor = int(file[1].split("humor=")[1])
-    phrase_array = ['Error']
+    phrase_array = []
 
     # I have no clue about his section, I really hate myself for writing it. It's awful I know and just the worst. I have no idea why it works.
     # For each greeting line, the appropriate time ('Morning', 'Neutral', etc.)
@@ -58,8 +58,6 @@ def get_greet(f):
                 pass
         except IndexError:
             pass
-    if len(phrase_array) > 1:
-        del phrase_array[0]
     finalout = random.choice(phrase_array)
     return finalout
 
