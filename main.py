@@ -145,6 +145,7 @@ if __name__ == "__main__":
     logs.write("Debug value is {0}".format(debugval), 'working')
     logs.write("Connecting to rtm socket", 'trying')
     t = threading.Thread(target=slack)
+    t.daemon=True #Kills the thread on program exit
     t.start()
     logs.write("Starting flask server on localhost", 'trying')
     print app.run(debug=debugval, use_reloader=False)
