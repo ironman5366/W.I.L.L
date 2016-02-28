@@ -1,5 +1,8 @@
-i# Python specific files
+# Python specific files
 *.pyc
+
+# IDEA
+.idea/*
 
 # Windows image file caches
 Thumbs.db
