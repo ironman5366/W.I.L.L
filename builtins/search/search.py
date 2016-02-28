@@ -11,7 +11,7 @@ import builtins.search.wcycle as wcycle
 
 
 # app_id number 2 : TWH856-2RPQQX96K
-def wlfram_search(user_query,appid):
+def wlfram_search(user_query, appid):
     print "in wolfram search"
     print user_query
     try:
@@ -37,11 +37,13 @@ def skwiki(titlequery):
     print "in skwiki"
     print titlequery
     assert isinstance(titlequery, object)
-    path=os.getcwd()
-    path+= ("/builtins/search/")
-    oscmd="python "+path+"getsummary.py %s" %titlequery
+    path = os.getcwd()
+    path += ("/builtins/search/")
+    oscmd = "python " + path + "getsummary.py %s" % titlequery
     print oscmd
-    resultvar=os.popen(oscmd).read()  #I don't know why I had to do it like this but theres a dictionary in the wikipedia module that the summary cannot be extracted from in an import
+    # I don't know why I had to do it like this but theres a dictionary in the
+    # wikipedia module that the summary cannot be extracted from in an import
+    resultvar = os.popen(oscmd).read()
     print "result fetched"
     print str(resultvar)
     #	phrase = "According to wikipedia " + wikipedia.summary(titlequery, sentences=1)
@@ -65,10 +67,11 @@ def print_gsearch(results):
 
 
 def google_search(user_query):
-    print "In google search with query: "+str(user_query)
+    print "In google search with query: " + str(user_query)
     query = user_query
     query = urllib.urlencode({'q': query})
-    response = urllib2.urlopen('http://ajax.googleapis.com/ajax/services/search/web?v=1.0&' + query).read()
+    response = urllib2.urlopen(
+        'http://ajax.googleapis.com/ajax/services/search/web?v=1.0&' + query).read()
     json = m_json.loads(response)
     results = json['responseData']['results']
     wiki_bool = False
@@ -92,9 +95,9 @@ def google_search(user_query):
 
 def main(query):
     query = query[0]
-    print "In main, query is:"+str(query)
+    print "In main, query is:" + str(query)
     wcycle.main()
     appid = open('builtins/search/appidfinal.txt').read().rstrip()
     print "going into wolfram search"
-    answer= wlfram_search(query,appid)
-    return "answer:;:;:"+answer
+    answer = wlfram_search(query, appid)
+    return "answer:;:;:" + answer
