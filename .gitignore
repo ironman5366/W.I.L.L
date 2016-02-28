@@ -1,3 +1,6 @@
+# WILL specific ignores
+config.json
+
 # Python specific files
 *.pyc
 

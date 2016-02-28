@@ -5,6 +5,7 @@ import urllib
 import re
 import os
 import wolframalpha
+import config
 # import TTS_Talk
 import json as m_json
 import builtins.search.wcycle as wcycle
@@ -121,8 +122,7 @@ def main(query):
     if firstlower == "search" or firstlower == "google":
         query = query.split(firstword + " ")[1]
     logs.write("In main, query is:" + str(query), 'working')
-    wcycle.main()
-    appid = open('builtins/search/appidfinal.txt').read().rstrip()
+    appid = config.load_config()["wolfram"]["keys"][0]
     print "going into wolfram search"
     answer = wlfram_search(query, appid)
     return answer

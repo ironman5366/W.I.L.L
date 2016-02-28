@@ -16,17 +16,18 @@ import plugins as plugs
 import contentextract
 import personality
 import intent
+import config
 
 
 logs = log()
-token = "Your token here"
 app = Flask(__name__)
 
 
 def slack():
     '''Slack rtm reader started in seprate thread'''
+    slack_conf = config.load_config()["slack"]
     logs.write("In slack function in new thread", 'working')
-    sc = SlackClient(token)
+    sc = SlackClient(slack_conf["token"])
     if sc.rtm_connect():
         logs.write("Connected to rtm socket", 'success')
     while True:
@@ -56,13 +57,18 @@ def slack():
                 action = command[2]
                 # Replace thisdevicename with whatever you want to name yours
                 # in the W.I.L.L slack network (obviously)
-                if devices.values()[0] == 'all' or devices.values()[0] == "thisdevicename":
+                if devices.values()[0] == 'all' or devices.values()[0] == slack_conf["domain"]:
                     logs.write("Checking local W.I.L.L server", 'trying')
                     # Hit W.I.L.L with the command. This is also where you
                     # could add exceptions or easter eggs
                     answer = requests.get(
                         'http://127.0.0.1:5000/?context=command&command={0}'.format(action.values()[0])).text
-                    print sc.api_call("chat.postMessage", channel="#w_i_l_l", text="{0}".format(answer), username='W.I.L.L')
+                    print sc.api_call(
+                        "chat.postMessage",
+                        channel=slack_conf["channel"],
+                        text="{0}".format(answer),
+                        username=slack_conf["username"]
+                    )
     else:
         logs.write("Connection Failed, invalid token?", 'error')
 
