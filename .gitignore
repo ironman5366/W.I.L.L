@@ -1,5 +1,7 @@
 # WILL specific ignores
 config.json
+WILL.log
+content.txt
 
 # Python specific files
 *.pyc
