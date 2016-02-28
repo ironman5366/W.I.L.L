@@ -1,0 +1,17 @@
+{
+  "slack":
+  {
+    "token": "",
+    "domain": "",
+    "username": "",
+    "channel": ""
+  },
+  "wolfram":
+  {
+    "keys": [""]
+  },
+  "autoremote":
+  {
+    "key": ""
+  }
+}

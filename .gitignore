@@ -1,5 +1,13 @@
-i# Python specific files
+# WILL specific ignores
+config.json
+WILL.log
+content.txt
+
+# Python specific files
 *.pyc
+
+# IDEA
+.idea/*
 
 # Windows image file caches
 Thumbs.db
