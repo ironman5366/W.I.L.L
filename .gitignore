@@ -5,6 +5,7 @@ content.txt
 
 # Python specific files
 *.pyc
+env/*
 
 # IDEA
 .idea/*
