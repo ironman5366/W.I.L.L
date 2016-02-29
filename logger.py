@@ -9,7 +9,7 @@ log = logging.getLogger('WILL')
 
 class ColorStreamHandler(logging.StreamHandler):
     COLORS = {
-        "DEBUG": 'white',
+        "DEBUG": 'green',
         "INFO": 'white',
         "WARNING": 'yellow',
         "ERROR": 'red',
