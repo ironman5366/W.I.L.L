@@ -9,9 +9,10 @@ import threading
 import json
 import time
 import os
+import logging
 
 # internals
-from logs import logs as log
+from logger import log
 import plugins as plugs
 import contentextract
 import personality
@@ -19,17 +20,16 @@ import intent
 import config
 
 
-logs = log()
 app = Flask(__name__)
 
 
 def slack():
     '''Slack rtm reader started in seprate thread'''
     slack_conf = config.load_config()["slack"]
-    logs.write("In slack function in new thread", 'working')
+    log.info("In slack function in new thread")
     sc = SlackClient(slack_conf["token"])
     if sc.rtm_connect():
-        logs.write("Connected to rtm socket", 'success')
+        log.info("Connected to rtm socket")
     while True:
         time.sleep(0.1)
         # Get message from rtm socket
@@ -41,7 +41,7 @@ def slack():
             # channel.
             if message[0].keys()[0] == 'text':
                 command = message[0].values()[0]
-                logs.write(command, 'working')
+                log.debug(command)
                 # The commands are json or plain text. If it isn't a json
                 # backend command, interpret it as a "normal" command
                 try:
@@ -58,7 +58,7 @@ def slack():
                 # Replace thisdevicename with whatever you want to name yours
                 # in the W.I.L.L slack network (obviously)
                 if devices.values()[0] == 'all' or devices.values()[0] == slack_conf["domain"]:
-                    logs.write("Checking local W.I.L.L server", 'trying')
+                    log.info("Checking local W.I.L.L server")
                     # Hit W.I.L.L with the command. This is also where you
                     # could add exceptions or easter eggs
                     answer = requests.get(
@@ -70,7 +70,7 @@ def slack():
                         username=slack_conf["username"]
                     )
     else:
-        logs.write("Connection Failed, invalid token?", 'error')
+        log.error("Connection Failed, invalid token?")
 
 
 @app.route("/")
@@ -79,63 +79,62 @@ def main():
     try:
         # Get command
         command = request.args.get("command", '')
-        logs.write("Command is {0}".format(command), 'working')
-        logs.write("Analyzing content in command", 'trying')
+        log.debug("Command is {0}".format(command))
+        log.info("Analyzing content in command")
         # Run command through contentextract.py
         contentextract.main(command)
-        logs.write("Analyzed command content", 'success')
-        logs.write("Trying to load plugin modules", 'trying')
+        log.info("Analyzed command content")
+        log.info("Trying to load plugin modules")
         # Load plugins using plugins.py
         plugins = plugs.load()
         # If the plugins encounter an error
         if plugins is False:
-            logs.write("Could not load plugins", 'error')
+            log.error("Could not load plugins")
             return "error"
         # If plugins.py says that there are no plugins found. All functions are
         # a plugin so no point in continuing
         elif plugins == []:
-            logs.write("No plugins found", 'error')
+            log.error("No plugins found")
             return 'error'
-        logs.write("Successfully loaded plugin modules", 'success')
-        logs.write("Using the intent module to parse the command", 'trying')
+        log.info("Successfully loaded plugin modules")
+        log.info("Using the intent module to parse the command")
         # Use intent.py to try to extract intent from command
         parsed = intent.parse(command, plugins)
-        logs.write("Parsed the command", 'success')
+        log.info("Parsed the command")
         # If the intent parser says to execute the following plugin. Leaves
         # room if I ever want to expand the capabilities of the intent module
         if parsed.keys()[0] == "execute":
-            logs.write("Executing plugin {0}".format(
-                parsed.values()[0].keys()[0]), 'trying')
+            log.info("Executing plugin {0}".format(
+                parsed.values()[0].keys()[0]))
             response = plugs.execute(parsed.values()[0], command)
-            logs.write("Found answer {0}, returning it".format(
-                response), 'success')
+            log.info("Found answer {0}, returning it".format(
+                response))
             return response
         elif parsed.keys()[0]=="error":
-            logs.write("Parse function returned the error {0}".format(parsed.values()[0]),'working')
+            log.error("Parse function returned the error {0}".format(parsed.values()[0]))
             if parsed.values()[0]=="notfound":
                 #This would have unhandled exceptions if the search plugin was gone, but I can't imagine why it would be
-                logs.write("The error means that the command was not recognized",'working')
-                logs.write("Using the search plugin on the command phrase", 'working')
-                logs.write("Trying to find search plugin", 'trying')
+                log.error("The error means that the command was not recognized")
+                log.info("Using the search plugin on the command phrase")
+                log.info("Trying to find search plugin")
                 for plugin in plugins:
                     if plugin.keys()[0]=="search":
                         searchplug=plugin
                         break
-                logs.write("Found search plugin", 'success')
+                log.info("Found search plugin")
                 response=plugs.execute(searchplug,command)
-                logs.write("Found answer {0}, returning it".format(response), 'success')
+                log.info("Found answer {0}, returning it".format(response))
                 return response
             else:
-                return "Unhandled error {0}. If you get this error message something is broken in the intent module. Please raise an issue on https://github.com/ironman5366/W.I.L.L".format(str(parsed.values()[0]))
+                log.error("Unhandled error {0}. If you get this error message something is broken in the intent module. Please raise an issue on https://github.com/ironman5366/W.I.L.L".format(str(parsed.values()[0])))
     except Exception as e:
-        logs.write(e, 'error')
+        log.error(e, 'error')
         return str(e)
 
 
 if __name__ == "__main__":
     '''Open logs, check log settings, and start the flask server and slack thread'''
-    logs.openlogs()
-    logs.write('''
+    log.info('''
 
 \                /   |    |              |
  \              /    |    |              |
@@ -143,15 +142,15 @@ if __name__ == "__main__":
    \    /\    /      |    |              |
     \  /  \  /       |    |              |
      \/    \/        |    ------------   ------------
-        ''', 'success')
-    if logs.debug():
+        ''')
+    if log.getEffectiveLevel() == logging.DEBUG:
         debugval = True
     else:
         debugval = False
-    logs.write("Debug value is {0}".format(debugval), 'working')
-    logs.write("Connecting to rtm socket", 'trying')
+    log.info("Debug value is {0}".format(debugval))
+    log.info("Connecting to rtm socket")
     t = threading.Thread(target=slack)
     t.daemon=True #Kills the thread on program exit
     t.start()
-    logs.write("Starting flask server on localhost", 'trying')
+    log.info("Starting flask server on localhost")
     print app.run(debug=debugval, use_reloader=False)

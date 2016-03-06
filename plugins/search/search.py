@@ -9,14 +9,13 @@ import config
 # import TTS_Talk
 import json as m_json
 import builtins.search.wcycle as wcycle
-from logs import logs as log
-logs = log()
+from logger import log
 # app_id number 2 : TWH856-2RPQQX96K
 
 
 def wlfram_search(user_query, appid):
-    logs.write("in wolfram search", 'working')
-    logs.write(user_query, 'working')
+    log.info("in wolfram search")
+    log.info(user_query)
     try:
         client = wolframalpha.Client(appid)
         res = client.query(user_query)
@@ -32,13 +31,13 @@ def wlfram_search(user_query, appid):
         else:
             google_search(user_query)
     except StopIteration:
-        logs.write("Hit stop iteration, going into google search", 'working')
+        log.info("Hit stop iteration, going into google search")
         return google_search(user_query)
 
 
 def skwiki(titlequery):
-    logs.write("in skwiki", 'working')
-    logs.write(titlequery, 'working')
+    log.info("in skwiki")
+    log.info(titlequery)
     assert isinstance(titlequery, object)
     path = os.getcwd()
     path += ("/plugins/search/")
@@ -46,8 +45,8 @@ def skwiki(titlequery):
     # I don't know why I had to do it like this but theres a dictionary in the
     # wikipedia module that the summary cannot be extracted from in an import
     resultvar = os.popen(oscmd).read()
-    logs.write("result fetched", 'success')
-    logs.write(str(resultvar), 'success')
+    log.info("result fetched")
+    log.info(str(resultvar))
     #	phrase = "According to wikipedia " + wikipedia.summary(titlequery, sentences=1)
     #	pattern = re.compile('/.*?/')
     #	phrase = re.sub(pattern,'',phrase)
@@ -59,26 +58,26 @@ def skwiki(titlequery):
 
 def print_gsearch(results):
     import requests
-    logs.write("In print_gsearch", 'working')
+    log.info("In print_gsearch")
     for result in results:
         title = result['title']
-        logs.write(title, 'working')
+        log.info(title)
         url = result['url']
-        logs.write(url, 'working')
+        log.info(url)
         r = requests.get(url).text
-        logs.write("Got html from {0}".format(url), 'success')
+        log.info("Got html from {0}".format(url))
         textresult = None
         for line in r.split('\n'):
             line = line.encode('ascii', 'ignore')
             line = str(line.decode('utf8'))
-            logs.write("Analyzing line {0}".format(line), 'trying')
+            log.info("Analyzing line {0}".format(line))
             if "h1" not in line:
                 if "<p>" in line and "</p>" in line:
                     textresult = line.split("<p>")[1].split("</p>")[0]
                     pattern = re.compile('<.*?>')
                     textresult = re.sub(pattern, '', textresult)
-                    logs.write("Text result is {0}".format(
-                        textresult), 'success')
+                    log.info("Text result is {0}".format(
+                        textresult))
                     break
         if textresult != None:
             phrase = "According to {0}, {1}".format(url, textresult)
@@ -89,7 +88,7 @@ def print_gsearch(results):
 
 
 def google_search(user_query):
-    logs.write("In google search with query: " + str(user_query), 'working')
+    log.info("In google search with query: " + str(user_query))
     query = user_query
     query = urllib.urlencode({'q': query})
     response = urllib2.urlopen(
@@ -103,7 +102,7 @@ def google_search(user_query):
         pattern = re.compile('<.*?>')
         title = re.sub(pattern, '', title)
         if "Wikipedia, the free encyclopedia" in title:
-            logs.write("wiki_bool is true", 'working')
+            log.info("wiki_bool is true")
             titlelst = title.split('-')
             titlequery = titlelst[0].strip()
             return skwiki(titlequery)
@@ -111,7 +110,7 @@ def google_search(user_query):
             break
 
     if wiki_bool == False:
-        logs.write("wiki_bool is false", 'working')
+        log.info("wiki_bool is false")
         return print_gsearch(results)
 
 
@@ -121,7 +120,7 @@ def main(query):
     firstlower = firstword.lower()
     if firstlower == "search" or firstlower == "google":
         query = query.split(firstword + " ")[1]
-    logs.write("In main, query is:" + str(query), 'working')
+    log.info("In main, query is:" + str(query))
     appid = config.load_config()["wolfram"]["keys"][0]
     print "going into wolfram search"
     answer = wlfram_search(query, appid)

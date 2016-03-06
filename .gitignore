@@ -1,6 +1,6 @@
 # WILL specific ignores
 config.json
-WILL.log
+*.log
 content.txt
 
 # Python specific files

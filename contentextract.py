@@ -1,10 +1,7 @@
 import re
 import string
-from logs import logs as log
-from dateutil.parser import parse
-
 import nameextractor
-logs = log()
+from dateutil.parser import parse
 
 
 def Name_Extract(sentence):
