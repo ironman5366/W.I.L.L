@@ -47,7 +47,7 @@ def qparse(questionlist):
         if num == None:
             num = status
         else:
-            if status < num:
+            if status > num:
                 num = status
             else:
                 pass
