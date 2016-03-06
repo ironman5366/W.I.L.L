@@ -16,6 +16,7 @@ Features on the way you can look forward to:
 4. Adding better html parsing for google search (see the open issue for more info)
 4. Adding a slack plugin for automation
 5. Finishing the spotify plugin
+6. Slack backend channel support and multi device commuication capabilities
 
 Adding features/plugins:
 Anybody is welcome to add a plugin, it's in a farily self explanatory folder format with a plugin.json file that anybody who's worked with python, json, or programming before should be able to cleanly reverse engineer. I'm not planning to spend the time and write the documentation, but if somebody wants to I'd be happy to help and publish it. I'm also planning to eventually upload a plugin creation program.
