@@ -54,7 +54,7 @@ def _setup_logger():
 
 def _get_logging_config():
     # We'll eventually want better validating here
-    return config.load_config()["will"]["logging"]
+    return config.load_config("logging")
 
 
 def _get_logging_level():

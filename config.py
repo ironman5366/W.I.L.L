@@ -7,6 +7,10 @@ from termcolor import colored
 CONFIG_FILE_PATH = os.path.abspath("config.json")
 
 
+class HeaderNotFound(Exception):
+    pass
+
+
 def config_cache(pass_func):
     try:
         with open(CONFIG_FILE_PATH, 'r') as config:
@@ -27,8 +31,10 @@ def config_cache(pass_func):
         sys.stderr.flush()
         os.exit(1)
 
-    def dummy_config():
-        return c_cache
+    def dummy_config(header):
+        if header in c_cache:
+            return c_cache[header]
+        raise HeaderNotFound
 
     return dummy_config
 

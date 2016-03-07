@@ -8,7 +8,7 @@ import wolframalpha
 import config
 # import TTS_Talk
 import json as m_json
-import builtins.search.wcycle as wcycle
+from plugins.search.wcycle import app_id
 from logger import log
 # app_id number 2 : TWH856-2RPQQX96K
 
@@ -123,7 +123,6 @@ def main(query):
     if firstlower == "search" or firstlower == "google":
         query = query.split(firstword + " ")[1]
     log.info("In main, query is:" + str(query))
-    appid = config.load_config()["wolfram"]["keys"][0]
     print "going into wolfram search"
-    answer = wlfram_search(query, appid)
+    answer = wlfram_search(query, app_id())
     return answer
