@@ -82,7 +82,10 @@ def execute(plugin, command):
                     log.error("{0} occurred trying to fetch the item")
         # Run the plugin and return the result
         finalargs = tuple(finalargs)
-        result = getattr(imvar, plugfunction)(finalargs)
+	try:
+        	result = getattr(imvar, plugfunction)(finalargs)
+	except TypeError:
+		result = getattr(imvar, plugfunction)
         return result
     # If the plugin is a terminal command
     elif plugtype == "exec":
