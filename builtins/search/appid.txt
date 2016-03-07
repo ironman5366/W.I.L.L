@@ -1,4 +1,0 @@
-your appids here in the format
-1=mykey
-2=mykey2
-It will automatically cycle
