@@ -82,6 +82,8 @@ def print_gsearch(results):
         if textresult != None:
             phrase = "According to {0}, {1}".format(url, textresult)
             return (phrase).decode('utf8')
+        else:
+            return ("Could not successfully extract information from {0}".format(url))
         #pattern = re.compile('<.*?>')
         #title = re.sub(pattern, '', title)
         #logs.write(title, 'working')
