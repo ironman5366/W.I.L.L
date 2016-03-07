@@ -1,10 +1,18 @@
 import logging
 import os
+import sys
 import config
+from voluptuous import Schema, Required, Invalid, MultipleInvalid
 from termcolor import colored
 
 
 log = logging.getLogger('WILL')
+
+
+def fallback_error(error_msg):
+    sys.stderr.write(
+        colored("CRITICAL: {0}\n".format(error_msg), 'red')
+    )
 
 
 class ColorStreamHandler(logging.StreamHandler):
@@ -52,9 +60,36 @@ def _setup_logger():
     )
 
 
+def _valid_logging_config(log_config):
+    def valid_dir_path(path):
+        folder_path = os.path.dirname(os.path.realpath(path))
+        if not os.path.exists(folder_path):
+            raise Invalid("log_path directory doesn't exist!")
+    logging_schema = Schema({
+        Required("debug"): bool,
+        Required("log_path"): valid_dir_path,
+        Required("append_log"): bool
+    })
+    try:
+        logging_schema(log_config)
+    except MultipleInvalid as e:
+        fallback_error("Error parsing logging configuration.")
+        fallback_error(e)
+        return False
+    return True
+
+
 def _get_logging_config():
-    # We'll eventually want better validating here
-    return config.load_config("logging")
+    try:
+        log_config = config.load_config("logging")
+    except config.HeaderNotFound:
+        fallback_error("Configuration does not have a \"logging\" header. See")
+        fallback_error("example_config.json for details on setting up your config file.")  # noqa
+        sys.exit(1)
+
+    if not _valid_logging_config(log_config):
+        sys.exit(1)
+    return log_config
 
 
 def _get_logging_level():
