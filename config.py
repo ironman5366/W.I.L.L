@@ -1,7 +1,7 @@
 import json
 import os
 import sys
-from termcolor import colored
+from logger.fallback import error
 
 
 CONFIG_FILE_PATH = os.path.abspath("config.json")
@@ -16,18 +16,12 @@ def config_cache(pass_func):
         with open(CONFIG_FILE_PATH, 'r') as config:
             c_cache = json.load(config)
     except IOError:
-        sys.stderr.write(
-            colored("ERROR: Couldn't load config file.  Exiting.", 'red')
-        )
+        error("Couldn't load config file.  Exiting.")
         sys.stderr.flush()
         os.exit(1)
     except ValueError:  # Error on loading the json itself.
-        sys.stderr.write(
-            colored(
-                "ERROR: Couldn't load config file JSON. Formatting error?",
-                'red'
-            )
-        )
+        error("Couldn't load config file JSON. Formatting error?")
+        error("System shutting down.")
         sys.stderr.flush()
         os.exit(1)
 
