@@ -1,0 +1,1 @@
+[{"name": "echo"}, {"type": "exec"}, {"firstword": "no"}, {"synonyms": ["repeat"]}, {"require": ["command"]}, {"questiontriggers": "none"}, {"returns": "answer"}, {"structure": "echo command"}]

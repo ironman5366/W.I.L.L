@@ -1,0 +1,1 @@
+[{"name": "test"}, {"type": "python"}, {"firstword": "no"}, {"synonyms": ["example"]}, {"require": []}, {"questiontriggers": "none"}, {"returns": "answer"}, {"file": "test.py"}, {"function": "main"}]

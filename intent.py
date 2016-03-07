@@ -47,7 +47,7 @@ def qparse(questionlist):
         if num == None:
             num = status
         else:
-            if status < num:
+            if status > num:
                 num = status
             else:
                 pass
@@ -96,7 +96,7 @@ def parse(command, plugins):
         else:
             for syn in syns:
                 log.info("Checking synonym {0}".format(syn))
-                if firstword.lower() == syn:
+                if firstword.lower() == syn or syn in command.lower():
                     log.info("The command and synonym name match")
                     try:
                         return {'execute': plugin}
