@@ -1,19 +1,16 @@
 {
-  "will":
+  "logging":
   {
-    "logging":
-    {
-      "debug": true,
-      "log_path": "will.log",
-      "append_log": true
-    }
+    "debug": true,
+    "log_path": "will.log",
+    "append_log": true
   },
   "slack":
   {
     "token": "",
-    "domain": "",
-    "username": "",
-    "channel": ""
+    "domain": "your-domain.slack.com",
+    "username": "will",
+    "channel": "#general"
   },
   "wolfram":
   {

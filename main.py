@@ -25,7 +25,7 @@ app = Flask(__name__)
 
 def slack():
     '''Slack rtm reader started in seprate thread'''
-    slack_conf = config.load_config()["slack"]
+    slack_conf = config.load_config("slack")
     log.info("In slack function in new thread")
     sc = SlackClient(slack_conf["token"])
     if sc.rtm_connect():
