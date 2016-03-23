@@ -128,7 +128,7 @@ def main():
             else:
                 log.error("Unhandled error {0}. If you get this error message something is broken in the intent module. Please raise an issue on https://github.com/ironman5366/W.I.L.L".format(str(parsed.values()[0])))
     except Exception as e:
-        log.error(e, 'error')
+        log.exception(e)
         return str(e)
 
 
