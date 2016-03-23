@@ -5,30 +5,74 @@ import json
 import imp
 
 
-def load():
-    '''Go through all plugins and return the info from their plugin.json files to main.py'''
-    log.info("In plugin loader")
+def load(dir_name="plugins"):
+    """
+    Iterates over files and folders in the plugins directory and returns
+    meta data for plugins to be loaded.
+
+    Args:
+        dir_name (string):  The directory name or path where your plugins are
+            stored.
+
+    Returns:
+        list:  A list of dicts representing the meta data for plugins.
+
+    Raises:
+        IOError:  Raised if the directory/path specified in dir_name does not
+            exist or is not actually a directory.
+
+    """
     plugins = []
-    if os.path.isdir("plugins"):
-        plugindir = list(list(os.walk('plugins'))[0])
-        log.info("plugindir is {0}".format(plugindir))
-        for plugin in plugindir[1]:
-            log.info("Plugin is {0}".format(str(plugin)))
-            log.info("Loading plugin {0}".format(plugin))
-            log.info(
-                "plugin.json file path should be plugins/{0}/plugin.json".format(plugin))
-            if os.path.isfile('plugins/{0}/plugin.json'.format(plugin)):
-                pluginfo = json.loads(
-                    open('plugins/{0}/plugin.json'.format(plugin)).read())
-                plugins.append({plugin: pluginfo})
-                log.info("Loaded plugin {0}".format(plugin))
-            else:
-                log.error(
-                    "plugin.json file not found for plugin {0}".format(plugin))
-        return plugins
-    else:
-        log.error("Plugin directory not found")
-        return False
+    plugin_dir_path = os.path.abspath(dir_name)
+    plugin_paths = map(
+        lambda plugin_path: os.path.join(plugin_dir_path, plugin_path),
+        os.listdir(plugin_dir_path)
+    )
+
+    if not os.path.exists(plugin_dir_path) or not os.path.isdir(plugin_dir_path):  # noqa
+        log.error("Plugin directory not found.")
+        raise IOError
+
+    log.info("Loading plugins from {0}".format(plugin_dir_path))
+    for plugin_path in plugin_paths:
+        try:
+            plugins.append(
+                {os.path.basename(plugin_path): load_plugin(plugin_path)}
+            )
+        except IOError:
+            next
+
+    return plugins
+
+
+def load_plugin(plugin_path):
+    """
+    Loads and returns meta data for a given plugin.
+
+    Args:
+        plugin_path (string):  The directory path to a plugin.
+
+    Returns:
+        list:  A list of dicts representing meta data of the plugin specified
+            by the plugin_path.
+
+    Raises:
+        IOError:  Raised if the plugin's 'plugin.json' file doesn't exist.
+
+    """
+    plugin_json_path = os.path.join(plugin_path, "plugin.json")
+
+    if not os.path.isdir(plugin_path):
+        raise IOError
+    if not os.path.exists(plugin_json_path) or not os.path.isfile(plugin_json_path):  # noqa
+        log.warn("\"plugin.json\" at \"{0}\" does not exist.")
+        raise IOError
+
+    log.info("Loading plugin {0}".format(plugin_json_path))
+    with open(plugin_json_path, 'r') as json_file:
+        plugin_json = json.load(json_file)
+
+    return plugin_json
 
 
 def execute(plugin, command):
