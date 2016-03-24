@@ -1,8 +1,8 @@
-import glob
 import os
 from logger import log
 import json
 import imp
+import argfetcher
 
 
 def load(dir_name="plugins"):
@@ -75,99 +75,101 @@ def load_plugin(plugin_path):
     return plugin_json
 
 
+# TODO Remove this entirely.  It's a horrible way to work with dicts.
+def checkdicts(plugin, checkvar):
+    """
+    This function iterates over the dictionaries in the plugin list.
+    I have no excuse for it.
+    """
+    for plugin_dict in plugin.values()[0]:
+        if plugin_dict.keys()[0] == checkvar:
+            return plugin_dict.values()[0]
+    raise ValueError
+
+
+# TODO Document after plugin data is refactored
+def execute_python_plugin(plugin, command):
+    python_plugin_name = checkdicts(plugin, 'file')
+    python_plugin_path = os.path.abspath("plugins/{0}/{1}".format(
+        plugin.keys()[0], python_plugin_name
+    ))
+
+    log.info("Loading python plugin: {0}".format(python_plugin_path))
+    # Why are we reloading the python module every time we call out to it?
+    python_plugin_module = imp.load_source('plugfile', python_plugin_path)
+    python_plugin_entry_point = checkdicts(plugin, 'function')
+    final_arguments = (command,)  # Why wouldn't this just be
+    # "final_arguments=command" or better yet, just pass in the command itself
+
+    log.info("Calling into python plugin: {0}".format(python_plugin_path))
+    try:
+        return getattr(python_plugin_module,
+                       python_plugin_entry_point)(final_arguments)
+    except TypeError:
+        return getattr(python_plugin_module, python_plugin_entry_point)
+
+
+# TODO factor this out entirely
+def get_requirements(args):
+    results = []
+    for item in args:
+        try:
+            results.append(
+                {item: argfetcher.get(item)}
+            )
+        except Exception as e:
+            log.exception("{0} occured trying to fetch item".format(e))
+    return results
+
+
+# TODO factor this out entirely
+def construct_exec_command(structure, expected_arguments, final_arguments):
+    for item in expected_arguments:
+        for arg in final_arguments:
+            if arg.keys()[0] == item:
+                return structure.replace('{0}'.format(item), arg.values()[0])
+
+
+# TODO Document after plugin data is refactored
+def execute_exec_plugin(plugin, command):
+    expected_arguments = checkdicts(plugin, 'require')
+    structure = checkdicts(plugin, 'structure')
+    final_arguments = []
+
+    if expected_arguments == ["command"]:
+        final_arguments.append({"command": command})
+    else:
+        final_arguments = get_requirements(expected_arguments)
+
+    structure = construct_exec_command(
+        structure,
+        expected_arguments,
+        final_arguments
+    )
+
+    log.info("Executing comamnd {0}".format(structure))
+    results = os.popen(structure).read()
+    log.info("Executed command {0}, got {1}".format(structure, results))
+    if checkdicts(plugin, 'returns') == "answer":
+        return results
+    else:
+        return "Done"
+
+
+# TODO Document after the plugin data is refactored
 def execute(plugin, command):
-    '''Execute a plugin. The plugin arg is the info from the plugin.json file'''
-    def checkdicts(checkvar):
-        '''This function iterates over the dictionaries in the plugin list. I have no excuse for it.'''
-        log.info("Looking for {0} dictionary".format(checkvar))
-        for plugdict in plugin.values()[0]:
-            log.info("Checking dictionary {0}".format(plugdict))
-            if plugdict.keys()[0] == checkvar:
-                log.info("Found dictionary {0}".format(checkvar))
-                checkval = plugdict.values()[0]
-                break
-        return checkval
+    """
+    Execute a plugin. The plugin arg is the info from the plugin.json file
+    """
     log.info("Executing plugin {0}".format(plugin))
-    plugtype = checkdicts('type')
-    log.info("Plugin type is {0}".format(plugtype))
+    plugtype = checkdicts(plugin, 'type')
     # Check if the plugin wants the first word from the command.
-    firstword = checkdicts('firstword')
+    firstword = checkdicts(plugin, 'firstword')
     if firstword == 'no':
         command = command.split(command.split(" ")[0] + " ")[1]
-        log.info("removed the first word from the command. The command is now {0}".format(
-            command))
-    # If the plugin is a python plugin
+
     if plugtype == "python":
-        # Find the python file name and import it
-        log.info("Checking to get the name of the python file")
-        pyfile = checkdicts('file')
-        log.info("Trying to import python file {0}".format(pyfile))
-        pyimport = "plugins/{0}/{1}".format(plugin.keys()[0], pyfile)
-        log.info("Import path is {0}".format(pyimport))
-        imvar = imp.load_source('plugfile', pyimport)
-        log.info("Imported python plugin")
-        plugfunction = checkdicts('function')
-        # Find the required arguments
-        required = checkdicts('require')
-        needed = []
-        finalargs = []
-        for item in required:
-            needed.append(item)
-        if required == ["command"]:
-            finalargs.append(command)
-        else:
-            for item in required:
-                log.info("Trying to find argument {0}".format(item))
-                try:
-                    fetched = argfetcher.get(item)
-                    log.info("Fetched the argument {0}. The value was {1}".format(
-                        item, fetched))
-                except Exception as e:
-                    log.error("{0} occurred trying to fetch the item")
-        # Run the plugin and return the result
-        finalargs = tuple(finalargs)
-	try:
-        	result = getattr(imvar, plugfunction)(finalargs)
-	except TypeError:
-		result = getattr(imvar, plugfunction)
-        return result
+        return execute_python_plugin(plugin, command)
     # If the plugin is a terminal command
     elif plugtype == "exec":
-        # Check requirements
-        required = checkdicts('require')
-        needed = []
-        finalargs = []
-        for item in required:
-            needed.append(item)
-        if required == ["command"]:
-            finalargs.append({"command": command})
-        else:
-            # Get requirements
-            for item in required:
-                log.info("Trying to find argument {0}".format(item))
-                try:
-                    fetched = argfetcher.get(item)
-                    log.info("Fetched the argument {0}. The value was {1}".format(
-                        item, fetched))
-                    finalargs.append({item: fetched})
-                except Exception as e:
-                    log.error("{0} occurred trying to fetch the item")
-        # Find the terminal command structure
-        structure = checkdicts('structure')
-        # Compose the command
-        for item in required:
-            for arg in finalargs:
-                if arg.keys()[0] == item:
-                    finalval = arg.values()[0]
-                    log.info("Final value of {0} is {1}".format(
-                        arg, finalval))
-            structure = structure.replace('{0}'.format(item), finalval)
-        # Run the command and return the output
-        log.info("Executing comamnd {0}".format(structure))
-        resultvar = os.popen(structure).read()
-        log.info("Executed command {0}, got {1}".format(
-            structure, resultvar))
-        if checkdicts('returns') == "answer":
-            return resultvar
-        else:
-            return "Done"
+        return execute_exec_plugin(plugin, command)
