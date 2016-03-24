@@ -38,7 +38,7 @@ def get(objectvar, command):
                 return names
             else:
                 return names
-        elif objectvar == "email"
+        elif objectvar == "email":
             if "," in email:
                 email = email.split(",")[0]
                 return email
