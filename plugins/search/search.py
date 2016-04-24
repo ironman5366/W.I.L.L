@@ -5,11 +5,11 @@ import urllib
 import re
 import os
 import wolframalpha
-import config
+import will.config as config
 # import TTS_Talk
 import json as m_json
-from plugins.search.wcycle import app_id
-from logger import log
+from wcycle import app_id
+from will.logger import log
 # app_id number 2 : TWH856-2RPQQX96K
 
 

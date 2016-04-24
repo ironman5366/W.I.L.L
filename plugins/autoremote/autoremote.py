@@ -1,5 +1,5 @@
 import urllib2
-import config
+import will.config as config
 
 
 def main(command):

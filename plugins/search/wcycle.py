@@ -1,4 +1,4 @@
-import config
+import will.config as config
 import random
 
 

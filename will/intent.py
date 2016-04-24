@@ -1,6 +1,6 @@
 import glob
 import os
-from logger import log
+from will.logger import log
 
 
 def qparse(questionlist):

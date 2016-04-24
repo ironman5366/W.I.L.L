@@ -1,8 +1,9 @@
 import os
-from logger import log
+import sys
+from will.logger import log
 import json
 import imp
-import argfetcher
+import will.argfetcher as argfetcher
 
 
 def load(dir_name="plugins"):
@@ -93,6 +94,10 @@ def execute_python_plugin(plugin, command):
     python_plugin_path = os.path.abspath("plugins/{0}/{1}".format(
         plugin.keys()[0], python_plugin_name
     ))
+    lib_path = os.path.abspath("plugins/{0}".format(plugin.keys()[0]))
+
+    if lib_path not in sys.path:
+        sys.path.append(lib_path)
 
     log.info("Loading python plugin: {0}".format(python_plugin_path))
     # Why are we reloading the python module every time we call out to it?

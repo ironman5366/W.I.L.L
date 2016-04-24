@@ -1,6 +1,6 @@
 import re
 import string
-import nameextractor
+import will.nameextractor
 from dateutil.parser import parse
 
 

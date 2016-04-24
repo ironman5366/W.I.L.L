@@ -8,14 +8,11 @@ import requests
 import threading
 import json
 import time
-import os
 import logging
 
 # internals
-from logger import log
+from will.logger import log
 import plugins as plugs
-import contentextract
-import personality
 import intent
 import config
 
@@ -82,7 +79,9 @@ def main():
         log.debug("Command is {0}".format(command))
         log.info("Analyzing content in command")
         # Run command through contentextract.py
-        contentextract.main(command)
+
+        # Until this is actually implemented, leave it commented out.
+        # contentextract.main(command)
         log.info("Analyzed command content")
         log.info("Trying to load plugin modules")
         # Load plugins using plugins.py
@@ -132,7 +131,7 @@ def main():
         return str(e)
 
 
-if __name__ == "__main__":
+def run():
     '''Open logs, check log settings, and start the flask server and slack thread'''
     log.info('''
 
