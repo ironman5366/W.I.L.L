@@ -2,6 +2,7 @@ import json
 import os
 import sys
 from logger.fallback import error
+from ftools import memoize
 
 
 CONFIG_FILE_PATH = os.path.abspath("config.json")
@@ -11,28 +12,25 @@ class HeaderNotFound(Exception):
     pass
 
 
-def config_cache(pass_func):
+@memoize
+def _load_config_json():
     try:
         with open(CONFIG_FILE_PATH, 'r') as config:
-            c_cache = json.load(config)
+            return json.load(config)
     except IOError:
-        error("Couldn't load config file.  Exiting.")
+        error("Couldn't load config file. Exiting.")
         sys.stderr.flush()
         os.exit(1)
     except ValueError:  # Error on loading the json itself.
-        error("Couldn't load config file JSON. Formatting error?")
-        error("System shutting down.")
+        error("Couldn't load config file JSON.  Formatting error?")
+        error("system shutting down.")
         sys.stderr.flush()
         os.exit(1)
 
-    def dummy_config(header):
-        if header in c_cache:
-            return c_cache[header]
-        raise HeaderNotFound
 
-    return dummy_config
-
-
-@config_cache
-def load_config():
-    pass
+@memoize
+def load_config(header):
+    config = _load_config_json()
+    if header in config:
+        return config[header]
+    raise HeaderNotFound
