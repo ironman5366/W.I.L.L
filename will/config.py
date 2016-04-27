@@ -20,12 +20,12 @@ def _load_config_json():
     except IOError:
         error("Couldn't load config file. Exiting.")
         sys.stderr.flush()
-        os.exit(1)
+        sys.exit(1)
     except ValueError:  # Error on loading the json itself.
         error("Couldn't load config file JSON.  Formatting error?")
         error("system shutting down.")
         sys.stderr.flush()
-        os.exit(1)
+        sys.exit(1)
 
 
 @memoize
