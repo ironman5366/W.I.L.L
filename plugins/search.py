@@ -5,12 +5,57 @@ import urllib
 import re
 import os
 import wolframalpha
+import wikipedia
+import random
 import will.config as config
+import will.plugins.API as API
 # import TTS_Talk
 import json as m_json
-from wcycle import app_id
 from will.logger import log
+from _codecs import encode
 # app_id number 2 : TWH856-2RPQQX96K
+
+
+question_leaders = (
+    "who",
+    "where",
+    "when",
+    "why",
+    "what",
+    "which",
+    "how",
+    "who's",
+    "where's",
+    "when's",
+    "why's",
+    "what's",
+    "which's",
+    "how's",
+    "is",
+    "are",
+    "am",
+    "was",
+    "were",
+    "will",
+    "do",
+    "does",
+    "did",
+    "have",
+    "had",
+    "has",
+    "can",
+    "could",
+    "should",
+    "shall",
+    "may",
+    "might",
+    "would"
+)
+
+
+def app_id():
+    app_ids = config.load_config("wolfram")["keys"]
+    return random.choice(app_ids)
 
 
 def wlfram_search(user_query, appid):
@@ -38,22 +83,12 @@ def wlfram_search(user_query, appid):
 def skwiki(titlequery):
     log.info("in skwiki")
     log.info(titlequery)
-    assert isinstance(titlequery, object)
-    path = os.getcwd()
-    path += ("/plugins/search/")
-    oscmd = "python " + path + "getsummary.py %s" % titlequery
-    # I don't know why I had to do it like this but theres a dictionary in the
-    # wikipedia module that the summary cannot be extracted from in an import
-    resultvar = os.popen(oscmd).read()
-    log.info("result fetched")
-    log.info(str(resultvar))
-    #	phrase = "According to wikipedia " + wikipedia.summary(titlequery, sentences=1)
-    #	pattern = re.compile('/.*?/')
-    #	phrase = re.sub(pattern,'',phrase)
-    #	pattern = re.compile('\(.*?\)')
-    #	phrase = re.sub(pattern,'',phrase)
-    #    	TTS_Talk.tts_talk(phrase)
-    return resultvar.decode('utf8')
+    try:
+        return wikipedia.summary(titlequery, sentences=2). \
+            encode("ascii", "ignore")
+    except wikipedia.exceptions.DisambiguationError as e:
+        return wikipedia.summary(e.options[0], sentences=2). \
+           encode("ascii", "ignore") 
 
 
 def print_gsearch(results):
@@ -116,13 +151,12 @@ def google_search(user_query):
         return print_gsearch(results)
 
 
-def main(query):
-    query = query[0]
+@API.subscribe_to(question_leaders)
+def main(word, query):
     firstword = query.split(' ')[0]
-    firstlower = firstword.lower()
-    if firstlower == "search" or firstlower == "google":
-        query = query.split(firstword + " ")[1]
+    if word == "search" or word == "google":
+        query = query.split(" ")[1:]
     log.info("In main, query is:" + str(query))
-    print "going into wolfram search"
+    log.info("Going into wolfram search")
     answer = wlfram_search(query, app_id())
     return answer

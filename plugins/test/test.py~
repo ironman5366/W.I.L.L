@@ -1,2 +1,0 @@
-def main(command):
-	print "Hello, world!"

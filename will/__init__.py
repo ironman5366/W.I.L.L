@@ -12,7 +12,7 @@ import logging
 
 # internals
 from will.logger import log
-import plugins as plugs
+import plugins
 import intent
 import config
 
@@ -60,12 +60,13 @@ def slack():
                     # could add exceptions or easter eggs
                     answer = requests.get(
                         'http://127.0.0.1:5000/?context=command&command={0}'.format(action.values()[0])).text
-                    print sc.api_call(
-                        "chat.postMessage",
-                        channel=slack_conf["channel"],
-                        text="{0}".format(answer),
-                        username=slack_conf["username"]
-                    )
+                    if answer != '':
+                        print sc.api_call(
+                            "chat.postMessage",
+                            channel=slack_conf["channel"],
+                            text="{0}".format(answer),
+                            username=slack_conf["username"]
+                        )
     else:
         log.error("Connection Failed, invalid token?")
 
@@ -75,57 +76,12 @@ def main():
     '''Take command from 127.0.0.1:5000 and run it through various modules'''
     try:
         # Get command
-        command = request.args.get("command", '')
-        log.debug("Command is {0}".format(command))
-        log.info("Analyzing content in command")
-        # Run command through contentextract.py
-
-        # Until this is actually implemented, leave it commented out.
-        # contentextract.main(command)
-        log.info("Analyzed command content")
-        log.info("Trying to load plugin modules")
-        # Load plugins using plugins.py
-        plugins = plugs.load()
-        # If the plugins encounter an error
-        if plugins is False:
-            log.error("Could not load plugins")
-            return "error"
-        # If plugins.py says that there are no plugins found. All functions are
-        # a plugin so no point in continuing
-        elif plugins == []:
-            log.error("No plugins found")
-            return 'error'
-        log.info("Successfully loaded plugin modules")
-        log.info("Using the intent module to parse the command")
-        # Use intent.py to try to extract intent from command
-        parsed = intent.parse(command, plugins)
-        log.info("Parsed the command")
-        # If the intent parser says to execute the following plugin. Leaves
-        # room if I ever want to expand the capabilities of the intent module
-        if parsed.keys()[0] == "execute":
-            log.info("Executing plugin {0}".format(
-                parsed.values()[0].keys()[0]))
-            response = plugs.execute(parsed.values()[0], command)
-            log.info("Found answer {0}, returning it".format(
-                response))
-            return response
-        elif parsed.keys()[0]=="error":
-            log.error("Parse function returned the error {0}".format(parsed.values()[0]))
-            if parsed.values()[0]=="notfound":
-                #This would have unhandled exceptions if the search plugin was gone, but I can't imagine why it would be
-                log.error("The error means that the command was not recognized")
-                log.info("Using the search plugin on the command phrase")
-                log.info("Trying to find search plugin")
-                for plugin in plugins:
-                    if plugin.keys()[0]=="search":
-                        searchplug=plugin
-                        break
-                log.info("Found search plugin")
-                response=plugs.execute(searchplug,command)
-                log.info("Found answer {0}, returning it".format(response))
-                return response
-            else:
-                log.error("Unhandled error {0}. If you get this error message something is broken in the intent module. Please raise an issue on https://github.com/ironman5366/W.I.L.L".format(str(parsed.values()[0])))
+        plugin_command = plugins.Command(request.args.get("command", ''))
+        return_values = plugin_command.dispatch_event()
+        if len(return_values) > 0:
+            return '\n'.join(return_values)
+        else:
+            return ''
     except Exception as e:
         log.exception(e)
         return str(e)
@@ -146,6 +102,7 @@ def run():
         debugval = True
     else:
         debugval = False
+    plugins.load_plugins("plugins/")
     log.info("Debug value is {0}".format(debugval))
     log.info("Connecting to rtm socket")
     t = threading.Thread(target=slack)
