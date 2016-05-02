@@ -3,6 +3,7 @@ import sys
 import importlib
 from pydispatch import dispatcher
 from collections import Iterable
+from will.logger import log
 
 # Events
 EVT_INIT = "will_evt_init"
@@ -30,17 +31,27 @@ def event(events):
     return decorator
 
 
+def get_module(file_path):
+    if not os.path.exists(file_path):
+        raise IOError("No such file or directory: {0}".format(file_path))
+
+    if file_path.endswith('.py'):
+        return os.path.basename(file_path).split('.')[0]  # returns the file path without the .py extension
+    elif os.path.isdir(file_path):
+        if not os.path.exists(os.path.join(file_path, '__init__.py')):
+            raise IOError("No such file or directory: {0}".format(file_path))
+        return os.path.basename(file_path)
+    raise IOError("File is not a python plugin: {0}".format(file_path))
+
+
 def load_plugin(path):
     file_path = os.path.abspath(path)
     lib_path = os.sep.join(file_path.split(os.sep)[:-1])
 
-    if file_path.endswith('.py'):
-        module_name = os.path.basename(file_path).split('.')[0]
-    elif os.path.isdir(file_path):
-        if not os.path.exists(os.path.join(file_path, '__init__.py')):
-            return
-        module_name = os.path.basename(file_path)
-    else:
+    try:
+        module_name = get_module(file_path)
+        log.debug(module_name)
+    except IOError:
         return
 
     if lib_path not in sys.path:
