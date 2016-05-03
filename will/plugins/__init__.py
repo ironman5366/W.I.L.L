@@ -1,11 +1,19 @@
 import pyplugins
+import os
 from pydispatch import dispatcher
 from will.collections import DictObject
 
 
-def load_plugins(dir_path):
-    pyplugins.load_plugins(dir_path)
-    # JSON plugins loaded second
+def load(dir_path):
+    plugins = (dir_path.join(module_path)
+               for module_path in os.listdir(str(dir_path)))
+    load_plugins(plugins, pyplugins.plugin_loader)
+    # JSON plugins loaded next
+    dispatcher.send(signal=pyplugins.EVT_INIT)
+
+
+def load_plugins(plugin_paths, plugin_loader):
+    map(lambda plugin: plugin_loader(plugin), plugin_paths)
 
 
 def unload_all():

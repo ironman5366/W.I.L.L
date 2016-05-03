@@ -31,41 +31,58 @@ def event(events):
     return decorator
 
 
-def get_module(file_path):
-    if not os.path.exists(file_path):
-        raise IOError("No such file or directory: {0}".format(file_path))
+class PluginFilePath:
+    def __init__(self, file_path):
+        self.file_path = file_path
 
-    if file_path.endswith('.py'):
-        return os.path.basename(file_path).split('.')[0]  # returns the file path without the .py extension
-    elif os.path.isdir(file_path):
-        if not os.path.exists(os.path.join(file_path, '__init__.py')):
-            raise IOError("No such file or directory: {0}".format(file_path))
-        return os.path.basename(file_path)
-    raise IOError("File is not a python plugin: {0}".format(file_path))
+    def __str__(self):
+        return str(self.file_path)
+
+    def get_lib_path(self):
+        return os.path.normpath(
+            os.sep.join(str(self.file_path).split(os.sep)[:-1])
+        )
+
+    def get_module_name(self):
+        if not self.file_path.exists():
+            raise IOError("No such file or directory: {0}".format(self.file_path))
+
+        if self.file_path.is_directory():
+            return self._dir_path()
+        else:
+            return self._file_path()
+
+    def is_plugin(self):
+        for call in [self._file_path, self._dir_path]:
+            try:
+                call()
+            except IOError:
+                continue
+            return True
+        return False
+
+    def _file_path(self):
+        if str(self.file_path).endswith('.py'):
+            return self.file_path.base_name().split('.')[0]
+        raise IOError("File is not a python plugin: {0}".format(self.file_path))
+
+    def _dir_path(self):
+        if self.file_path.join('__init__.py').exists():
+            return self.file_path.base_name()
+        raise IOError("File is not a python plugin: {0}".format(self.file_path))
 
 
-def load_plugin(path):
-    file_path = os.path.abspath(path)
-    lib_path = os.sep.join(file_path.split(os.sep)[:-1])
-
+def plugin_loader(path):
+    plugin_path = PluginFilePath(path)
+    lib_path = plugin_path.get_lib_path()
     try:
-        module_name = get_module(file_path)
-        log.debug(module_name)
+        if plugin_path.is_plugin():
+            log.info("Loading plugin: {0}".format(str(plugin_path)))
+            if lib_path not in sys.path:
+                sys.path.append(lib_path)
+            importlib.import_module(plugin_path.get_module_name())
     except IOError:
         return
-
-    if lib_path not in sys.path:
-        sys.path.append(lib_path)
-    importlib.import_module(module_name)
-
-
-def load_plugins(dir_path):
-    dir_path = os.path.abspath(dir_path)
-    map(
-        lambda plugin: load_plugin(plugin),
-        (os.path.join(dir_path, module_path) for module_path in os.listdir(dir_path))  # noqa
-    )
-    dispatcher.send(signal=EVT_INIT)
 
 
 def unload_all():

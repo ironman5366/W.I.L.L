@@ -102,7 +102,7 @@ def run():
         debugval = True
     else:
         debugval = False
-    plugins.load_plugins("plugins/")
+    plugins.load(config.FilePath("plugins/"))
     log.info("Debug value is {0}".format(debugval))
     log.info("Connecting to rtm socket")
     t = threading.Thread(target=slack)
