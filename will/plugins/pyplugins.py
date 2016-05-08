@@ -4,6 +4,7 @@ import importlib
 from pydispatch import dispatcher
 from collections import Iterable
 from will.logger import log
+from will.collections import DictObject
 
 # Events
 EVT_INIT = "will_evt_init"
@@ -31,58 +32,42 @@ def event(events):
     return decorator
 
 
-class PluginFilePath:
-    def __init__(self, file_path):
-        self.file_path = file_path
+def get_import_name(path, fs_tools=os.path):
+    if path.endswith('.py') and fs_tools.exists(path):
+        return fs_tools.basename(path).split('.')[0]
+    if fs_tools.isdir(path) and fs_tools.exists(fs_tools.join(path, '__init__.py')):
+        return fs_tools.basename(path)
+    raise IOError("File is not a python plugin: {0}".format(path))
 
-    def __str__(self):
-        return str(self.file_path)
 
-    def get_lib_path(self):
-        return os.path.normpath(
-            os.sep.join(str(self.file_path).split(os.sep)[:-1])
+def get_lib_path(path):
+    return os.path.normpath(
+        os.sep.join(os.path.normpath(path).split(os.sep)[:-1])
+    )
+
+
+def load_plugin_meta_data(path):
+    try:
+        return DictObject(
+            lib_path=get_lib_path(path),
+            import_name=get_import_name(path),
+            is_plugin=True
         )
-
-    def get_module_name(self):
-        if not self.file_path.exists():
-            raise IOError("No such file or directory: {0}".format(self.file_path))
-
-        if self.file_path.is_directory():
-            return self._dir_path()
-        else:
-            return self._file_path()
-
-    def is_plugin(self):
-        for call in [self._file_path, self._dir_path]:
-            try:
-                call()
-            except IOError:
-                continue
-            return True
-        return False
-
-    def _file_path(self):
-        if str(self.file_path).endswith('.py'):
-            return self.file_path.base_name().split('.')[0]
-        raise IOError("File is not a python plugin: {0}".format(self.file_path))
-
-    def _dir_path(self):
-        if self.file_path.join('__init__.py').exists():
-            return self.file_path.base_name()
-        raise IOError("File is not a python plugin: {0}".format(self.file_path))
+    except IOError:
+        return DictObject(
+            lib_path="",
+            import_name="",
+            is_plugin=False
+        )
 
 
 def plugin_loader(path):
-    plugin_path = PluginFilePath(path)
-    lib_path = plugin_path.get_lib_path()
-    try:
-        if plugin_path.is_plugin():
-            log.info("Loading plugin: {0}".format(str(plugin_path)))
-            if lib_path not in sys.path:
-                sys.path.append(lib_path)
-            importlib.import_module(plugin_path.get_module_name())
-    except IOError:
-        return
+    meta_data = load_plugin_meta_data(path)
+    if meta_data.is_plugin:
+        log.info("Loading plugin: {0}".format(path))
+        if meta_data.lib_path not in sys.path:
+            sys.path.append(meta_data.lib_path)
+        importlib.import_module(meta_data.import_name)
 
 
 def unload_all():

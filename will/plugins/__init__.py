@@ -5,8 +5,8 @@ from will.collections import DictObject
 
 
 def load(dir_path):
-    plugins = (dir_path.join(module_path)
-               for module_path in os.listdir(str(dir_path)))
+    plugins = (os.path.join(dir_path, module_path)
+               for module_path in os.listdir(dir_path))
     load_plugins(plugins, pyplugins.plugin_loader)
     # JSON plugins loaded next
     dispatcher.send(signal=pyplugins.EVT_INIT)
