@@ -18,7 +18,7 @@ class GetImportName(unittest.TestCase):
 
     @patch('os.path.exists')
     @patch('os.path.isdir')
-    def test_ShouldReturnBasenameIfPyModuleExists(self, exists, isdir):
+    def test_ShouldReturnBasenameIfPyModuleExists(self, isdir, exists):
         """
         Should return the basename of the python module if the directory exists
         and if there is an '__init__.py' in the directory.
@@ -43,7 +43,7 @@ class GetImportName(unittest.TestCase):
 
     @patch('os.path.isdir')
     @patch('os.path.exists')
-    def test_ShouldRaiseIOErrorIfInitPyDoesNotExist(self, isdir, exists):
+    def test_ShouldRaiseIOErrorIfInitPyDoesNotExist(self, exists, isdir):
         """
         Should raise IOError if __init__.py does not exist in plugin directory.
         """
