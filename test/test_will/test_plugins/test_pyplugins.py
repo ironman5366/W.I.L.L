@@ -1,12 +1,12 @@
-import unittest
 import os
 from expects import *
 from mock import MagicMock, patch
+from will.unittests import TestCase
 
 import will.plugins.pyplugins as pyplugins
 
 
-class GetImportName(unittest.TestCase):
+class GetImportName(TestCase):
     @patch('os.path.exists')
     def test_ShouldReturnBasenameIfPyExists(self, exists):
         """Should return the basename of the python python file if the file exists"""
@@ -66,7 +66,7 @@ class GetImportName(unittest.TestCase):
         )).to(raise_error(IOError))
 
 
-class TestGetLibPath(unittest.TestCase):
+class TestGetLibPath(TestCase):
     @staticmethod
     def test_ShouldReturnBasePath():
         """
@@ -79,7 +79,7 @@ class TestGetLibPath(unittest.TestCase):
         )
 
 
-class TestLoadPluginMetaData(unittest.TestCase):
+class TestLoadPluginMetaData(TestCase):
     @staticmethod
     def test_ShouldReturnDictObjectWithIsPluginAsFalse():
         """

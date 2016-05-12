@@ -1,10 +1,10 @@
-import unittest
 from mock import MagicMock
 from expects import *
 import will.plugins as plugins
+from will.unittests import TestCase
 
 
-class TestLoadPlugins(unittest.TestCase):
+class TestLoadPlugins(TestCase):
     def test_ShouldCallPluginLoaderOnEachPluginInPluginPaths(self):
         plugin_loader = MagicMock()
         plugin_paths = "some.py plugins.py to.py check.py".split(' ')
