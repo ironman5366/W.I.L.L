@@ -1,0 +1,4 @@
+{
+    "key_words": ["notify"],
+    "command": "notify-send \"{0}\""
+}
