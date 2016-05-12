@@ -1,5 +1,3 @@
-from unittest import TestCase
-
 import os
 from will.unittests import TestCase
 from expects import *

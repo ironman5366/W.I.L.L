@@ -1,14 +1,17 @@
 import pyplugins
 import os
+import jsonplugins
 from pydispatch import dispatcher
 from will.collections import DictObject
+from will.logger import log
 
 
 def load(dir_path):
-    plugins = (os.path.join(dir_path, module_path)
-               for module_path in os.listdir(dir_path))
-    load_plugins(plugins, pyplugins.plugin_loader)
-    # JSON plugins loaded next
+    plugins = lambda: (os.path.join(dir_path, module_path)
+                       for module_path in os.listdir(dir_path))
+    load_plugins(plugins(), pyplugins.plugin_loader)
+    load_plugins(plugins(), jsonplugins.plugin_loader)
+
     dispatcher.send(signal=pyplugins.EVT_INIT)
 
 
@@ -30,7 +33,8 @@ class Command(DictObject):
     def dispatch_event(self):
         return_values = []
         return_values.extend(
-            dispatcher.send(pyplugins.EVT_ANY_INPUT, dispatcher.Any, self.expression)
+            dispatcher.send(pyplugins.EVT_ANY_INPUT, dispatcher.Any,
+                            self.expression)
         )
         return_values.extend(
             dispatcher.send(
@@ -38,5 +42,6 @@ class Command(DictObject):
         )
 
         if len(return_values) > 0:
-            return map(lambda x: x[1], return_values)
+            return map(lambda x: '' if x is None else x,
+                       map(lambda x: x[1], return_values))
         return tuple()
