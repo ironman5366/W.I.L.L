@@ -7,12 +7,12 @@ class JsonData_IsValid(TestCase):
     def test_ShouldReturnTrueIfDataIsValid(self):
         valid_data = {
             "with_key_words": {
-                "key_words": ['notify'],
-                "command": "notify-send \"{0}\""
+                u"key_words": [u"notify"],
+                u"command": u"notify-send \"{0}\""
             },
 
             "without_key_words": {
-                "command": "notify-send \"{0}\""
+                u"command": u"notify-send \"{0}\""
             }
         }
         json_data = JsonData(valid_data["with_key_words"])
@@ -24,17 +24,17 @@ class JsonData_IsValid(TestCase):
     def test_ShouldReturnFalseIfDataIsInvalid(self):
         invalid_data = {
             "gibberish": {
-                "some": "random",
-                "values": "here"
+                u"some": u"random",
+                u"values": u"here"
             },
 
             "no_command": {
-                "key_words": ['notify']
+                u"key_words": [u"notify"]
             },
 
             "key_words_without_list": {
-                "key_words": "notify",
-                "command": "notify-send \"{0}\""
+                u"key_words": u"notify",
+                u"command": u"notify-send \"{0}\""
             }
         }
         json_data = JsonData(invalid_data["gibberish"])
