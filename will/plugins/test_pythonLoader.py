@@ -35,3 +35,11 @@ class PythonLoader_IsPlugin(TestCase):
         plugin_module = PythonLoader("plugin/my_plugin")
 
         expect(plugin_module.is_plugin(fs_tools=os.path)).to(be_true)
+
+    @patch('os.path.exists')
+    def test_ShouldReturnFalseIfPluginDoesNotExist(self, exists):
+        exists.return_value = False
+        plugin_file = PythonLoader("plugins/my_plugin.py")
+
+        expect(plugin_file.is_plugin(fs_tools=os.path)).to(be_false)
+

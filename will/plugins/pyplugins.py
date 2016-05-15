@@ -59,11 +59,14 @@ class PythonLoader:
         self.file_path = file_path
 
     def load(self):
-        pass
+        if self.is_plugin():
+            self.update_path()
+            importlib.import_module(self.import_name())
 
     def is_plugin(self, fs_tools=os.path):
         if fs_tools.exists(self.file_path):
-            if fs_tools.isfile(self.file_path):
+            if fs_tools.isfile(self.file_path) and \
+                    self.file_path.endswith('.py'):
                 return True
             if fs_tools.isdir(self.file_path):
                 init_file = os.path.join(self.file_path, "__init__.py")
@@ -78,7 +81,9 @@ class PythonLoader:
             return os.path.basename(self.file_path)
 
     def update_path(self):
-        pass
+        lib_path = self._lib_path()
+        if lib_path not in sys.path:
+            sys.path.append(lib_path)
 
     def _lib_path(self):
         return os.path.normpath(
