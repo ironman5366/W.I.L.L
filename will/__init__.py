@@ -9,11 +9,11 @@ import threading
 import json
 import time
 import logging
+import atexit
 
 # internals
 from will.logger import log
 import plugins
-import intent
 import config
 
 
@@ -87,6 +87,12 @@ def main():
         return str(e)
 
 
+@atexit.register
+def exit_func():
+    log.info("Keyboard Interupt detected.  Shutting down.")
+    plugins.unload_all()
+
+
 def run():
     '''Open logs, check log settings, and start the flask server and slack thread'''
     log.info('''
@@ -109,4 +115,4 @@ def run():
     t.daemon=True #Kills the thread on program exit
     t.start()
     log.info("Starting flask server on localhost")
-    print app.run(debug=debugval, use_reloader=False)
+    app.run(debug=debugval, use_reloader=False)
