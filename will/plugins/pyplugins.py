@@ -3,8 +3,6 @@ import sys
 import importlib
 from pydispatch import dispatcher
 from collections import Iterable
-from will.logger import log
-from will.collections import DictObject
 
 # Events
 EVT_INIT = "will_evt_init"
@@ -89,42 +87,3 @@ class PythonLoader:
         return os.path.normpath(
             os.sep.join(os.path.normpath(self.file_path).split(os.sep)[:-1])
         )
-
-
-def get_import_name(path, fs_tools=os.path):
-    if path.endswith('.py') and fs_tools.exists(path):
-        return fs_tools.basename(path).split('.')[0]
-    if fs_tools.isdir(path) and fs_tools.exists(fs_tools.join(path, '__init__.py')):
-        return fs_tools.basename(path)
-    raise IOError("File is not a python plugin: {0}".format(path))
-
-
-def get_lib_path(path):
-    return os.path.normpath(
-        os.sep.join(os.path.normpath(path).split(os.sep)[:-1])
-    )
-
-
-def load_plugin_meta_data(path):
-    try:
-        return DictObject(
-            lib_path=get_lib_path(path),
-            import_name=get_import_name(path),
-            is_plugin=True
-        )
-    except IOError:
-        return DictObject(
-            lib_path="",
-            import_name="",
-            is_plugin=False
-        )
-
-
-def plugin_loader_old(path):
-    meta_data = load_plugin_meta_data(path)
-    if meta_data.is_plugin:
-        log.info("Loading plugin: {0}".format(path))
-        if meta_data.lib_path not in sys.path:
-            sys.path.append(meta_data.lib_path)
-        importlib.import_module(meta_data.import_name)
-
