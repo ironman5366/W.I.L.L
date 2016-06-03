@@ -49,7 +49,9 @@ question_leaders = (
     "shall",
     "may",
     "might",
-    "would"
+    "would",
+    "search",
+    "google"
 )
 
 
