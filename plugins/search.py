@@ -153,9 +153,8 @@ def google_search(user_query):
 
 @API.subscribe_to(question_leaders)
 def main(word, query):
-    firstword = query.split(' ')[0]
-    if word == "search" or word == "google":
-        query = query.split(" ")[1:]
+    if word not in ("google", "search"):
+        query = ' '.join((word, query))
     log.info("In main, query is:" + str(query))
     log.info("Going into wolfram search")
     answer = wlfram_search(query, app_id())

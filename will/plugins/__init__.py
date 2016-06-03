@@ -3,7 +3,6 @@ import os
 import jsonplugins
 from pydispatch import dispatcher
 from will.collections import DictObject
-from will.logger import log
 
 
 def load(dir_path):
@@ -24,8 +23,10 @@ def unload_all():
 
 
 class Command(DictObject):
+
     def __init__(self, expression):
         word = expression.split(' ')[0].lower()  # First word of expression
+        expression = expression[len(word) + 1:]
         super(Command, self).__init__(word=word,
                                       event=word,
                                       expression=expression)

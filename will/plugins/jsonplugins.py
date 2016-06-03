@@ -73,9 +73,7 @@ class PluginBuilder:
             @API.subscribe_to(key_words)
             def plugin(leader, full_text):
                 PluginBuilder.thread_shell_call(
-                    self.plugin_data["command"].format(
-                        full_text[len(leader) + 1:]
-                    )
+                    self.plugin_data["command"].format(full_text)
                 )
         else:
             @API.subscribe_to_any
