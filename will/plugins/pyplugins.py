@@ -3,6 +3,7 @@ import sys
 import importlib
 from pydispatch import dispatcher
 from collections import Iterable
+from will.logger import log
 
 # Events
 EVT_INIT = "will_evt_init"
@@ -53,11 +54,13 @@ def event(events):
 
 
 class PythonLoader:
+
     def __init__(self, file_path):
         self.file_path = file_path
 
     def load(self):
         if self.is_plugin():
+            log.info("Loading plugin: {0}".format(self.file_path))
             self.update_path()
             importlib.import_module(self.import_name())
 
