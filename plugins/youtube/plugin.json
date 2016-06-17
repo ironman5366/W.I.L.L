@@ -1,1 +1,0 @@
-[{"name": "youtube"}, {"type": "python"}, {"require": ["command"]}, {"firstword":"yes"}, {"pos": "verb"}, {"file": "youtube.py"}, {"function": "main"}, {"returns": "completion"}, {"synonyms": []}, {"questiontriggers": "none"}]

@@ -1,1 +1,0 @@
-[{"name": "open"}, {"type": "exec"}, {"require": ["command"]}, {"pos": "verb"}, {"returns": "completion"}, {"synonyms": []}, {"questiontriggers": "none"},{"firstword":"no"}, {"structure":"xdg-open command"}]

@@ -1,3 +1,0 @@
-1=yourkey
-2=yoursecondkey
-3=yougetthegist

@@ -1,0 +1,15 @@
+Good Morning sir:Morning,polite=10;humor=0/f=hello
+Good Afternoon sir:Afternoon,polite=10;humor=0/f=hello
+Good Day sir:Neutral,polite=10;humor=0/f=hello
+Good Night sir:Night,polite=10;humor=0/f=goodbye
+Good Evening sit:Night,polite=10;humor=0/f=hello
+Hello sir:Neutral,polite=10;humor=0/f=hello
+Goodbye sir:Neutral,polite=10;humor=0/f=goodbye
+Good Morning:Morning,polite=5;humor=0/f=hello
+Good Day:Neutral,polite=5;humor=0/f=hello
+Howdy:Neutral,polite=3;humor=7/f=hello
+Look What the cat dragged in!:Neutral,polite=0;humor=10/f=hello
+You woke me up!:Morning,polite=0;humor=10/f=hello
+You again:Neutral,polite=0;humor=10/f=hello
+A Pleasure to see you again sir:Neutral,polite=10;humor=0/f=hello
+Morning!:Morning,polite=10;humor=0/f=hello

@@ -1,0 +1,5 @@
+{
+    "key_words": ["open"],
+    "command": "xdg-open {0}"
+}
+
