@@ -6,9 +6,6 @@ import logging
 import threading
 import time
 
-#Internal libs
-import plugin_manager
-
 #Variables to determine if parsing is done
 done = {
     "parsing": False,
