@@ -101,8 +101,10 @@ class JsonData:
         validation_schema = Schema({
             "key_words": list,
             "init": unicode,
-            "shutdown": unicode,
-            Required("command"): unicode
+            "shutdown" : unicode,
+            "ents" : list,
+            "pos_needed" : dict,
+            Required("command"): unicode,
         })
         try:
             validation_schema(self.plugin_data)

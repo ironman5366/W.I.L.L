@@ -14,7 +14,7 @@ from will.logger import log
 import plugins
 import config
 
-
+#TODO: seperate the server and client code and add an api to communicate between the two
 
 def main(command):
     logging.info("In main function, command is {0}".format(command))
@@ -27,7 +27,6 @@ def main(command):
         "command" : command,
         "username" : username,
         "password" : password,
-        "plugins" : plugvars
     }
 
 

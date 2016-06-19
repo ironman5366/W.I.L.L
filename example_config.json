@@ -5,11 +5,5 @@
     "log_path": "will.log",
     "append_log": true
   },
-{
-  "username":
-          "myuser",
-  "pass":
-          //Encrypted value
-          "ewpifjoewihgoerighoiewjfoweijf"
-}
+"username" : "willbeddow",
 }

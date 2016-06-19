@@ -25,6 +25,8 @@ Decorators currently provided:
     Key Word Events:
         @subscribe_to
         @subscribe_to_any
+    Parsing events:
+        @require
 
 Example:
 >> # plugins/echo.py
@@ -119,3 +121,6 @@ subscribe_to = plugins.event
 Standard logging for WILL.  See python's "logging" module for documentation.
 """
 log = logger.log
+
+#TODO: add require docs
+require = plugins.nlp_reqs

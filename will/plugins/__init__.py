@@ -3,9 +3,11 @@ import os
 import jsonplugins
 from pydispatch import dispatcher
 from will.collections import DictObject
+import logging
 
 
 def load(dir_path):
+    '''Loads plugins'''
     plugins = lambda: (os.path.join(dir_path, module_path)
                        for module_path in os.listdir(dir_path))
     load_plugins(plugins(), pyplugins.plugin_loader)
@@ -15,12 +17,12 @@ def load(dir_path):
 
 
 def load_plugins(plugin_paths, plugin_loader):
+    ''''''
     map(lambda plugin: plugin_loader(plugin), plugin_paths)
 
 
 def unload_all():
     pyplugins.unload_all()
-
 
 class Command(DictObject):
 

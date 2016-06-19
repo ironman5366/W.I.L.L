@@ -4,6 +4,7 @@ import importlib
 from pydispatch import dispatcher
 from collections import Iterable
 from will.logger import log
+from will.webapi import nlp
 
 # Events
 EVT_INIT = "will_evt_init"
@@ -34,6 +35,8 @@ def unload_all():
             dispatcher.disconnect(handler, signal=event)
             _event_handlers[event].remove(handler)
 
+def nlp_reqs(plug_info):
+    nlp.add_reqs(plug_info)
 
 def event(events):
     def subscribe(evt, func):
