@@ -54,6 +54,7 @@ class PluginBuilder:
         self.build_init_callback()
         self.build_subscribed_callback()
         self.build_shutdown_callback()
+        self.build_nlp_req_add()
 
     def build_init_callback(self):
         if "init" in self.plugin_data:
@@ -90,7 +91,14 @@ class PluginBuilder:
                 PluginBuilder.thread_shell_call(
                     self.plugin_data["shutdown"]
                 )
-
+    #TODO: test this and make sure I can access it properly
+    def build_nlp_req_add(self):
+        if "nlp_reqs" in self.plugin_data:
+            @API.require
+            def plugin(nlp_req_data):
+                PluginBuilder.thread_shell_call(
+                    self.plugin_data_data["nlp_reqs"].format(nlp_req_data)
+                )
 
 class JsonData:
 
@@ -102,8 +110,7 @@ class JsonData:
             "key_words": list,
             "init": unicode,
             "shutdown" : unicode,
-            "ents" : list,
-            "pos_needed" : dict,
+            "require" : dict,
             Required("command"): unicode,
         })
         try:
