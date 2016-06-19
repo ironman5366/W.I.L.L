@@ -24,3 +24,5 @@ websocket-client==0.35.0
 Werkzeug==0.11.4
 wikipedia==1.4.0
 wolframalpha==2.2
+spacy==0.101.0
+keyring==9.0
