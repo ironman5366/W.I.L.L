@@ -1,5 +1,6 @@
 #External libs
 from spacy.en import English
+from numba import jit
 
 #Builtin libs
 import logging
@@ -27,7 +28,8 @@ plugins_left structure:
 {"name": "test",
 "ents_needed" : ["PERSON", "PHONE"],
 "structure" : {"needed":["VERB"]},
-"questions_needed" : True}
+"questions_needed" : True},
+"keywords" : [],
 ]
 '''
 
@@ -43,10 +45,9 @@ current_data = {
 #Define an english parser
 parser = English()
 
-#TODO: consider adding a timer so parsing doesn't take too long
-
 class main():
     '''Nlp functions'''
+    @jit
     def elimination(self):
         '''Thread to eliminate plugins that are incompatible'''
         #Check if the keywords match before anything else starts
@@ -104,6 +105,7 @@ class main():
 
         done['elimination'] = True
         return plugins_left
+    @jit
     def entity_recognition(self, parsed_data):
         '''Entity recognition: organizations, people, numbers, etc.'''
         ents = list(parsed_data.ents)
@@ -111,6 +113,7 @@ class main():
         for entity in ents:
             final_ents.update({' '.join(t.orth_ for t in entity): entity.label_})
         return final_ents
+    @jit
     def POS(self, parsed_data):
         '''POS tagging'''
         tags = {}
@@ -123,6 +126,7 @@ class main():
         logging.info('Checking if the sentence is a question')
         first_word = sentence.split(" ")[0].lower()
         return first_word in q_words
+    @jit
     def load(self, text):
         '''Load data into spacy nlp'''
         logging.info("Loading text {0} into spacy.".format(str(text)))

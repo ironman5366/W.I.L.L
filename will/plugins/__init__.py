@@ -4,6 +4,7 @@ import jsonplugins
 from pydispatch import dispatcher
 from will.collections import DictObject
 import logging
+from will import nlp
 
 
 def load(dir_path):
@@ -12,9 +13,7 @@ def load(dir_path):
                        for module_path in os.listdir(dir_path))
     load_plugins(plugins(), pyplugins.plugin_loader)
     load_plugins(plugins(), jsonplugins.plugin_loader)
-
     dispatcher.send(signal=pyplugins.EVT_INIT)
-
 
 def load_plugins(plugin_paths, plugin_loader):
     ''''''

@@ -14,30 +14,34 @@ from will.logger import log
 import plugins
 import config
 import webapi
+from will import nlp
 
-session_data = {"username" : False, "password" : False, "session_id" : False}
+session_data = {"command" : False, "username" : False, "password" : False, "session_id" : False}
 
+#TODO: add command and user selection to the nlp
+#TODO: uncomment the web based lines
 def main(command):
     log.info("In main function, command is {0}".format(command))
     #Form json request
     log.info("Forming json request")
-    username = config.load_config("username")
-    session_data["username"] = username
-    password = keyring.get_password("WILL", username)
-    session_data["password"] = password
+    #username = config.load_config("username")
+    #session_data["username"] = username
+    #password = keyring.get_password("WILL", username)
+    #session_data["password"] = password
     log.info("Starting the session")
     #Start the session
-    session_id = webapi.session().start({"username":username,"password":password})
-    session_data["session_id"] = session_id
+    #session_id = webapi.session().start({"username":username,"password":password})
+    #session_data["session_id"] = session_id
     #Start the nlp parser for the session
-    log.info("session_id is {0}".format(session_id))
+    #log.info("session_id is {0}".format(session_id))
     log.info("Starting plugin parsing")
+    plugins.Command()
 
 @atexit.register
 def exit_func():
     #End the session
     logging.info("Ending the session")
-    webapi.session().end(session_data)
+    #webapi.session().end(session_data)
     log.info("Shutting down.")
     plugins.unload_all()
 

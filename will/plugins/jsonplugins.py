@@ -54,7 +54,6 @@ class PluginBuilder:
         self.build_init_callback()
         self.build_subscribed_callback()
         self.build_shutdown_callback()
-        self.build_nlp_req_add()
 
     def build_init_callback(self):
         if "init" in self.plugin_data:
@@ -65,13 +64,9 @@ class PluginBuilder:
                 )
 
     def build_subscribed_callback(self):
-        if "key_words" in self.plugin_data:
-            # make sure everything in the list is a string
-            key_words = map(lambda x: str(x),
-                self.plugin_data["key_words"]  # noqa
-            )  # noqa
-
-            @API.subscribe_to(key_words)
+        if "reqs " in self.plugin_data:
+            reqs = self.plugin_data['reqs']
+            @API.subscribe_to(reqs)
             def plugin(leader, full_text):
                 PluginBuilder.thread_shell_call(
                     self.plugin_data["command"].format(full_text)
@@ -91,15 +86,6 @@ class PluginBuilder:
                 PluginBuilder.thread_shell_call(
                     self.plugin_data["shutdown"]
                 )
-    #TODO: test this and make sure I can access it properly
-    def build_nlp_req_add(self):
-        if "nlp_reqs" in self.plugin_data:
-            @API.require
-            def plugin(nlp_req_data):
-                PluginBuilder.thread_shell_call(
-                    self.plugin_data_data["nlp_reqs"].format(nlp_req_data)
-                )
-
 class JsonData:
 
     def __init__(self, json_data):
@@ -107,11 +93,10 @@ class JsonData:
 
     def is_valid(self):
         validation_schema = Schema({
-            "key_words": list,
+            Required("reqs"): dict,
             "init": unicode,
             "shutdown" : unicode,
-            "require" : dict,
-            Required("command"): unicode,
+            "command": unicode,
         })
         try:
             validation_schema(self.plugin_data)

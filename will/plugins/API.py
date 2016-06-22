@@ -25,8 +25,6 @@ Decorators currently provided:
     Key Word Events:
         @subscribe_to
         @subscribe_to_any
-    Parsing events:
-        @require
 
 Example:
 >> # plugins/echo.py
@@ -44,6 +42,7 @@ received.
 
 import pyplugins as plugins
 import will.logger as logger
+#TODO: fix this to be server bound
 
 
 """
@@ -115,12 +114,10 @@ def echo(keyword, full_text):
 def echo(keyword, full_text):
     return full_text
 """
+#TODO: add docs about modified subscribe decorator
 subscribe_to = plugins.event
 
 """
 Standard logging for WILL.  See python's "logging" module for documentation.
 """
 log = logger.log
-
-#TODO: add require docs
-require = plugins.nlp_reqs

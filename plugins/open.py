@@ -2,7 +2,10 @@ import will.plugins.API as API
 import sys
 import os
 #TODO: finish this
-@API.subscribe_to('open')
+@API.subscribe_to({
+    "name" : "open",
+    "key_words" : ["open"]
+})
 def open_sys(file):
     '''Open most files on the system using that systems builtin methods'''
     platform = sys.platform
@@ -17,3 +20,4 @@ def open_sys(file):
     elif "lin" in platform:
         #If on Linux
         open_command = "xdg-open {0}".format(file)
+    os.system(open_command)
