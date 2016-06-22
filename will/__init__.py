@@ -13,27 +13,32 @@ import atexit
 from will.logger import log
 import plugins
 import config
+import webapi
 
-#TODO: seperate the server and client code and add an api to communicate between the two
+session_data = {"username" : False, "password" : False, "session_id" : False}
 
 def main(command):
-    logging.info("In main function, command is {0}".format(command))
+    log.info("In main function, command is {0}".format(command))
     #Form json request
-    logging.info("Forming json request")
+    log.info("Forming json request")
     username = config.load_config("username")
+    session_data["username"] = username
     password = keyring.get_password("WILL", username)
-
-    request = {
-        "command" : command,
-        "username" : username,
-        "password" : password,
-    }
-
-
+    session_data["password"] = password
+    log.info("Starting the session")
+    #Start the session
+    session_id = webapi.session().start({"username":username,"password":password})
+    session_data["session_id"] = session_id
+    #Start the nlp parser for the session
+    log.info("session_id is {0}".format(session_id))
+    log.info("Starting plugin parsing")
 
 @atexit.register
 def exit_func():
-    log.info("Keyboard Interupt detected.  Shutting down.")
+    #End the session
+    logging.info("Ending the session")
+    webapi.session().end(session_data)
+    log.info("Shutting down.")
     plugins.unload_all()
 
 
@@ -52,5 +57,6 @@ def run():
         debugval = True
     else:
         debugval = False
+    #Load the plugins
     plugins.load("plugins/")
     log.info("Debug value is {0}".format(debugval))

@@ -9,36 +9,28 @@ import urllib
 #TODO: in the future (in the public betas) add a server to check nearest server and redirect to that
 
 SERVER_IP = "107.170.142.65"
-sessionid = False
-credentials = {"username":False,:"password":False}
 
-# Encode the data
+def post(url,data):
+    post_url = "{0}/{1}".format(SERVER_IP,url)
+    try:
+        request = requests.post(post_url,data)
+        return request.json
+    except Exception as post_error:
+        logging.error(post_error.message)
+        return False
+
 class session():
     '''Session management section'''
     def start(self, sessiondata):
         '''Start the session'''
-        global credentials
-        credentials["username"] = sessiondata["username"]
-        credentials["password"] = sessiondata["password"]
-        request = requests.post("{0}/start_session".format(SERVER_IP), sessiondata)
-        response = request.json
-        global sessionid
-        sessionid = response['sessionid']
-        return response
+        return post("/start_session",sessiondata)
     def end(self, sessiondata):
-        request = requests.post("{0}/end_session".format(SERVER_IP),sessiondata)
-        response = request.json
-        return response
-class send():
+        return post("/end_session",sessiondata)
+
+class nlp():
     '''Data to send to the server'''
-    def nlp_reqs(self, reqs):
-        request_data = {
-            "sessionid" : sessionid,
-            "username" : credentials["username"],
-            "password" : credentials["password"],
-           "req_data" : reqs
-        }
-        request = requests.post("{0}/nlp/add_req.".format(SERVER_IP), request_data)
-        response = request.json
-        return response
-#TODO: Finish this
+    def start(self, session_data):
+        return post("/nlp/start",session_data)
+    def send_reqs(self, reqs, session_data):
+        request_data = session_data.update(reqs)
+        return post("/nlp/send_reqs",request_data)

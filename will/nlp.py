@@ -44,11 +44,27 @@ current_data = {
 parser = English()
 
 #TODO: consider adding a timer so parsing doesn't take too long
+
 class main():
     '''Nlp functions'''
     def elimination(self):
         '''Thread to eliminate plugins that are incompatible'''
-        plugins_left = current_plugins
+        #Check if the keywords match before anything else starts
+        global plugins_left
+        data_keys = current_data["keywords"]
+        if data_keys:
+            for plugin in current_plugins:
+                found = False
+                plug_keys = plugin["keywords"]
+                if plug_keys:
+                    for keyword in data_keys:
+                        if keyword in plug_keys:
+                            found = True
+                            break
+                if found:
+                    plugins_left.append(plugin)
+        else:
+            plugins_left = current_plugins
         #While the parsing part of the program isn't finished
         while not done["parsing"]:
             #Iterate over the plugins that haven't been eliminated
@@ -80,9 +96,12 @@ class main():
                         if not current_data['questions']:
                             plugins_left.remove(plugin)
                             break
-            if len(plugins_left == 1):
+
+            left_len = len(plugins_left)
+            if left_len == 1:
                 done['elimination'] = True
                 return plugins_left
+
         done['elimination'] = True
         return plugins_left
     def entity_recognition(self, parsed_data):
@@ -117,9 +136,6 @@ class main():
         #Get spacey loaded data
         parsed_data = self.load(sentence)
         #Threaded functions for each part of the nlp
-        def check_keywords(sentence):
-            for word in sentence.split(" "):
-
         def get_ents(parsed_data):
             '''Get the entity data'''
             logging.info("Getting entity data")
