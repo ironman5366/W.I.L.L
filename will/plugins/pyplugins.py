@@ -34,25 +34,28 @@ def unload_all():
         for handler in handlers[:]:
             dispatcher.disconnect(handler, signal=event)
             _event_handlers[event].remove(handler)
-
-def event(events):
+def event(events, **kwargs):
     def subscribe(evt, func):
         dispatcher.connect(func, signal=evt)
         if event not in _event_handlers:
             _event_handlers[evt] = []
         _event_handlers[evt].append(func)
 
+
     def decorator(func):
         log.info(func)
-        #Append the plugin data to the nlp parsing que
-        nlp.current_plugins.append(func)
-        if not isinstance(events, str) and isinstance(events, Iterable):
+        # Append the plugin data to the nlp parsing que
+        nlp.current_plugins.append({event:func})
+        if not isinstance(events, str) and isinstance(events, Iterable) and not isinstance(events, dict):
             for evt in events:
                 log.info(evt)
                 subscribe(evt, func)
+        elif isinstance(events, dict):
+            subscribe(frozenset(events.items()), func)
         else:
             subscribe(events, func)
         return func
+
 
     return decorator
 

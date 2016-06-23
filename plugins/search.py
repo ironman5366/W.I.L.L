@@ -153,7 +153,12 @@ def google_search(user_query):
         return print_gsearch(results)
 
 
-@API.subscribe_to(question_leaders)
+@API.subscribe_to({
+"name": "search",
+"ents_needed" : False,
+"structure" : {"needed":False},
+"questions_needed" : False,
+"key_words" : ["search","google"]})
 def main(word, query):
     if word not in ("google", "search"):
         query = ' '.join((word, query))

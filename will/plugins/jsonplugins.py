@@ -6,6 +6,7 @@ import API
 import subprocess
 import threading
 
+#TODO: get these working
 
 def plugin_loader(file_path):
     json_loader = JsonLoader(file_path)
@@ -93,7 +94,7 @@ class JsonData:
 
     def is_valid(self):
         validation_schema = Schema({
-            Required("reqs"): dict,
+            "name": unicode,
             "init": unicode,
             "shutdown" : unicode,
             "command": unicode,

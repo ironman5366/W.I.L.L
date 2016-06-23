@@ -3,7 +3,7 @@ import os
 import jsonplugins
 from pydispatch import dispatcher
 from will.collections import DictObject
-import logging
+from will.logger import log
 from will import nlp
 
 
@@ -27,11 +27,13 @@ class Command(DictObject):
 
     def __init__(self, expression):
         word = expression.split(' ')[0].lower()  # First word of expression
+        plugins_left = nlp.main().parse(expression)
         expression = expression[len(word) + 1:]
         super(Command, self).__init__(word=word,
                                       event=word,
-                                      expression=expression)
-
+                                      expression=expression,
+                                      plugins_left=plugins_left)
+    #TODO: fix the way the subscribing and dispatching is handled
     def dispatch_event(self):
         return_values = []
         return_values.extend(

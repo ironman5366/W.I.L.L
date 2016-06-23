@@ -35,7 +35,8 @@ def main(command):
     #Start the nlp parser for the session
     #log.info("session_id is {0}".format(session_id))
     log.info("Starting plugin parsing")
-    plugins.Command()
+    plugins_left = plugins.Command(command)
+    print str(plugins_left)
 
 @atexit.register
 def exit_func():

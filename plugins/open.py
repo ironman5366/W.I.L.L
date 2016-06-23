@@ -3,9 +3,11 @@ import sys
 import os
 #TODO: finish this
 @API.subscribe_to({
-    "name" : "open",
-    "key_words" : ["open"]
-})
+"name": "open",
+"ents_needed" : False,
+"structure" : {"needed":["VERB"]},
+"questions_needed" : False,
+"key_words" : ["open"]})
 def open_sys(file):
     '''Open most files on the system using that systems builtin methods'''
     platform = sys.platform
