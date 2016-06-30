@@ -16,7 +16,6 @@ def load(dir_path):
     dispatcher.send(signal=pyplugins.EVT_INIT)
 
 def load_plugins(plugin_paths, plugin_loader):
-    ''''''
     map(lambda plugin: plugin_loader(plugin), plugin_paths)
 
 
@@ -32,7 +31,6 @@ class Command(DictObject):
         super(Command, self).__init__(word=word,
                                       event=word,
                                       expression=expression)
-    #TODO: fix the way the subscribing and dispatching is handled
     def dispatch_event(self):
         return_values = []
         log.info("In dispatch_event")

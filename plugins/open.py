@@ -15,19 +15,15 @@ def open_sys(*args, **kwargs):
     platform = str(sys.platform)
     print platform
     if not os.path.isfile(file):
-        print "File {0} not found".format(file)
-        return 'File not found'
+        return 'File {0} not found'.format(file)
     if "win32" in platform:
         #If on windows
-        print "On windows"
         open_command = "start {0}".format(file)
-        print open_command
     elif "darwin" in platform:
         #If on os x
         open_command = "open {0}".format(file)
     elif "lin" in platform:
         #If on Linux
         open_command = "xdg-open {0}".format(file)
-    print open_command
     os.system(open_command)
     return "Done"

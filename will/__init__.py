@@ -22,21 +22,10 @@ session_data = {"command" : False, "username" : False, "password" : False, "sess
 #TODO: uncomment the web based lines
 def main(command):
     log.info("In main function, command is {0}".format(command))
-    #Form json request
-    log.info("Forming json request")
-    #username = config.load_config("username")
-    #session_data["username"] = username
-    #password = keyring.get_password("WILL", username)
-    #session_data["password"] = password
-    log.info("Starting the session")
-    #Start the session
-    #session_id = webapi.session().start({"username":username,"password":password})
-    #session_data["session_id"] = session_id
-    #Start the nlp parser for the session
-    #log.info("session_id is {0}".format(session_id))
     log.info("Starting plugin parsing")
     plugin_command = plugins.Command(command)
-    plugin_command.dispatch_event()
+    answer = plugin_command.dispatch_event()
+    return answer
 @atexit.register
 def exit_func():
     #End the session

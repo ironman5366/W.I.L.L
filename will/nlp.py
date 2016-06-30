@@ -197,4 +197,12 @@ class main():
         while not done['elimination']:
             time.sleep(0.001)
         log.info("plugins_left is {0}. Returning.".format(plugins_left))
-        plugins_final = plugins_left
+        log.info("Finalizing nlp, current_data is {0}".format(str(current_data)))
+        plugins_final = []
+        for plugin in plugins_left:
+            final_plugin = {
+                "name" : plugin["name"],
+                "ents" : current_data["ents"],
+                "struct_needed" : current_data["structure"]["tags"]
+            }
+            plugins_final.append(final_plugin)
