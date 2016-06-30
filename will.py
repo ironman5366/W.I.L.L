@@ -1,6 +1,18 @@
 import will
-
+import easygui
+import sys
 
 will.run()
 
-will.main("open /home/Will/Documents/W.I.L.L/will.py")
+#Basic client debugging code
+def command():
+    command_str = easygui.enterbox(title="W.I.L.L",msg="Please enter a command.")
+    if command_str:
+        will.main(command_str)
+        command()
+    else:
+        if easygui.ynbox("Would you like to exit?"):
+            sys.exit()
+        else:
+            command()
+command()

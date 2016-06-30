@@ -35,6 +35,8 @@ def unload_all():
             dispatcher.disconnect(handler, signal=event)
             _event_handlers[event].remove(handler)
 def event(events, **kwargs):
+    log.info("In event, events are {0}".format(str(events)))
+    log.info("In event, kwargs are {0}".format(str(kwargs)))
     def subscribe(evt, func):
         dispatcher.connect(func, signal=evt)
         if event not in _event_handlers:
@@ -45,13 +47,19 @@ def event(events, **kwargs):
     def decorator(func):
         log.info(func)
         # Append the plugin data to the nlp parsing que
-        nlp.current_plugins.append({event:func})
+        nlp.current_plugins.append(events)
         if not isinstance(events, str) and isinstance(events, Iterable) and not isinstance(events, dict):
             for evt in events:
-                log.info(evt)
+                log.info("subscribing evt {0}".format(evt))
                 subscribe(evt, func)
         elif isinstance(events, dict):
-            subscribe(frozenset(events.items()), func)
+            log.info(events)
+            evt_name = events["name"]
+            if evt_name:
+                log.info("Subscribing {0} to {1}".format(evt_name, str(func)))
+                subscribe(evt_name, func)
+            else:
+                log.info("Error: event {0} has no attribute name".format(str(events)))
         else:
             subscribe(events, func)
         return func

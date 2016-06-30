@@ -18,7 +18,7 @@ done = {
 #TODO: add a framework that can discriminate based on where certain tags are
 
 #TODO: fix jit
-
+plugins_final = None
 #Currently known plugins
 current_plugins = []
 
@@ -54,8 +54,10 @@ class main():
         #Check if the keywords match before anything else starts
         global plugins_left
         data_keys = current_data["key_words"]
+        log.info("current_plugins is {0}".format(current_plugins))
+        log.info("current_data is {0}".format(current_data))
         if data_keys:
-            for plugin in current_plugins.keys():
+            for plugin in current_plugins:
                 found = False
                 plug_keys = plugin["key_words"]
                 if plug_keys:
@@ -70,7 +72,7 @@ class main():
         #While the parsing part of the program isn't finished
         while not done["parsing"]:
             #Iterate over the plugins that haven't been eliminated
-            for plugin in plugins_left.keys():
+            for plugin in plugins_left:
                 #Check if required entities have been obtained
                 if done["ents"]:
                     log.info("Ents is done, checking")
@@ -179,6 +181,8 @@ class main():
         done["parsing"] = True
     def parse(self, sentence):
         '''Main parsing function'''
+        global plugins_final
+        plugins_final = None
         log.info("In parsing function.")
         log.info("Sentence is {0}".format(str(sentence)))
         #TODO: add a function or thread that detects key words from synonyms or similar words
@@ -192,4 +196,5 @@ class main():
         p_thread.start()
         while not done['elimination']:
             time.sleep(0.001)
-        return plugins_left
+        log.info("plugins_left is {0}. Returning.".format(plugins_left))
+        plugins_final = plugins_left
