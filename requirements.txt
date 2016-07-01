@@ -27,3 +27,4 @@ wolframalpha==2.2
 spacy==0.101.0
 keyring==9.0
 numba==0.26.0
+pychromecast==0.7.3

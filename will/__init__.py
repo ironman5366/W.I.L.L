@@ -19,7 +19,7 @@ from will import nlp
 session_data = {"command" : False, "username" : False, "password" : False, "session_id" : False}
 
 #TODO: add command and user selection to the nlp
-#TODO: uncomment the web based lines
+#TODO: add a framework to ask questions back
 def main(command):
     log.info("In main function, command is {0}".format(command))
     log.info("Starting plugin parsing")
