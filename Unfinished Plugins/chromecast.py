@@ -9,13 +9,13 @@ from splinter import Browser
 
 #TODO: eventually do this as part of the framework insetad of a standalone ui
 
-@API.subscribe_to({
-"name": "cast",
-"ents_needed" : ["ORG"],
-"structure" : {"needed":["VERB"]},
-"questions_needed" : False,
-"key_words" : ["cast", "netflix", "hulu", "hbo"]})
-#TODO: Finisht he cast function and add netflix support via splinter
+#@API.subscribe_to({
+#"name": "cast",
+#"ents_needed" : ["ORG"],
+#"structure" : {"needed":["VERB"]},
+#"questions_needed" : False,
+#"key_words" : ["cast", "netflix", "hulu", "hbo"]})
+#TODO: Finish the cast function and add netflix support via splinter
 def main(leader, sentence, *args, **kwargs):
     def cast(chromecast):
         cast = pychromecast.get_chromecast(friendly_name=chromecast)
