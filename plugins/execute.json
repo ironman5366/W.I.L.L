@@ -1,4 +1,8 @@
 {
-    "key_words": ["exec"],
-    "command": "{0}"
+  "name" : "exec",
+  "ents_needed" : {},
+  "structure" : {"needed" : false},
+  "questions_needed" : false,
+  "key_words" : ["exec"],
+  "command" : "{headless_text}"
 }

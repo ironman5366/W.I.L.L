@@ -1,8 +1,7 @@
 # 3rd party libs
-from slackclient import SlackClient
-from flask import request
-from flask import Flask
 import requests
+import keyring
+from pydispatch import dispatcher
 
 # Builtin libs
 import threading
@@ -15,81 +14,76 @@ import atexit
 from will.logger import log
 import plugins
 import config
+import webapi
+from will import nlp
 
+session_data = {"command" : False, "username" : False, "password" : False, "session_id" : False}
 
-app = Flask(__name__)
-
-
-def slack():
-    '''Slack rtm reader started in seprate thread'''
-    slack_conf = config.load_config("slack")
-    log.info("In slack function in new thread")
-    sc = SlackClient(slack_conf["token"])
-    if sc.rtm_connect():
-        log.info("Connected to rtm socket")
-    while True:
-        time.sleep(0.1)
-        # Get message from rtm socket
-        message = sc.rtm_read()
-        # If the message isn't empty
-        if message != []:
-            # If the message is text as opposed to a notification. Eventually
-            # plan to have other kinds of messages in a backend communications
-            # channel.
-            if message[0].keys()[0] == 'text':
-                command = message[0].values()[0]
-                log.debug(command)
-                # The commands are json or plain text. If it isn't a json
-                # backend command, interpret it as a "normal" command
-                try:
-                    command = json.loads(command)
-                except ValueError:
-                    command = [{'type': 'command'}, {'devices': 'all'}, {
-                        'action': "{0}".format(command)}]
-                # Json slack commands or management can eventually be formatted like so: [{"type":"management/command",{"devices":"all/mobile/desktop/network/device name"},{"action":"message content"}]
-                # Not sure if I want to do that in the backend or command
-                # channel or what really, but I'm definitely working with it.
-                commandtype = command[0]
-                devices = command[1]
-                action = command[2]
-                # Replace thisdevicename with whatever you want to name yours
-                # in the W.I.L.L slack network (obviously)
-                if devices.values()[0] == 'all' or devices.values()[0] == slack_conf["domain"]:
-                    log.info("Checking local W.I.L.L server")
-                    # Hit W.I.L.L with the command. This is also where you
-                    # could add exceptions or easter eggs
-                    answer = requests.get(
-                        'http://127.0.0.1:5000/?context=command&command={0}'.format(action.values()[0])).text
-                    if answer != '':
-                        print sc.api_call(
-                            "chat.postMessage",
-                            channel=slack_conf["channel"],
-                            text="{0}".format(answer),
-                            username=slack_conf["username"]
-                        )
+#TODO: add command and user selection to the nlp
+def main(command):
+    log.info("In main function, command is {0}".format(command))
+    if isinstance(command,dict):
+        return_type = command["return_type"]
+        return_action = command["return_action"]
+        return_args = command["return_args"]
+        if return_type.lower() == "python":
+            try:
+                return_module = command["return_module"]
+                module_import = __import__("{0}.{1}".format(return_module,return_action))
+                if return_args:
+                    dispatcher.send(module_import, dispatcher.Any, return_args)
+                else:
+                    dispatcher.send(module_import,dispatcher.Any)
+            except Exception as python_exception:
+                error_string = "Error {0},{1} occurred while trying to run {2} with args {3}".format(python_exception.message, python_exception.args, return_action, str(return_args))
+                log.info(error_string)
+                return error_string
+        elif return_type.lower() == "url":
+            payload = {}
+            if return_args:
+                if isinstance(return_args, dict):
+                    payload.update(return_args)
+                else:
+                    log.info("Error, return_type was url but return_args wasn't a dict and wasn't none. It was {0}".format(str(type(return_args))))
+                    return "Error, return_args needs to be a dict of url parameters or none if return_type is url"
+            try:
+                url_request = requests.post(url=return_action,data=payload)
+                return url_request.text
+            except Exception as url_exception:
+                error_string = "Error {0},{1} occurred while trying to fetch url {2} with data {3}".format(url_exception.message,url_exception.args,return_action,str(payload))
+                log.info(error_string)
+                return error_string
+    log.info("Starting plugin parsing")
+    plugin_command = plugins.Command(command)
+    answer = plugin_command.dispatch_event()
+    answer = answer[0]
+    response = {
+        "return_type" : None,
+        "return_action" : None,
+        "text" : None,
+    }
+    if not isinstance(answer, str):
+        log.info("Answer is not a string")
+        log.info("Answer is {0} and answer type is {1}".format(str(answer),str(type(answer))))
+        if isinstance(answer, dict):
+            return_type = answer["return_type"]
+            return_action = answer["return_action"]
+            query = answer["query"]
+            response.update({"return_type":return_type,"text":query,"return_action":return_action})
     else:
-        log.error("Connection Failed, invalid token?")
-
-
-@app.route("/")
-def main():
-    '''Take command from 127.0.0.1:5000 and run it through various modules'''
-    try:
-        # Get command
-        plugin_command = plugins.Command(request.args.get("command", ''))
-        return_values = plugin_command.dispatch_event()
-        if len(return_values) > 0:
-            return '\n'.join(return_values)
-        else:
-            return ''
-    except Exception as e:
-        log.exception(e)
-        return str(e)
-
+        log.info("Answer is a string")
+        response.update({"return_type":"answer","text":answer})
+        log.info("response is {0}".format(response))
+    log.info("Response data is {0}".format(str(response)))
+    response_json = json.dumps(response)
+    return response_json
 
 @atexit.register
 def exit_func():
-    log.info("Keyboard Interupt detected.  Shutting down.")
+    #End the session
+    logging.info("Ending the session")
+    #webapi.session().end(session_data)
+    log.info("Shutting down.")
     plugins.unload_all()
 
 
@@ -108,11 +102,6 @@ def run():
         debugval = True
     else:
         debugval = False
+    #Load the plugins
     plugins.load("plugins/")
     log.info("Debug value is {0}".format(debugval))
-    log.info("Connecting to rtm socket")
-    t = threading.Thread(target=slack)
-    t.daemon=True #Kills the thread on program exit
-    t.start()
-    log.info("Starting flask server on localhost")
-    app.run(debug=debugval, use_reloader=False)

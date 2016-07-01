@@ -34,3 +34,11 @@ def load_config(header):
     if header in config:
         return config[header]
     raise HeaderNotFound
+
+
+def add_config(config_item):
+    config = _load_config_json
+    config.update(config_item)
+    config_file = open("config.json", 'w')
+    config_file.write(json.dump(config))
+    config.close()

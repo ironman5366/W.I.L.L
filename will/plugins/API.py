@@ -42,6 +42,7 @@ received.
 
 import pyplugins as plugins
 import will.logger as logger
+#TODO: fix this to be server bound
 
 
 """
@@ -113,6 +114,7 @@ def echo(keyword, full_text):
 def echo(keyword, full_text):
     return full_text
 """
+#TODO: add docs about modified subscribe decorator
 subscribe_to = plugins.event
 
 """
