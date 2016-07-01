@@ -56,22 +56,24 @@ def main(command):
     log.info("Starting plugin parsing")
     plugin_command = plugins.Command(command)
     answer = plugin_command.dispatch_event()
+    answer = answer[0]
     response = {
         "return_type" : None,
         "return_action" : None,
         "text" : None,
     }
     if not isinstance(answer, str):
+        log.info("Answer is not a string")
+        log.info("Answer is {0} and answer type is {1}".format(str(answer),str(type(answer))))
         if isinstance(answer, dict):
             return_type = answer["return_type"]
             return_action = answer["return_action"]
             query = answer["query"]
-            response["return_type"] = return_type
-            response["text"] = query
-            response["return_action"] = return_action
+            response.update({"return_type":return_type,"text":query,"return_action":return_action})
     else:
-        response["return_type"] = "answer"
-        response["text"] = answer
+        log.info("Answer is a string")
+        response.update({"return_type":"answer","text":answer})
+        log.info("response is {0}".format(response))
     log.info("Response data is {0}".format(str(response)))
     response_json = json.dumps(response)
     return response_json
