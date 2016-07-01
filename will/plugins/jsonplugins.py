@@ -117,9 +117,9 @@ class PluginBuilder:
                         replace_str = replace_str[0]
                     if ent_place in command_str:
                         command_str = command_str.replace(ent_place, replace_str)
-                for word_type in plugin_data["struct_needed"].keys():
+                for word_type in plugin_data["struct"].keys():
                     word_place = "{%s}" % word_type
-                    replace_str = plugin_data["struct_needed"][word_type]
+                    replace_str = plugin_data["struct"][word_type]
                     if isinstance(replace_str, list):
                         replace_str = replace_str[0]
                     if word_place in command_str:
