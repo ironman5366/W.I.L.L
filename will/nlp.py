@@ -203,6 +203,6 @@ class main():
             final_plugin = {
                 "name" : plugin["name"],
                 "ents" : current_data["ents"],
-                "struct_needed" : current_data["structure"]["tags"]
+                "struct" : current_data["structure"]["tags"]
             }
             plugins_final.append(final_plugin)
