@@ -25,7 +25,7 @@ W.I.L.L is open source with a  [public repository][will]
 
 ### Installation
 
-W.I.L.L is available via pip with `pip install WillPy`
+W.I.L.L is available via pip with `pip install W\I\L\L`
 
 After installation, you need a wolframalpha API key to run the search module. Get one from http://products.wolframalpha.com/api/
 
@@ -33,7 +33,7 @@ After you have it, go to your W.I.L.L installation directory (find out where pip
 ```json
 "wolfram":
   {
-    "keys": [YOUR_KEYS]
+    "keys": ["YOUR_KEY"]
   }
 ```
 ### Plugins
