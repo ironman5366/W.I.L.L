@@ -1,5 +1,5 @@
 # WILL specific ignores
-config.json
+my_config.json
 *.log
 content.txt
 

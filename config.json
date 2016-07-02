@@ -1,0 +1,8 @@
+{
+  "logging": {
+    "debug": true,
+    "log_path": "will.log",
+    "append_log": true
+  },
+  "run_yet": false
+}

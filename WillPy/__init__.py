@@ -78,6 +78,14 @@ def main(command):
     response_json = json.dumps(response)
     return response_json
 
+def wolfram_setup():
+    wolframalpha_key = raw_input("Please enter a wolframalpha key. You can get one from http://products.wolframalpha.com/api/>")
+    if wolframalpha_key:
+        config.add_config({"wolfram": [wolframalpha_key]})
+    else:
+        if raw_input("This is a required step for setup, are you sure you want to quit? (y/n)").lower() != "y":
+            wolfram_setup()
+
 @atexit.register
 def exit_func():
     #End the session
@@ -102,6 +110,9 @@ def run():
         debugval = True
     else:
         debugval = False
+    run_yet = config.load_config("run_yet")
+    if not run_yet:
+        wolfram_setup()
     #Load the plugins
     plugins.load("plugins/")
     log.info("Debug value is {0}".format(debugval))
