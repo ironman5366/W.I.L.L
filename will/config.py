@@ -38,7 +38,21 @@ def load_config(header):
 
 def add_config(config_item):
     config = _load_config_json
-    config.update(config_item)
-    config_file = open("config.json", 'w')
-    config_file.write(json.dump(config))
-    config.close()
+    if isinstance(config_item, dict):
+        try:
+            config.update(config_item)
+            config_json = json.dump(config)
+            config_file = open("config.json", 'w')
+            config_file.write(json.dump(config))
+        except Exception as add_exception:
+            return 'Error'
+
+def add_config(header):
+    config = _load_config_json
+    try:
+        del config[header]
+        config_json = json.dump(config)
+        config_file = open("config.json", 'w')
+        config_file.write(json.dump(config))
+    except Exception as remove_exception:
+        return 'Error'
