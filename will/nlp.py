@@ -1,5 +1,6 @@
 #External libs
 from spacy.en import English
+#from numba import jit
 
 #Builtin libs
 from will.logger import log
