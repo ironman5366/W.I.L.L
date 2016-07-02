@@ -1,6 +1,6 @@
 import re
 import string
-import will.nameextractor
+import WillPy.nameextractor
 from dateutil.parser import parse
 
 

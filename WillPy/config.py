@@ -1,8 +1,8 @@
 import json
 import os
 import sys
-from will.logger.fallback import error
-from will.ftools import memoize
+from WillPy.logger.fallback import error
+from WillPy.ftools import memoize
 
 
 CONFIG_FILE_PATH = os.path.abspath("config.json")

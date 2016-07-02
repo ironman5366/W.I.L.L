@@ -3,8 +3,8 @@ import sys
 import importlib
 from pydispatch import dispatcher
 from collections import Iterable
-from will.logger import log
-from will import nlp
+from WillPy.logger import log
+from WillPy import nlp
 
 # Events
 EVT_INIT = "will_evt_init"

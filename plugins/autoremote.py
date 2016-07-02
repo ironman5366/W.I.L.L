@@ -1,6 +1,6 @@
 import urllib2
-import will.config as config
-import will.plugins.API as API
+import WillPy.config as config
+import WillPy.plugins.API as API
 
 
 @API.subscribe_to({

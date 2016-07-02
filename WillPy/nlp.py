@@ -2,7 +2,7 @@
 from spacy.en import English
 
 #Builtin libs
-from will.logger import log
+from WillPy.logger import log
 import threading
 import time
 
@@ -125,7 +125,7 @@ class main():
         return tags
     def question_check(self, sentence):
         '''Check if the sentence is a question'''
-        q_words = ["is","are","am","was","were","will","do","does","did","have","had","has","can","could","should","shall","may","might","would","how","who","what","where","when","wouldn't","shouldn't","couldn't","hadn't","didn't","weren't", "don't","doesn't","haven't","can't","wasn't"]
+        q_words = ["is","are","am","was","were","WillPy","do","does","did","have","had","has","can","could","should","shall","may","might","would","how","who","what","where","when","wouldn't","shouldn't","couldn't","hadn't","didn't","weren't", "don't","doesn't","haven't","can't","wasn't"]
         log.info('Checking if the sentence is a question')
         first_word = sentence.split(" ")[0].lower()
         return first_word in q_words
@@ -152,7 +152,7 @@ class main():
             log.info("Finished getting entity data")
         def get_structure(parsed_data):
             '''Get the POS/Structure data'''
-            #This will, at the moment, just append the tags to strucutre without any position data.
+            #This WillPy, at the moment, just append the tags to strucutre without any position data.
             #TODO: improve this
             log.info("Getting POS tags")
             #Get POS tags

@@ -1,5 +1,5 @@
 import logging
-from will.logger.log_config import init_logger
+from WillPy.logger.log_config import init_logger
 
 log = logging.getLogger('WILL')
 

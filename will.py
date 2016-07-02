@@ -1,3 +1,3 @@
-import will
+import WillPy
 
-will.run()
+WillPy.run()

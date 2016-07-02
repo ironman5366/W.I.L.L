@@ -11,11 +11,11 @@ import logging
 import atexit
 
 # internals
-from will.logger import log
+from WillPy.logger import log
 import plugins
 import config
 import webapi
-from will import nlp
+from WillPy import nlp
 
 session_data = {"command" : False, "username" : False, "password" : False, "session_id" : False}
 

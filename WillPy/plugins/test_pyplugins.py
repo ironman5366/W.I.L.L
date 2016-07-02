@@ -1,8 +1,8 @@
 import os
-from will.unittests import TestCase
+from WillPy.unittests import TestCase
 from expects import *  # noqa
 from mock import patch
-from will.plugins.pyplugins import PythonLoader
+from WillPy.plugins.pyplugins import PythonLoader
 
 
 class PythonLoader_ImportName(TestCase):

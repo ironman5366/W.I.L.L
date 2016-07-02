@@ -1,4 +1,4 @@
-import will.plugins.API as API
+import WillPy.plugins.API as API
 import sys
 import os
 #TODO: finish this

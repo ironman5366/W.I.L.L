@@ -1,7 +1,7 @@
 from __future__ import print_function
 import time
 import pychromecast
-from will import config
+from WillPy import config
 #TODO: remove this eventually
 import easygui
 
@@ -40,7 +40,7 @@ def main(leader, sentence, *args, **kwargs):
     else:
         chromecast_choice = easygui.buttonbox(title="Chromecasts Found", msg="Please choose a chromecast", choices=chromecasts_available)
         if chromecast_choice:
-            if easygui.ynbox("Would you like to save this chromecast in your W.I.L.L config?"):
+            if easygui.ynbox("Would you like to save this chromecast in your WillPy config?"):
                 config.add_config({"known_chromecasts":[chromecast_choice]})
         cast(chromecast_choice)
         else:

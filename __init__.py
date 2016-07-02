@@ -1,6 +1,6 @@
-import will
+import WillPy
 
-will.run()
+WillPy.run()
 
 def main(command):
-    return will.main(command)
+    return WillPy.main(command)

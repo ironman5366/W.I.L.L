@@ -7,11 +7,11 @@ import os
 import wolframalpha
 import wikipedia
 import random
-import will.config as config
-import will.plugins.API as API
+import WillPy.config as config
+import WillPy.plugins.API as API
 # import TTS_Talk
 import json as m_json
-from will.logger import log
+from WillPy.logger import log
 from _codecs import encode
 # app_id number 2 : TWH856-2RPQQX96K
 
@@ -36,7 +36,7 @@ question_leaders = (
     "am",
     "was",
     "were",
-    "will",
+    "WillPy",
     "do",
     "does",
     "did",

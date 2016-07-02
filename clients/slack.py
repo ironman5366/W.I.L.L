@@ -33,7 +33,7 @@ while True:
             # Replace thisdevicename with whatever you want to name yours
             # in the W.I.L.L slack network (obviously)
             if devices.values()[0] == 'all' or devices.values()[0] == slack_conf["domain"]:
-                log.info("Checking local W.I.L.L server")
+                log.info("Checking local WillPy server")
                 # Hit W.I.L.L with the command. This is also where you
                 # could add exceptions or easter eggs
                 answer = requests.get(
