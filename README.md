@@ -159,7 +159,8 @@ W.I.L.L is shutting down
 ```
 And there you have it! A working W.I.L.L plugin!
 ### Todos
-
+ 
+ - Write setup scripts
  - Add JSON plugin docs
  - Add client creation docs
  - Chromecast plugin
