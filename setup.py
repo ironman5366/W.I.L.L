@@ -1,7 +1,7 @@
 from distutils.core import setup
 setup(
-  name = 'WillPy',
-  packages = ['WillPy', 'beautifulsoup4', 'dateutils', 'easygui', 'expects', 'funcsigs', 'itsdangerous', 'MarkupSafe', 'mock', 'nose', 'pbr', 'PyDispatcher', 'python-dateutil', 'pytz', 'requests', 'six', 'termcolor', 'tinydb', 'voluptuous', 'websocket-client', 'Werkzeug', 'wikipedia', 'wolframalpha', 'spacy', 'keyring', 'pychromecast'], # this must be the same as the name above
+  name = 'W.I.L.L',
+  packages = ['W.I.L.L', 'beautifulsoup4', 'dateutils', 'easygui', 'expects', 'funcsigs', 'itsdangerous', 'MarkupSafe', 'mock', 'nose', 'pbr', 'PyDispatcher', 'python-dateutil', 'pytz', 'requests', 'six', 'termcolor', 'tinydb', 'voluptuous', 'websocket-client', 'Werkzeug', 'wikipedia', 'wolframalpha', 'spacy', 'keyring', 'pychromecast'], # this must be the same as the name above
   version = '3.1',
   description = 'A smart personal assistant',
   author = 'Will Beddow',
