@@ -85,7 +85,7 @@ def main():
 
         def getpriornum():
             priority = getdata('enterbox',
-                               "Please pick the priority of which your question plugin WillPy be activated by entering a number. These are the current numbers, the larger ones are higher priorities. (Search should probably stay last) {0}".format(
+                               "Please pick the priority of which your question plugin will be activated by entering a number. These are the current numbers, the larger ones are higher priorities. (Search should probably stay last) {0}".format(
                                    priorlistprint))
             try:
                 prionum = int(priority)
@@ -113,7 +113,7 @@ def main():
         q = False
     rtypes = ["Answer", "Completion"]
     returntype = getdata('buttonbox', (
-    "Does your plugin return an answer or should WillPy just report completion of the task?", rtypes))
+    "Does your plugin return an answer or should W.I.L.L just report completion of the task?", rtypes))
     os.chdir('plugins')
     os.makedirs(plugname)
     jsoninfo = [{"name": plugname}, {"type": formalplugtype}, {"firstword": firstword}, {'synonyms': syns},
@@ -124,7 +124,7 @@ def main():
         print pyfile
         pyfilename = str(pyfile)
         print pyfilename
-        pyfunction = getdata('enterbox', 'What function should WillPy call?')
+        pyfunction = getdata('enterbox', 'What function should W.I.L.L call?')
         pyfilecopyname=pyfilename.split("/")[-1]
         print pyfilecopyname
         print pyfile
@@ -136,7 +136,7 @@ def main():
     # If the user selects a terminal command plugin
     elif plugtype == typechoices[1]:
         commandstructure = getdata("enterbox",
-                                   "Please enter the structure of your terminal command that WillPy be executed. If you stated that one of the arguments of command, name, email, phone, time, or date, please type the word inside the terminal command.")
+                                   "Please enter the structure of your terminal command that will be executed. If you stated that one of the arguments of command, name, email, phone, time, or date, please type the word inside the terminal command.")
         jsoninfo.append({"structure": commandstructure})
     else:
         print "Unrecognized plugin type {0}".format(str(plugtype))

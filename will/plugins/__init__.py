@@ -2,9 +2,9 @@ import pyplugins
 import os
 import jsonplugins
 from pydispatch import dispatcher
-from WillPy.collections import DictObject
-from WillPy.logger import log
-from WillPy import nlp
+from will.collections import DictObject
+from will.logger import log
+from will import nlp
 import time
 
 def load(dir_path):

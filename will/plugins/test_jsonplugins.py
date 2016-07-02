@@ -1,8 +1,8 @@
 import os
-from WillPy.unittests import TestCase
+from will.unittests import TestCase
 from expects import *
 from mock import patch, MagicMock, mock_open
-from WillPy.plugins.jsonplugins import JsonData, JsonLoader
+from will.plugins.jsonplugins import JsonData, JsonLoader
 
 
 class JsonData_IsValid(TestCase):

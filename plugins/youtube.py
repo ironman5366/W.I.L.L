@@ -2,7 +2,7 @@ import urllib
 import urllib2
 import re
 import webbrowser
-import WillPy.plugins.API as API
+import will.plugins.API as API
 
 
 @API.subscribe_to({

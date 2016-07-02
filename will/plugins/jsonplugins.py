@@ -1,6 +1,6 @@
 import os
 import json
-from WillPy.logger import log
+from will.logger import log
 from voluptuous import Schema, Required, MultipleInvalid
 import API
 import subprocess

@@ -1,10 +1,10 @@
 import logging
 import os
 import sys
-import WillPy.config as config
+import will.config as config
 from voluptuous import Schema, Required, Invalid, MultipleInvalid
-from WillPy.logger.fallback import error
-from WillPy.logger.handlers import ColorStreamHandler
+from will.logger.fallback import error
+from will.logger.handlers import ColorStreamHandler
 
 
 class LogConfig(object):

@@ -41,7 +41,7 @@ received.
 """
 
 import pyplugins as plugins
-import WillPy.logger as logger
+import will.logger as logger
 #TODO: fix this to be server bound
 
 
@@ -82,7 +82,7 @@ Decorator that subscribes the decorated function to the "any" event.  This event
 is called whenever any text is sent through WILL.  This is particularly good for
 any functions that may do logging and need access to every line of text sent
 through your slack channel or whatever front end you are using.  Anything
-returned from the decorated function WillPy be sent back to the requesting client.
+returned from the decorated function will be sent back to the requesting client.
 
 Example:
 
@@ -97,7 +97,7 @@ subscribe_to_any = plugins.event(plugins.EVT_ANY_INPUT)
 
 """
 Decorator that subscribes the decorated function to a single, or series, of
-key word events.  Anything returned from the decorated function WillPy be sent
+key word events.  Anything returned from the decorated function will be sent
 back to the requesting client.
 
 Args:
