@@ -120,8 +120,9 @@ class main():
     def POS(self, parsed_data):
         '''POS tagging'''
         tags = {}
+        string_store = parsed_data.vocab.strings
         for token in parsed_data:
-            tags.update({token.orth_:token.pos})
+            tags.update({token.orth_:string_store[token.tag]})
         return tags
     def question_check(self, sentence):
         '''Check if the sentence is a question'''
