@@ -47,6 +47,7 @@ def event(events, **kwargs):
     def decorator(func):
         log.info(func)
         # Append the plugin data to the nlp parsing que
+        log.info("Appending {0} to nlp.current_plugins".format(str(events)))
         nlp.current_plugins.append(events)
         if not isinstance(events, str) and isinstance(events, Iterable) and not isinstance(events, dict):
             for evt in events:
