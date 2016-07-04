@@ -16,6 +16,7 @@ def command():
             answer_action = answer_json["return_action"]
             if answer_type == "answer":
                 easygui.msgbox(title="W.I.L.L", msg=answer_text)
+                command()
             else:
                 def enter_response():
                     response_text = easygui.enterbox(title="W.I.L.L", msg=answer_text)

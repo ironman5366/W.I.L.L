@@ -15,6 +15,7 @@ def command():
             answer_action = answer_json["return_action"]
             if answer_type == "answer":
                 print answer_text
+                command()
             else:
                 def enter_response():
                     response_text = raw_input(answer_text)
