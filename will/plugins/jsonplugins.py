@@ -105,7 +105,7 @@ class PluginBuilder:
                 text = full_text.split(" ")[0]
                 plugin_data = {"name": arg_data["name"],
                             "ents": arg_data["ents"],
-                            "struct_needed" : arg_data["struct_needed"],
+                            "struct_needed" : arg_data["structure"]["tags"],
                             "full_text" : full_text,
                             "leader" : leader,
                             "headless_text" : text}
