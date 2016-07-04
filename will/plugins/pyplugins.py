@@ -55,10 +55,11 @@ def event(events, **kwargs):
                 subscribe(evt, func)
         elif isinstance(events, dict):
             log.info(events)
-            evt_name = events["name"]
-            if evt_name:
-                log.info("Subscribing {0} to {1}".format(evt_name, str(func)))
-                subscribe(evt_name, func)
+            evt_keywords = events["key_words"]
+            if evt_keywords:
+                for key_word in evt_keywords:
+                    log.info("Subscribing {0} to {1}".format(key_word, str(func)))
+                    subscribe(key_word, func)
             else:
                 log.info("Error: event {0} has no attribute name".format(str(events)))
         else:

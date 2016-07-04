@@ -56,6 +56,7 @@ def main(command):
     log.info("Starting plugin parsing")
     plugin_command = plugins.Command(command)
     answer = plugin_command.dispatch_event()
+    log.info("Answer is {0}".format(str(answer)))
     answer = answer[0]
     response = {
         "return_type" : None,
