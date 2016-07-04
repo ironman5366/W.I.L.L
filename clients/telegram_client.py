@@ -48,10 +48,6 @@ def action_return(message, answer_json):
         return_message = bot.reply_to(message, return_text)
         bot.register_next_step_handler(return_message, return_json)
 
-@bot.message_handler(commands=["help"])
-def help(message):
-    bot.reply_to(message, "help command recognized")
-
 @bot.message_handler(content_types=["text"])
 def command(message):
     '''Setup basic information and get started'''
