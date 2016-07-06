@@ -39,10 +39,14 @@ def action_return(message, answer_json):
         if not response[key]:
             response.update({key: answer_json[key]})
     returned = will.main(response)
-    return_json = json.dumps(returned)
+    log.info("Returned is {0}".format(str(returned)))
+    return_json = json.loads(returned)
     return_type = return_json["return_type"]
+    log.info("Return type is {0}".format(return_type))
     return_text = answer_json["text"]
+    log.info("Return text is {0}".format(return_text))
     if return_type == "text":
+        log.info("Return type is text, returning {0}".format(str(return_text)))
         bot.reply_to(message, return_text)
     else:
         return_message = bot.reply_to(message, return_text)
@@ -56,14 +60,19 @@ def command(message):
         command = message.text
         log.info("Command is {0}".format(str(command)))
         answer = will.main(str(command))
+        log.info("Answer is {0}".format(str(answer)))
         answer_json = json.loads(answer)
         answer_text = answer_json["text"]
+        log.info("Answer text is {0}".format(answer_text))
         answer_type = answer_json["return_type"]
+        log.info("Answer type is {0}".format(answer_type))
         if answer_type == "text":
+            log.info("Answer type is text, responding with {1}".format(str(answer_text)))
             bot.reply_to(message, answer_text)
         else:
             return_message = bot.reply_to(message, answer_text)
             bot.register_next_step_handler(return_message, answer_json)
 
 log.info("Starting bot")
-bot.polling()
+if __name__ == "__main__":
+    bot.polling()

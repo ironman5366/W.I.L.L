@@ -110,7 +110,7 @@ class PluginBuilder:
                             "leader" : leader,
                             "headless_text" : text}
                 command_str = self.plugin_data["command"]
-                for ent in plugin_data["ents"]():
+                for ent in plugin_data["ents"]:
                     ent_place = "{%s}" % plugin_data["ents"][ent]
                     replace_str = ent
                     if isinstance(replace_str, list):

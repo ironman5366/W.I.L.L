@@ -182,6 +182,13 @@ class main():
     def parse(self, sentence):
         '''Main parsing function'''
         global plugins_final
+        global current_data
+        current_data = {
+            "ents": {},
+            "structure": {"tags": {}},
+            "questions": False,
+            "key_words": []
+        }
         plugins_final = None
         log.info("In parsing function.")
         log.info("Sentence is {0}".format(str(sentence)))
