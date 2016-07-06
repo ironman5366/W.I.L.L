@@ -64,11 +64,24 @@ def parser(first_word, full_text, args, dispatcher_args):
             if ent_type not in unwanted_ents:
                 log.info("Looking at word {0}".format(str(ent_word)))
                 if ent_word in words[-1]:
-                    if ent_word.lower() in check_str.lower():
+                    if "{0} is".format(ent_word.lower()) in check_str.lower() or "{0} was".format(ent_word.lower()) in check_str.lower():
+                        sim_n+=6
+                    elif ent_word.lower() in check_str.lower():
                         sim_n+=4
                 else:
                     if ent_word.lower() in check_str.lower():
                         sim_n+=2
+        last_word = words[-1]
+        punctuation = ['.', ';', '?', '!']
+        for punc in punctuation:
+            if punc in last_word:
+                last_word = last_word.replace(punc, '')
+        if last_word.lower() not in ents.keys().lower():
+            if "{0} is".format(last_word.lower()) in check_str.lower() or "{0} was".format(last_word.lower())in check_str.lower():
+                sim_n+=4
+            else:
+                if last_word.lower() in check_str.lower():
+                    sim_n+=1
 
         return sim_n
 
@@ -231,9 +244,9 @@ def search_main(first_word, sentence, *args, **kwargs):
         "google" : False,
         "wiki" : False
     }
-    wolfram_thread = threading.Thread(target=search().wolfram(sentence))
-    wiki_thread = threading.Thread(target=search().wiki(sentence))
-    google_thread = threading.Thread(target=search().google(sentence,args))
+    wolfram_thread = threading.Thread(target=search().wolfram, args=sentence)
+    wiki_thread = threading.Thread(target=search().wiki, args=sentence)
+    google_thread = threading.Thread(target=search().google, args=sentence,args)
     wolfram_thread.start()
     wiki_thread.start()
     google_thread.start()

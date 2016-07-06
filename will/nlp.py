@@ -168,9 +168,9 @@ class main():
             current_data["questions"] = q_check
             done["questions"] = True
         #Start all the threads
-        ent_thread = threading.Thread(target=get_ents(parsed_data))
-        struct_thread = threading.Thread(target=get_structure(parsed_data))
-        question_thread = threading.Thread(target=get_qcheck(sentence))
+        ent_thread = threading.Thread(target=get_ents, args=parsed_data)
+        struct_thread = threading.Thread(target=get_structure, args=parsed_data)
+        question_thread = threading.Thread(target=get_qcheck, args=parsed_data)
         ent_thread.start()
         struct_thread.start()
         question_thread.start()
@@ -199,7 +199,7 @@ class main():
         e_thread = threading.Thread(target=self.elimination)
         e_thread.start()
         log.info("Starting parsing thread")
-        p_thread = threading.Thread(target=self.parse_thread(sentence))
+        p_thread = threading.Thread(target=self.parse_thread, args=sentence)
         p_thread.start()
         while not done['elimination']:
             time.sleep(0.001)
