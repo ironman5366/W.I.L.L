@@ -91,9 +91,7 @@ def cast_main(leader, sentence, *args, **kwargs):
         #cast.wait()
         if leader == "netflix" or sentence.split(" ")[1] == "netflix" or "netflix" in args["ents"].keys().lower():
             log.info("Sentence is {0}".format(sentence))
-            full_sentence = (leader, sentence)
-            full_text = ' '.join(full_sentence)
-            netflix(full_text, args)
+            netflix(sentence, args)
     known_chromecasts = config.load_config("chromecasts")
     log.info("Known chromecasts are {0}".format(str(known_chromecasts)))
     chromecasts_available = pychromecast.get_chromecasts_as_dict().keys()

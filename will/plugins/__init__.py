@@ -27,7 +27,6 @@ class Command(DictObject):
     def __init__(self, expression):
         word = expression.split(' ')[0].lower()  # First word of expression
         nlp.main().parse(expression)
-        expression = expression[len(word) + 1:]
         super(Command, self).__init__(word=word,
                                       event=word,
                                       expression=expression)
