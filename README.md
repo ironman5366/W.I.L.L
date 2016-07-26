@@ -7,13 +7,13 @@ W.I.L.L is a Python based, event and plugin driven personal assistant.
   - Can be used with a variety of different clients
 
 Plugins:
-  - Can be written in Python or Json (more coming!) 
-  - Are activiated on W.I.L.L initiation or shutdown
+  - Can be written in Python or JSON (more coming!) 
+  - Are activated on W.I.L.L initiation or shutdown
   - Are activated based on entity recognition, POS tags, keywords, or even the presence of questions
   - Can interactively communicate with the user without having to re-run parsing every time
   
 
-W.I.L.L started as my personal project but now has an active community of users and contributers. If you want to contribute by adding plugins, or even editing the framework, just submit a pull reuqest! Working plugins that are legal, useful, and original will always be accepted. .
+W.I.L.L started as my personal project but now has an active community of users and contributers. If you want to contribute by adding plugins, or even editing the framework, just submit a pull reuqest! Working plugins that are legal, useful, and original will always be accepted. 
 
 ### Version
 3.0.1
@@ -25,7 +25,7 @@ W.I.L.L is open source with a  [public repository][will]
 
 ### Installation
 
-After installation, you need a wolframalpha API key to run the search module. Get one from http://products.wolframalpha.com/api/
+After installation, you need a WolframAlpha API key to run the search module. Get one from http://products.wolframalpha.com/api/
 
 After you have it, go to your W.I.L.L installation directory (find out where pip installs things on your OS), and copy example_config.json to config.json. Then, add the following lines as the last item entry:
 ```json
@@ -40,7 +40,7 @@ The following plugins are currently available for W.I.L.L, with many more on the
 
 Finished:
 * Open (Use xdg-open, start, or open to open any program or file on the operating system)
-* Search (Use Google, Wolframalpha, and Wikipedia to find an answer to most questions)
+* Search (Use Google, WolframAlpha, and Wikipedia to find an answer to most questions)
 * Execute (Execute a terminal command)
 
 In development:
@@ -49,7 +49,7 @@ In development:
 
 ### Plugin Creation
 
-Writing a plugin for W.I.L.L is easier than you might think. Currently, W.I.L.L supports two types of plugins. Json and Python. All plugins should go in W.I.L.L/plugins.
+Writing a plugin for W.I.L.L is easier than you might think. Currently, W.I.L.L supports two types of plugins. JSON and Python. All plugins should go in W.I.L.L/plugins.
 
 Special thanks to https://github.com/brenttaylor for his contributions to the plugin framework
 
@@ -68,7 +68,7 @@ def test_func(leader, sentence, *args, **kwargs):
     print args['struct'] #A dict of recognized pos tags
     print kwargs #Dispatcher debug info
 ```
-Now that we have that function, let's hook it up to the W.I.L.L API with a decorator. There are currently 4 functions inside the api that you can use. The first two go together. `@init`, which will run on initialization of W.I.L.L, and `@shutdown`, which will run as W.I.L.L exits. These do not need the standard arugments in the accompanying functions. Next, we have `@API.subscribe_to_any`. That will, as the name implies, be activated when any command is entered into W.I.L.L. Finally, the most important one. `@API.subscribe_to`. Unlike the others, this requires input data, so W.I.L.L can know under what circumstances to run it. You'll pass it a dictionary containing a neat package of information about the plugin. Included in this dictionary are the name of the plugin, what entities the plugin needs (list of supported entities can be found at https://spacy.io/docs#annotation-ner), what parts of speech the plugin needs, if the plugin needs questions, and any key words that it needs. Here's a sample of the dictionary.
+Now that we have that function, let's hook it up to the W.I.L.L API with a decorator. There are currently 4 functions inside the api that you can use. The first two go together. `@init`, which will run on initialization of W.I.L.L, and `@shutdown`, which will run as W.I.L.L exits. These do not need the standard arguments in the accompanying functions. Next, we have `@API.subscribe_to_any`. That will, as the name implies, be activated when any command is entered into W.I.L.L. Finally, the most important one. `@API.subscribe_to`. Unlike the others, this requires input data, so W.I.L.L can know under what circumstances to run it. You'll pass it a dictionary containing a neat package of information about the plugin. Included in this dictionary are the name of the plugin, what entities the plugin needs (list of supported entities can be found at https://spacy.io/docs#annotation-ner), what parts of speech the plugin needs, if the plugin needs questions, and any key words that it needs. Here's a sample of the dictionary.
 ```python
 {
 "name" : "test",
@@ -82,7 +82,7 @@ Finally, you can load values in the config by importing will.config. Import it l
 ```python
 import will.config as config
 ```
-There are threwe methods available to plugins in config, `load_config`,`remove_config`, and `add_config`. `load_config`takes a header of something already in the config and returns the value. `add_config` updates the config with a dictionary passed to it, and `remove_config` removes takes a header and removes that item from the config. Like so:
+There are three methods available to plugins in config, `load_config`,`remove_config`, and `add_config`. `load_config`takes a header of something already in the config and returns the value. `add_config` updates the config with a dictionary passed to it, and `remove_config` removes takes a header and removes that item from the config. Like so:
 ```python
 import will.config as config
 
@@ -140,7 +140,7 @@ def on_shutdown():
     config.remove_config("will_started")
 ```
 
-Now let's run our plugin! So we can see what's going on, let's use W.I.L.L in the terminal
+Now let's run our plugin! So we can see what's going on, let's use W.I.L.L in the terminal:
 ```python
 >>>import will #This might take some time as the nlp models take time to load
 >>>will.run()
