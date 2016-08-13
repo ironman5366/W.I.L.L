@@ -4,6 +4,7 @@ import log
 import devices
 import vars
 import eventbuilder
+import tools
 
 #Builtin imports
 import socket, traceback
@@ -26,6 +27,7 @@ while True:
         log.info("Got message {0} from {1}".format(raw_message,address))
         try:
             message = json.loads(message)
+            message.update({"address":address})
             log.info("Loaded message json is {0}".format(message))
             message_type = message["type"]
             log.info("Message type is {0}".format(message_type))
@@ -70,8 +72,7 @@ while True:
                         log.info("Device {0} is in known devices".format(device_name))
                         vars.ACTIVE_DEVICES.update({device_name:message})
                         try:
-                            # TODO: Make this callout valid
-                            eventbuilder.process(message)
+                            tools.activate(message)
                             log.info("Activated device")
                             return_message["type"] = "success"
                             return_message["text"] = "Device {0} was activated successfully, and it's events processed.".format(device_name)
@@ -88,6 +89,50 @@ while True:
                         return_message["type"] = "error"
                         return_message["text"] = "Couldn't activate device {0} because it isn't in the list of known devices. Please make sure that the device is registered".format(device_name)
                         return_message["data"].update({"code":"DEVICE_NOT_KNOWN"})
+            elif message_type == "deactivate":
+                log.info('Message type is deactivate')
+                active_device_names = vars.ACTIVE_DEVICES.keys()
+                log.info("Active devices are {0}".format(active_device_names))
+                if device_name in active_device_names:
+                    log.info("Device {0} is in the list of active devices, deactivating it".format(device_name))
+                    tools.deactivate(message)
+                    return_message["type"] = "success"
+                    return_message["text"] = "Device {0} was successfully deactivated".format(device_name)
+                else:
+                    log.info("Can't deactivate device {0} as it isn't in the list of active devices.".format(device_name))
+                    return_message["type"] = "error"
+                    return_message["text"] = "Can't deactivate device {0} as it isn't in the list of active devices.".format(device_name)
+                    return_message["data"].update({"code":"DEVICE_NOT_ACTIVE"})
+            elif message_type == "command":
+                command = message["text"]
+                try:
+                    log.info("Starting parsing on command {0}".format(command))
+                    uid = tools.add_command(message)
+                    return_message["type"] = "success"
+                    return_message["text"] = "Command {0} was successfully added to the parsing Queue. Command thread UID is {1}".format(command,uid)
+                    return_message["data"].update({"uid":uid})
+                except Exception as parse_exception:
+                    p_message = parse_exception.message
+                    p_args = parse_exception.args
+                    log.info("Exception {0},{1} occurred while trying to parse command {2}".format(p_message,p_args,command))
+                    return_message["type"] = "error"
+                    return_message["text"] = "An error occurred while trying to add command {0} to the parsing Queue.".format(command)
+                    return_message["data"].update({"code":"PARSE_QUEUE_ERROR"})
+            elif message_type == "get_parsed":
+                thread_uid = message["data"]["uid"]
+                parsed = vars.PARSED
+                if thread_uid in parsed.keys():
+                    command_thread = parsed[thread_uid]
+                    log.info("Found command thread {0}".format(command_thread))
+                    return_message["type"] = "success"
+                    return_message["text"] = command_thread["text"]
+                    return_message["data"].update(command_thread)
+                else:
+                    return_message["type"] = "error"
+                    return_message["text"] = "Could not find uid {0} in the dictionary of parsed commands. Please wait and try again or check the servers logs".format(thread_uid)
+                    return_message["data"].update({"code":"UID_NOT_FOUND"})
+            #TODO: add commands for shutdown and restart
+
         except Exception as parse_exception:
             e_message = parse_exception.message
             e_args = parse_exception.args
