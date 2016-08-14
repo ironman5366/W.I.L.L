@@ -6,4 +6,6 @@ PARSED = {}
 
 COMMANDS = Queue.Queue()
 
+PLUGINS = {}
+
 EVENT_HANDLERS = {}

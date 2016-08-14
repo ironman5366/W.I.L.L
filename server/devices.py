@@ -56,7 +56,7 @@ while True:
                 log.info("Message type is activate")
                 device_name = message["device_name"]
                 log.info("Checking for device name in list of active devices")
-                active_device_names = vars.ACTIVE_DEVICES.keys()
+                active_device_names = tools.get_active_devices()
                 log.info("Active devices are {0}".format(active_device_names))
                 if device_name in active_device_names:
                     log.info("Device {0} was already registered as active".format(device_name ))
@@ -70,7 +70,6 @@ while True:
                     log.info("Loaded list of known devices from config")
                     if device_name in known_devices:
                         log.info("Device {0} is in known devices".format(device_name))
-                        vars.ACTIVE_DEVICES.update({device_name:message})
                         try:
                             tools.activate(message)
                             log.info("Activated device")
@@ -91,7 +90,7 @@ while True:
                         return_message["data"].update({"code":"DEVICE_NOT_KNOWN"})
             elif message_type == "deactivate":
                 log.info('Message type is deactivate')
-                active_device_names = vars.ACTIVE_DEVICES.keys()
+                active_device_names = tools.get_active_devices()
                 log.info("Active devices are {0}".format(active_device_names))
                 if device_name in active_device_names:
                     log.info("Device {0} is in the list of active devices, deactivating it".format(device_name))
