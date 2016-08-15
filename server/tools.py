@@ -3,6 +3,12 @@ import log
 from pydispatch import dispatcher
 import vars
 
+def shutdown():
+    pass
+
+def restart():
+    pass
+
 def get_uid():
     """Generate an incrementing UID for each plugin."""
     #get_uid function written by Max Ertl (https://github.com/Sirs0ri)
@@ -26,6 +32,7 @@ def get_active_devices():
     return active_device_names
 
 def activate(device):
+    '''Use the event handlers and triggers to activate the device dictionary passed'''
     assert type(device) == dict
     log.info("In tools, activating device {0}".format(device))
     device_uid = get_uid()
@@ -65,10 +72,38 @@ def activate(device):
                 dispatcher.connect(plugin_call, signal=event_trigger, sender=dispatcher.Any)
             else:
                 log.info("Error: plugin {0} not found".format(event_plugin))
-        vars.ACTIVE_DEVICES.update({device_uid:{"name":device_name,"events":device_events,"config":device_config}})
+        elif event_data_type == "action":
+            log.info("Event data type is action")
+            event_action = event_data["action"]
+            log.info("Event action is {0}".format(event_action))
+            if event_action == "shutdown":
+                log.info("Connecting trigger {0} to shutdown function".format(event_trigger))
+                dispatcher.connect(shutdown, signal=event_trigger, sender=dispatcher.Any)
+            elif event_action == "restart":
+                log.info("Connecting trigger {0} to restart function".format(event_trigger))
+                dispatcher.connect(restart, signal=event_trigger, sender=dispatcher.Any)
+            #TODO: add more actions, used for things like dumping events or caches
+        else:
+            log.info("Unhandled event data type {0}".format(event_data_type))
+    vars.ACTIVE_DEVICES.update(
+        {device_uid: {"name": device_name, "events": device_events, "config": device_config}})
 
 def register(device):
-    pass
+    '''Register a device dictionary in the config'''
+    log.info("In register with device dict {0}".format(device))
+    assert type(device) == dict
+    device_name = device["name"]
+    log.info("Device name is {0}".format(device_name))
+    log.info("Creating config entry for device {0}".format(device_name))
+    config.add_entry("devices", device_name)
+    log.info("Created config entry. Filling with requisite values")
+    for device_key, device_value in device:
+        log.info("Processing device key {0}, value {1}".format(device_key, device_value))
+        config.add_item("devices", device_name, {device_key:device_value})
+        log.info("Added config entry")
+    device_config = config.load_config("devices", device_name)
+    log.info("Finished registering device {0}, final config entry is {1}".format(device_name, device_config))
+
 
 def unregister(device):
     device
