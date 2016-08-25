@@ -44,19 +44,20 @@ def activate(device):
     device_events = device["events"]
     assert type(device_events) == dict
     log.info("Device events is {0}".format(device_events))
+    vars.EVENT_HANDLERS.update({device_uid:{}})
     for event_trigger, event_data in device_events:
         event_uid = get_uid()
-        vars.EVENT_HANDLERS.update({event_uid:{"trigger":event_trigger}})
+        vars.EVENT_HANDLERS[device_uid].update({event_uid:{"trigger":event_trigger}})
         log.info("Got uid {0} for event trigger {1}".format(event_uid, event_trigger))
         log.info("Processing event trigger {0} for event data {1}".format(event_trigger, event_data))
         assert type(event_data) == dict
         event_data_type = event_data['type']
         log.info("Event data type is {0}".format(event_data_type))
-        vars.EVENT_HANDLERS[event_uid].update({"event_type":event_data_type})
+        vars.EVENT_HANDLERS[device_uid][event_uid].update({"event_type":event_data_type})
         if event_data_type == "message":
             log.info("Event data type is message")
             event_message = event_data["message"]
-            vars.EVENT_HANDLERS[event_uid].update({"message":event_message})
+            vars.EVENT_HANDLERS[device_uid][event_uid].update({"message":event_message})
             dispatcher.connect(send_message, signal=event_trigger, sender=dispatcher.Any)
         elif event_data_type == "plugin":
             log.info("Event data type is plugin")
@@ -68,7 +69,7 @@ def activate(device):
                 log.info("Plugin {0} found".format(event_plugin))
                 plugin_data = plugins[event_plugin]
                 log.info("Processing plugin {0} with plugin data {1}".format(event_plugin,plugin_data))
-                vars.EVENT_HANDLERS[event_uid].update({"params":event_params})
+                vars.EVENT_HANDLERS[device_uid][event_uid].update({"params":event_params})
                 dispatcher.connect(plugin_call, signal=event_trigger, sender=dispatcher.Any)
             else:
                 log.info("Error: plugin {0} not found".format(event_plugin))
@@ -105,14 +106,42 @@ def register(device):
     log.info("Finished registering device {0}, final config entry is {1}".format(device_name, device_config))
 
 
-def unregister(device):
-    device
+def unregister(device_name, backup=False):
+    '''Remove the device dictionary from the config'''
+    assert type(device_name) == str
+    log.info("In unregister with device name {0}".format(device_name))
+    device_config = config.load_config("devices", device_name)
+    log.info("Loaded device config {0}".format(device_config))
+    log.info("Device config exists")
+    if backup:
+        config.add_entry("backups", device_name)
+        for device_key, device_value in device_config:
+            config.add_item("backups", device_name, {device_key:device_value})
+    config.remove_entry("devices", device_name)
+    log.info("Unregistered device {0}".format(device_name))
 
 def plugin_call(**args):
+    '''Call a plugin registered to an event'''
     pass
+    #TODO: use getattr to complete the call
 
-def deactivate(device):
-    pass
+def deactivate(device_uid):
+    '''Deactivate a device and remove the event triggers'''
+    log.info("In deactivate with device {0}".format(device_uid))
+    assert type(device_uid) == str
+    if device_uid in vars.ACTIVE_DEVICES.keys():
+        log.info("Removing event triggers associated with device {0}".format(device_uid))
+        device = vars.ACTIVE_DEVICES[device_uid]
+        device_name = device["name"]
+        log.info("Name for device uid {0} is {1}".format(device_uid, device_name))
+        event_thread = vars.EVENT_HANDLERS[device_uid]
+        log.info("Found event thread {0} for device".format(event_thread))
+        for event_uid, event_data in event_thread:
+            log.info("Deactivating event with uid {0}, data {1}".format(event_uid,event_data))
+            event_trigger = event_data["trigger"]
+            log.info("Event trigger is {0}".format(event_trigger))
+    else:
+        log.info("Can't deactivate device {0}, already in active devices".format(device_uid))
 
 def add_command(message):
     pass
