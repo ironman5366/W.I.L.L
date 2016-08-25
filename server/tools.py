@@ -136,10 +136,9 @@ def deactivate(device_uid):
         log.info("Name for device uid {0} is {1}".format(device_uid, device_name))
         event_thread = vars.EVENT_HANDLERS[device_uid]
         log.info("Found event thread {0} for device".format(event_thread))
-        for event_uid, event_data in event_thread:
-            log.info("Deactivating event with uid {0}, data {1}".format(event_uid,event_data))
-            event_trigger = event_data["trigger"]
-            log.info("Event trigger is {0}".format(event_trigger))
+        log.info("Removing device thread {0} from event handlers".format(device_uid))
+        del vars.EVENT_HANDLERS[device_uid]
+        log.info("Deleted device thread from event handlers")
     else:
         log.info("Can't deactivate device {0}, already in active devices".format(device_uid))
 
