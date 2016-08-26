@@ -1,7 +1,7 @@
 import config
 import log
 from pydispatch import dispatcher
-import vars
+import global_vars
 
 def shutdown():
     pass
@@ -23,7 +23,7 @@ def send_message(message_data):
 
 def get_active_devices():
     active_device_names = []
-    for device_uid, device_data in vars.ACTIVE_DEVICES:
+    for device_uid, device_data in global_vars.ACTIVE_DEVICES:
         log.info("Processing device with uid {0}, data {1}".format(device_uid, device_data))
         device_name = device_data['name']
         assert type(device_name) == str
@@ -44,24 +44,24 @@ def activate(device):
     device_events = device["events"]
     assert type(device_events) == dict
     log.info("Device events is {0}".format(device_events))
-    vars.EVENT_HANDLERS.update({device_uid:{}})
+    global_vars.EVENT_HANDLERS.update({device_uid:{}})
     for event_trigger, event_data in device_events:
         event_uid = get_uid()
-        vars.EVENT_HANDLERS[device_uid].update({event_uid:{"trigger":event_trigger}})
+        global_vars.EVENT_HANDLERS[device_uid].update({event_uid:{"trigger":event_trigger}})
         log.info("Got uid {0} for event trigger {1}".format(event_uid, event_trigger))
         log.info("Processing event trigger {0} for event data {1}".format(event_trigger, event_data))
         assert type(event_data) == dict
         event_data_type = event_data['type']
         log.info("Event data type is {0}".format(event_data_type))
-        vars.EVENT_HANDLERS[device_uid][event_uid].update({"event_type":event_data_type})
+        global_vars.EVENT_HANDLERS[device_uid][event_uid].update({"event_type":event_data_type})
         if event_data_type == "message":
             log.info("Event data type is message")
             event_message = event_data["message"]
-            vars.EVENT_HANDLERS[device_uid][event_uid].update({"message":event_message})
+            global_vars.EVENT_HANDLERS[device_uid][event_uid].update({"message":event_message})
             dispatcher.connect(send_message, signal=event_trigger, sender=dispatcher.Any)
         elif event_data_type == "plugin":
             log.info("Event data type is plugin")
-            plugins = vars.PLUGINS
+            plugins = global_vars.PLUGINS
             event_params = event_data["parameters"]
             log.info("Event parameters are {0}".format(event_params))
             event_plugin = event_data["plugin"]
@@ -69,7 +69,7 @@ def activate(device):
                 log.info("Plugin {0} found".format(event_plugin))
                 plugin_data = plugins[event_plugin]
                 log.info("Processing plugin {0} with plugin data {1}".format(event_plugin,plugin_data))
-                vars.EVENT_HANDLERS[device_uid][event_uid].update({"params":event_params})
+                global_vars.EVENT_HANDLERS[device_uid][event_uid].update({"params":event_params})
                 dispatcher.connect(plugin_call, signal=event_trigger, sender=dispatcher.Any)
             else:
                 log.info("Error: plugin {0} not found".format(event_plugin))
@@ -86,7 +86,7 @@ def activate(device):
             #TODO: add more actions, used for things like dumping events or caches
         else:
             log.info("Unhandled event data type {0}".format(event_data_type))
-    vars.ACTIVE_DEVICES.update(
+    global_vars.ACTIVE_DEVICES.update(
         {device_uid: {"name": device_name, "events": device_events, "config": device_config}})
 
 def register(device):
@@ -129,18 +129,21 @@ def deactivate(device_uid):
     '''Deactivate a device and remove the event triggers'''
     log.info("In deactivate with device {0}".format(device_uid))
     assert type(device_uid) == str
-    if device_uid in vars.ACTIVE_DEVICES.keys():
+    if device_uid in global_vars.ACTIVE_DEVICES.keys():
         log.info("Removing event triggers associated with device {0}".format(device_uid))
-        device = vars.ACTIVE_DEVICES[device_uid]
+        device = global_vars.ACTIVE_DEVICES[device_uid]
         device_name = device["name"]
         log.info("Name for device uid {0} is {1}".format(device_uid, device_name))
-        event_thread = vars.EVENT_HANDLERS[device_uid]
+        event_thread = global_vars.EVENT_HANDLERS[device_uid]
         log.info("Found event thread {0} for device".format(event_thread))
         log.info("Removing device thread {0} from event handlers".format(device_uid))
-        del vars.EVENT_HANDLERS[device_uid]
+        del global_vars.EVENT_HANDLERS[device_uid]
         log.info("Deleted device thread from event handlers")
     else:
         log.info("Can't deactivate device {0}, already in active devices".format(device_uid))
 
 def add_command(message):
-    pass
+    log.info("In add command with message {0}".format(message))
+    command_queue = global_vars.COMMANDS
+    command_queue.put(message)
+    log.info("Put message in command_queue")

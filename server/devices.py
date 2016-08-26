@@ -2,7 +2,7 @@
 import config
 import log
 import devices
-import vars
+import global_vars
 import eventbuilder
 import tools
 
@@ -119,7 +119,7 @@ while True:
                     return_message["data"].update({"code":"PARSE_QUEUE_ERROR"})
             elif message_type == "get_parsed":
                 thread_uid = message["data"]["uid"]
-                parsed = vars.PARSED
+                parsed = global_vars.PARSED
                 if thread_uid in parsed.keys():
                     command_thread = parsed[thread_uid]
                     log.info("Found command thread {0}".format(command_thread))
