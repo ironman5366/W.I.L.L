@@ -144,6 +144,12 @@ def deactivate(device_uid):
 
 def add_command(message):
     log.info("In add command with message {0}".format(message))
+    assert type(message) == dict
+    command_uid = get_uid()
+    log.info("New uid for message {0} is {1}".format(command_uid))
+    #Add thread uid to the message data
+    message.update({"uid":command_uid)})
     command_queue = global_vars.COMMANDS
-    command_queue.put(message)
+    command_queue.put({command_uid:message})
     log.info("Put message in command_queue")
+    return command_uid

@@ -18,11 +18,14 @@ def command_thread():
         command = global_vars.COMMANDS.get()
         log.info("Parsing command {0} in command thread".format(command))
         assert type(command) == dict
-        command_text = command["text"]
+        command_uid = command.keys()[0]
+        command_text = command.values()[0]["text"]
         log.info("Command text is {0}".format(command_text))
         log.info("Feeding command into parser")
         command_response = parse_main(command)
-        log.info("Command response is {0}".format(command_response))
+        log.info("Command response is {0}".format(command_response)
+        global_vars.PARSED.update({command_uid:{command_response:command}})
+        log.info("Updated global parsed variable")
         command_thread()
 
     else:
