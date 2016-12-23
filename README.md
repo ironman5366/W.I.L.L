@@ -24,6 +24,12 @@ W.I.L.L is open source with a  [public repository][will]
  on GitHub.
 
 ### Installation
+To install, run
+```bash
+git clone https://github.com/ironman5366/W.I.L.L.git
+cd W.I.L.L
+pip install -r requirements.txt
+```
 
 After installation, you need a WolframAlpha API key to run the search module. Get one from http://products.wolframalpha.com/api/
 
