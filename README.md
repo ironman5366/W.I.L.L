@@ -12,3 +12,12 @@ Welcome to the new W.I.L.L
 - Fix it so that default plugin runs last
 - Add new interfaces
 - Add code that let's the user interface with local devices
+
+
+##Setup
+
+sudo pip install -r requirements.txt
+
+python dbsetup.py
+
+python main.py
