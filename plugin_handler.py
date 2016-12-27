@@ -55,13 +55,17 @@ class subscriptions():
             if not events_queue.empty():
                 event = events_queue.get()
                 assert type(event) == dict
+                #Process signals first
+                if "signal" in event.keys():
+                    #Shutdown signal
+                    if event["signal"] == "shutdown":
+                        break
                 event_command = event["command"]
                 username = event['update'].message.from_user.username
                 log.info("Processing event with command {0}, user {1}".format(
                     event_command, username))
                 user_table = user_data.find_one(username=username)
                 event.update({"user_table":user_table})
-                command_lower = event_command.lower()
                 found_plugins = []
                 default_plugin_name = user_table["default_plugin"]
                 def plugin_check(plugin):

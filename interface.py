@@ -160,7 +160,6 @@ def cancel(bot, update):
 def initialize(bot_token):
     '''Start the bot'''
     updater = Updater(bot_token)
-
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
     #Use regex to match strings of text that look like wolfram keys (long alphanumeric strings)
