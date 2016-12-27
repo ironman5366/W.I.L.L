@@ -1,0 +1,12 @@
+[Unit]
+Description=W.I.L.L personal assistant
+After=network-online.target
+
+[Service]
+Type=forking
+ExecStart=/usr/local/W.I.L.L/main.py
+ExecStop=python /usr/local/W.I.L.L/stop.py
+TimeoutStopSec=5
+
+[Install]
+WantedBy=multi-user.target
