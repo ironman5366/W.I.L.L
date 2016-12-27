@@ -1,6 +1,0 @@
-{
-    "key_words": ["notify"],
-    "init": "notify-send \"WILL\" \"Init Called\"",
-    "shutdown": "notify-send \"WILL\" \"Shutdown Called\"",
-    "command": "notify-send \"WILL\" \"{0}\""
-}

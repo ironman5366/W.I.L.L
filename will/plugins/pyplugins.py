@@ -4,6 +4,7 @@ import importlib
 from pydispatch import dispatcher
 from collections import Iterable
 from will.logger import log
+from will import nlp
 
 # Events
 EVT_INIT = "will_evt_init"
@@ -33,22 +34,38 @@ def unload_all():
         for handler in handlers[:]:
             dispatcher.disconnect(handler, signal=event)
             _event_handlers[event].remove(handler)
-
-
-def event(events):
+def event(events, **kwargs):
+    log.info("In event, events are {0}".format(str(events)))
+    log.info("In event, kwargs are {0}".format(str(kwargs)))
     def subscribe(evt, func):
         dispatcher.connect(func, signal=evt)
         if event not in _event_handlers:
             _event_handlers[evt] = []
         _event_handlers[evt].append(func)
 
+
     def decorator(func):
-        if not isinstance(events, str) and isinstance(events, Iterable):
+        log.info(func)
+        # Append the plugin data to the nlp parsing que
+        log.info("Appending {0} to nlp.current_plugins".format(str(events)))
+        nlp.current_plugins.append(events)
+        if not isinstance(events, str) and isinstance(events, Iterable) and not isinstance(events, dict):
             for evt in events:
+                log.info("subscribing evt {0}".format(evt))
                 subscribe(evt, func)
+        elif isinstance(events, dict):
+            log.info(events)
+            evt_keywords = events["key_words"]
+            if evt_keywords:
+                for key_word in evt_keywords:
+                    log.info("Subscribing {0} to {1}".format(key_word, str(func)))
+                    subscribe(key_word, func)
+            else:
+                log.info("Error: event {0} has no attribute name".format(str(events)))
         else:
             subscribe(events, func)
         return func
+
 
     return decorator
 
