@@ -145,3 +145,6 @@ def main(event):
         event["chat_data"],
         alert_text
     )
+    return "Got it. In {0} I'll let you know to {1}".format(
+        time, alert_text
+    )

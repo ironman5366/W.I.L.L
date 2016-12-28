@@ -35,7 +35,7 @@ db = dataset.connect('sqlite:///will.db')
 # Store the button dictionaries of data here because callback_query has to be a string
 data_store = {
     "s_1:1": {"type": "snooze_1", "snooze": True},
-    "s_1:2": {"type": "snooze_2", "snooze": False},
+    "s_1:2": {"type": "snooze_1", "snooze": False},
     "s_2:1": {"type": "snooze_2", "length": 300},
     "s_2:2": {"type": "snooze_2", "length": 900},
     "s_2:3": {"type": "snooze_2", "length": 3600},
