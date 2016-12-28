@@ -185,6 +185,7 @@ def cancel(bot, update):
 
 def shutdown(bot, update):
     sender_username = update.message.from_user.username
+    log.info("Attempted shutdown from user {0}".format(sender_username))
     db = dataset.connect('sqlite:///will.db')
     user_table = db["userdata"]
     user = user_table.find_one(username=sender_username)
