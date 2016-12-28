@@ -49,17 +49,12 @@ class subscriptions():
         log.info("In subscriptions thread, starting loop")
         db = dataset.connect('sqlite:///will.db')
         user_data = db["userdata"]
-        while True:
+        while main.will:
             time.sleep(0.1)
             #If the queue is empty, pass
             if not events_queue.empty():
                 event = events_queue.get()
                 assert type(event) == dict
-                #Process signals first
-                if "signal" in event.keys():
-                    #Shutdown signal
-                    if event["signal"] == "shutdown":
-                        break
                 event_command = event["command"]
                 username = event['update'].message.from_user.username
                 log.info("Processing event with command {0}, user {1}".format(

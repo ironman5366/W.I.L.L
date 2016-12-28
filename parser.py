@@ -35,9 +35,12 @@ def parse(bot, update ,job_queue, chat_data):
     verbs = set()
     log.info("Parsing through dependencies")
     #Use synactic dependencies to look at the words
-    for possible_subject in doc:
-        if possible_subject.dep == nsubj and possible_subject.head.pos == VERB:
-            verbs.add(possible_subject.head.lemma_.lower())
+    #for possible_subject in doc:
+    #   if possible_subject.dep == nsubj and possible_subject.head.pos == VERB:
+    #       verbs.add(possible_subject.head.lemma_.lower())
+    for token in doc:
+        if token.pos == VERB:
+            verbs.add(token.lemma_.lower())
     log.info("Finished parsing dependencies, parsing ents")
     ents = {}
     #Use spacy's ent recognition
@@ -57,7 +60,7 @@ def parse(bot, update ,job_queue, chat_data):
         "doc": doc
     }
     log.info("Finished parsing command_data, sending it into events queue")
-    log.debug(command_data)
+    log.debug("Command_data is {0}".format(command_data))
     plugin_handler.subscriptions().send_event(command_data)
 
 

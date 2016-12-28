@@ -19,10 +19,15 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(leve
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.INFO)
 
-def shutdown():
-    log.info("Shutting down W.I.L.L")
-    sys.exit()
+#While this is True, W.I.L.L will keep running
+will = True
 
+def shutdown():
+    global will
+    will = False
+    #TODO: figure out what's keeping threads awake, fix it and change os._exit() to sys.exit()
+    #sys.exit()
+    os._exit(1)
 class main():
     '''Start W.I.L.L and determine data status'''
     def __init__(self):
