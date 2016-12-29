@@ -1,10 +1,9 @@
 # Internal imports
 from plugin_handler import subscribe
+import main
 
 # External imports
 import wolframalpha
-import dataset
-from bs4 import BeautifulSoup
 
 # Builtin imports
 import logging
@@ -62,8 +61,8 @@ def main(data):
     '''Start the search'''
     query = data["command"]
     log.info("In main search function with query {0}".format(query))
-    db = dataset.connect('sqlite:///will.db')
-    user_table = db["userdata"].find_one(username=data["update"].message.from_user.username)
+    db = main.DB
+    user_table = db["userdata"].find_one(chat_id=data["update"].message.chat_id)
     answer = False
     if "wolfram_key" in user_table.keys():
         log.info("Found wolframa key")

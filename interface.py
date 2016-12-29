@@ -28,9 +28,7 @@ Commands:
 If not given a telegram command, W.I.L.L will try to interpret your command as a personal assistant
 '''
 
-# TODO: add a /settings function!
-
-db = dataset.connect('sqlite:///will.db')
+db = main.DB
 
 # Store the button dictionaries of data here because callback_query has to be a string
 data_store = {
@@ -40,7 +38,9 @@ data_store = {
     "s_2:2": {"type": "snooze_2", "length": 900},
     "s_2:3": {"type": "snooze_2", "length": 3600},
     "s_2:4": {"type": "snooze_2", "length": 21600},
-    "s_2:5": {"type": "snooze_2", "length": 86400}
+    "s_2:5": {"type": "snooze_2", "length": 86400},
+    "d_1:1": {"type": "setup_default", "use_search": True},
+    "d_1:2": {"type": "setup_default", "use_search": False}
 }
 
 def help(bot, update):
@@ -102,7 +102,7 @@ def button(bot, update, job_queue, chat_data):
     '''Button response'''
     query = update.callback_query.data
     data = data_store[query]
-    log.debug("Callback queyr is {0}, commiserate data store is {1}".format(
+    log.debug("Callback query is {0}, commiserate data store is {1}".format(
         query, data
     ))
     data_type = data["type"]
@@ -134,13 +134,93 @@ def button(bot, update, job_queue, chat_data):
         ))
         # Call the plugin
         plugin_handler.subscriptions().call_plugin(plugin_function, event_data)
+    elif data_type == "setup_default":
+        use_search = data["use_search"]
+        #If the user wants to use search as the default, set that as the option.
+        #If not, get a list of plugins from plugin_handler and supply that as buttons
+        chat_id = update.message.chat_id
+        if use_search:
+            db = dataset.connect('sqlite:///will.db')
+            userdata = db["userdata"]
+            user_table = userdata.find_one(chat_id=chat_id)
+            data = dict(chat_id=chat_id, default_plugin="search")
+            user_table.update(data, ['chat_id'])
+        else:
+            #Grab the list of plugins from plugin_handler and ask the user which one they'd like as their default
+            active_plugins = plugin_handler.plugin_subscriptions
+            plugin_keyboard = []
+            #For creating the datastore ids
+            def create_inline(plugin):
+                global data_store
+                plugin_name = plugin["name"]
+                callback_id = "d_2:{0}".format(plugin_name)
+                data_store.update({
+                    callback_id: {"type": "custom_default", "name": plugin_name}
+                })
+                plugin_keyboard.append(InlineKeyboardButton(plugin_name, callback_data=callback_id))
+            #Have the user choose which plugin they want to set as their default plugin
+            map(create_inline, active_plugins)
+            keyboard = InlineKeyboardMarkup(plugin_keyboard)
+            bot.sendMessage(
+                update.message.chat_id,
+                "Which plugin would you like to set as default?",
+                reply_markup=keyboard
+            )
+    elif data_type == "custom_default":
+        #Set the user selected default
+        new_default = update.message.text
+        username = update.message.from_user.username
+        log.info("Setting default plugin for user {0} to {1}".format(
+            username, new_default
+        ))
+        userdata = db["users"]
+        chat_id = update.message.chat_id
+        user_table = userdata.find_one(chat_id=chat_id)
+        data = dict(chat_id=chat_id, default_plugin=new_default)
+        user_table.update(data, ['chat_id'])
+
+
+
+def settings(bot, update):
+    '''User settings'''
+    log.debug("In settings function")
+    #Get chat id from update object
+    chat_id = update.message.chat_id
+    userdata = db["users"]
+    #Find the user table from the database usin ghte chat_id
+    user_table = userdata.find_one(chat_id=chat_id)
+    #Determine whether the user has run the setup process
+    user_setup = user_table["user_setup"]
+    #If the user has run the setup proces already
+    if user_setup:
+        #TODO: do this with mutable and immutable settings
+        pass
+    else:
+        bot.sendMessage(
+            chat_id,
+            "Welcome to W.I.L.L! Since this is your first time using W.I.L.L, I'll walk you through the setup process"
+        )
+        bot.sendMessage(
+            chat_id,
+            '''First, you'll select your default plugin (the plugin that runs when W.I.L.L can't figure out what you
+             mean. The recommended plugin for this is "search" a plugin that searches wikipedia, wolframalpha, and
+             google for a possible answer to whatever your question is. If you don't want to use search, you can provide
+             your own.
+            '''
+        )
+        default_plugin_options = [
+            InlineKeyboardButton("Use search (recommended", callback_data="d_1:1"),
+            InlineKeyboardButton("Supply your own (experimental)", callback_data="d_1:2")
+        ]
+        default_selection = InlineKeyboardMarkup(default_plugin_options)
+        bot.sendMessage(chat_id, "What would you like to do?", reply_markup=default_selection)
+        #TODO: Finish this!
 
 
 def start(bot, update):
     '''First run commands'''
     log.info("Setting up bot")
-    db = dataset.connect('sqlite:///will.db')
-    userdata = db['userdata']
+    userdata = db['users']
     admin_username = "willbeddow"
     log.info("Admin username is {0}".format(admin_username))
     username = update.message.from_user.username
@@ -155,21 +235,21 @@ def start(bot, update):
         first_name=update.message.from_user.first_name,
         username=update.message.from_user.username,
         admin=user_is_admin,
-        default_plugin="search"
-    ), ['username'])
+        chat_id=update.message.chat_id,
+        user_setup=False
+    ), ['chat_id'])
+
     update.message.reply_text(
-        "In order to use the search functions, you need a wolframalpha api key. Please paste one in:"
+        "The setting setup function will now be run. If you want to change these at any time, simply run /settings"
     )
 
 
 def accept_wolfram_key(bot, update):
     '''Store wolfram key given in setup'''
     # If I want to add more steps to setup, add them here
-    username = update.message.from_user.username
-    db = dataset.connect('sqlite:///will.db')
-    userdata = db['userdata']
-    data = dict(username=username, wolfram_key=update.message.text)
-    userdata.upsert(data, ['username'])
+    userdata = db['users']
+    data = dict(chat_id=update.message.chat_id, wolfram_key=update.message.text)
+    userdata.upsert(data, ['chat_id'])
     log.info("In accept wolfram, table is {0}".format(
         userdata
     ))
@@ -187,9 +267,8 @@ def cancel(bot, update):
 def shutdown(bot, update):
     sender_username = update.message.from_user.username
     log.info("Attempted shutdown from user {0}".format(sender_username))
-    db = dataset.connect('sqlite:///will.db')
-    user_table = db["userdata"]
-    user = user_table.find_one(username=sender_username)
+    user_table = db["users"]
+    user = user_table.find_one(chat_id=update.message.chat_id)
     if user["admin"]:
         log.info("Shutting down W.I.L.L on command from admin user {0}".format(
             sender_username

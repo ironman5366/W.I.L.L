@@ -7,6 +7,7 @@ Welcome to the new W.I.L.L
 - Add encryption to db
 - Add db backups and restorations when server starts and stops
 - Fix reminders
+- Add location stuff
 - Add google search
 - Make sure that setup script is running dbsetup
 - Add spacy.en.download to setup script

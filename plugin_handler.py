@@ -26,7 +26,7 @@ default_plugin_data = None
 
 events_queue = Queue()
 
-db = dataset.connect('sqlite:///will.db')
+db = main.DB
 
 class subscriptions():
     '''Manage plugin subscriptions and events'''
@@ -61,8 +61,8 @@ class subscriptions():
     def subscriptions_thread(self):
         '''The seperate thread that monitors the events queue'''
         log.info("In subscriptions thread, starting loop")
-        db = dataset.connect('sqlite:///will.db')
-        user_data = db["userdata"]
+        log.info("db tables are {0}".format(db.tables))
+        user_data = db["users"]
         while main.will:
             time.sleep(0.1)
             #If the queue is empty, pass
@@ -71,9 +71,9 @@ class subscriptions():
                 assert type(event) == dict
                 event_command = event["command"]
                 username = event['update'].message.from_user.username
-                log.info("Processing event with command {0}, user {1}".format(
-                    event_command, username))
-                user_table = user_data.find_one(username=username)
+                log.info("Processing event with command {0}, user {1}, chat_id {2}".format(
+                    event_command, username, event["update"].message.chat_id))
+                user_table = user_data.find_one(chat_id=event["update"].message.chat_id)
                 event.update({"user_table":user_table})
                 found_plugins = []
                 default_plugin_name = user_table["default_plugin"]
