@@ -86,29 +86,30 @@ def find_alert(event, time_words):
     '''Try to find the subject of the reminder from the command'''
     sentence = event["command"]
     time_split = sentence.split(time_words)[1]
-    time_subject = time_split[1]
     #If the text after time_split is longer than 1 character
-    if len(time_subject) > 1:
-        return time_subject
-    else:
-        #Look for a conjunction and return the sentence after the conjunction
-        doc = event["doc"]
-        for token in doc:
-            #TODO: take this logging out, too verbose for even debug logs
-            token_tag = token.tag_
-            log.debug("Looking at token {0} with tag {1}".format(token, token_tag))
-            #If the word is a coordinating conjunction
-            if token_tag == "CC" or token_tag == "IN":
-                #Split the sentence by the conjunction
-                token_orth = token.orth_
-                try:
-                    conjunction_split = sentence.split(token_orth)[1]
-                    if len(conjunction_split) > 1:
-                        return conjunction_split
-                except IndexError:
-                    #For some reason the sentence can't be split by the original token
-                    return False
-        return False
+    #Look for a conjunction and return the sentence after the conjunction
+    doc = event["doc"]
+    for token in doc:
+        #TODO: take this logging out, too verbose for even debug logs
+        token_tag = token.pos_
+        #If the word is a coordinating conjunction
+        if token_tag == "ADP":
+            #Split the sentence by the conjunction
+            token_orth = token.orth_
+            log.debug("Token {0} has proper tag".format(token_orth))
+            try:
+                conjunction_split = sentence.split(token_orth)[1]
+                if len(conjunction_split) > 1:
+                    return conjunction_split
+            except IndexError:
+                #For some reason the sentence can't be split by the original token
+                return False
+    if len(str(time_split)) > 1:
+        if " " in time_split:
+            return time_split.split(" ")[1]
+        else:
+            return time_split
+    return False
 
 @subscribe({"name": "reminder", "check": is_reminder})
 def main(event):

@@ -34,10 +34,6 @@ def parse(bot, update ,job_queue, chat_data):
     doc = nlp(unicode(command))
     verbs = set()
     log.info("Parsing through dependencies")
-    #Use synactic dependencies to look at the words
-    #for possible_subject in doc:
-    #   if possible_subject.dep == nsubj and possible_subject.head.pos == VERB:
-    #       verbs.add(possible_subject.head.lemma_.lower())
     for token in doc:
         if token.pos == VERB:
             verbs.add(token.lemma_.lower())
