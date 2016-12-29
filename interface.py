@@ -173,6 +173,7 @@ def accept_wolfram_key(bot, update):
     log.info("In accept wolfram, table is {0}".format(
         userdata
     ))
+    bot.sendMessage(update.message.chat_id, "Thank you! W.I.L.L is now ready to use. ")
 
 
 def error(bot, update, error):
