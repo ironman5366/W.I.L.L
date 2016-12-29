@@ -4,6 +4,10 @@ Welcome to the new W.I.L.L
 
 ##TODO
 - Fix wolfram encoding
+- Fix error logging
+- Rework db so that it works user by chat id and not username
+- Add encryption to db
+- Add db backups and restorations when server starts and stops
 - Make sure that setup script is running dbsetup
 - Add spacy.en.download to setup script
 - Add a stop.py that is used by a plugin
