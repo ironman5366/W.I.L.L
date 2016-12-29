@@ -36,7 +36,17 @@ class subscriptions():
             plugin_function, event
         ))
         #Call the plugin. If there's a response, return it. If there's not, return "Done"
-        response = plugin_function(event)
+        try:
+            response = plugin_function(event)
+        except Exception as call_exception:
+            user_table = event["user_table"]
+            #If the user is an adminstrator, give them the full error message. If not, just let them know that an error occured
+            if user_table["admin"]:
+                response = "Error {0}, {1} occurred while executing plugin".format(
+                    call_exception.message, call_exception.args
+                )
+            else:
+                response = "An error occurred while executing plugin"
         if not response:
             response = "Done"
         response = str(response)

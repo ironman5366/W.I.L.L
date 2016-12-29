@@ -85,7 +85,9 @@ def convert_seconds(ent):
 def find_alert(event, time_words):
     '''Try to find the subject of the reminder from the command'''
     sentence = event["command"]
-    time_split = sentence.split(time_words)[1]
+    time_split_raw = sentence.split(time_words)
+    time_split = time_split_raw[1]
+    before_time = time_split_raw[0]
     #If the text after time_split is longer than 1 character
     #Look for a conjunction and return the sentence after the conjunction
     doc = event["doc"]
@@ -97,10 +99,17 @@ def find_alert(event, time_words):
             #Split the sentence by the conjunction
             token_orth = token.orth_
             log.debug("Token {0} has proper tag".format(token_orth))
+            token_split = token_orth+" "
             try:
-                conjunction_split = sentence.split(token_orth)[1]
-                if len(conjunction_split) > 1:
+                conjunction_split = sentence.split(token_split)[1]
+                if (len(conjunction_split) > 1) and (conjunction_split in sentence.split(time_split)):
+                    log.debug(
+                        "Token being split by is {0}, split is {1}".format(
+                            token_split, conjunction_split
+                        )
+                    )
                     return conjunction_split
+                    #TODO: fix this and then add thread safe error handling
             except IndexError:
                 #For some reason the sentence can't be split by the original token
                 return False
