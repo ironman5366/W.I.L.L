@@ -4,6 +4,7 @@ from plugin_handler import subscribe
 # External imports
 import wolframalpha
 import dataset
+from bs4 import BeautifulSoup
 
 # Builtin imports
 import logging
@@ -19,11 +20,11 @@ def search_wolfram(query, api_key):
     res = client.query(query)
     try:
         next_result = next(res.results).text
-        log.info("Wolfram result is {0}".format(next_result))
         if next_result:
             # Sanitze result
             result = next_result.encode('ascii', 'ignore')
-            return next_result
+            log.debug("Sanitized wolfram result is {0}".format(result))
+            return result
         else:
             return False
     except StopIteration:
