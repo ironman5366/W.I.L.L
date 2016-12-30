@@ -383,7 +383,7 @@ def initialize(bot_token, DB):
     #    Filters.text, parser.parse,pass_job_queue=True,pass_chat_data=True
     # ))
     dp.add_handler(CommandHandler("shutdown", shutdown))
-    dp.add_handlder(MessageHandler(Filters.location, location_handler))
+    dp.add_handler(MessageHandler(Filters.location, location_handler))
     # log all errors
     dp.add_error_handler(error)
 

@@ -15,9 +15,8 @@ log = logging.getLogger()
 
 nlp = None
 matcher = None
-db = main.DB
 
-def parse(bot, update ,job_queue, chat_data):
+def parse(bot, update ,job_queue, chat_data, db):
     '''Function that calls parsing'''
     command = update.message.text
     username = update.message.from_user.username

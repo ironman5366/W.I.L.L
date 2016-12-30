@@ -33,7 +33,7 @@ def shutdown():
 def command(bot, update ,job_queue, chat_data):
     '''Control the processing of the command'''
     #Call the parser
-    parse_data = parser.parse(bot,update,job_queue,chat_data)
+    parse_data = parser.parse(bot,update,job_queue,chat_data, DB)
     log.info("Nlp parsing finished, adding data to event queue")
     plugin_handler.subscriptions.send_event(parse_data)
 
