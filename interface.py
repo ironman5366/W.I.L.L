@@ -44,7 +44,7 @@ data_store = {
     "c_s:2": {"type": "change_settings", "change_settings": False},
     "s_o:1": {"type": "settings_call", "settings_type": "wolfram"},
     "s_o:2": {"type": "settings_call", "settings_type": "location"},
-    "s_o:3": {"type": "settings_call", "settings_type": "default_plugin"}
+    "s_o:3": {"type": "settings_call", "settings_type": "default_plugin"},
 }
 
 def help(bot, update):
@@ -63,6 +63,7 @@ def check_plugin(plugins, event):
     keyboard = []
 
     def add_to_keyboard(plugin):
+        # TODO: !!!!!! add this callback_data to data_store!
         keyboard.append(
             InlineKeyboardButton(plugin["name"], callback_data=
             {"type": "plugin_selection", "event": event, "plugin_function": plugin["function"], "name": plugin["name"]})
