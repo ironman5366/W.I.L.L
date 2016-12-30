@@ -58,7 +58,7 @@ def parse(bot, update ,job_queue, chat_data):
     }
     log.info("Finished parsing command_data, sending it into events queue")
     log.debug("Command_data is {0}".format(command_data))
-    plugin_handler.subscriptions().send_event(command_data)
+    return command_data
 
 
 def initialize():

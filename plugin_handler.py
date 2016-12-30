@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import threading
+import json
 
 #External imports
 import importlib
@@ -25,8 +26,6 @@ command_plugins = {}
 default_plugin_data = None
 
 events_queue = Queue()
-
-db = main.DB
 
 class subscriptions():
     '''Manage plugin subscriptions and events'''
@@ -58,7 +57,7 @@ class subscriptions():
         #Send the message
         interface.send_message(event["bot"],event["update"].message.chat.id,response)
 
-    def subscriptions_thread(self):
+    def subscriptions_thread(self, db):
         '''The seperate thread that monitors the events queue'''
         log.info("In subscriptions thread, starting loop")
         log.info("db tables are {0}".format(db.tables))
@@ -142,10 +141,10 @@ class subscriptions():
         ))
         events_queue.put(event)
 
-    def initialize(self):
+    def initialize(self, db):
         '''Start the subscriptions thread'''
         log.info("Starting plugin subscription monitoring thread")
-        s_thread = threading.Thread(target=self.subscriptions_thread)
+        s_thread = threading.Thread(target=self.subscriptions_thread, args=(db,))
         s_thread.start()
         log.info("Started subscriptions thread")
 
@@ -173,14 +172,14 @@ def subscribe(subscription_data):
         plugin_subscriptions.append(subscription_data)
     return wrap
 
-def load(dir_path):
+def load(dir_path, DB):
     '''Loads plugins'''
     log.info("Finding plugins in directory {0}".format(dir_path))
     plugins = lambda: (os.path.join(dir_path, module_path)
                        for module_path in os.listdir(dir_path))
     map_plugins(plugins())
     log.info("Finished parsing and loading plugins, processing subscriptions")
-    subscriptions().initialize()
+    subscriptions().initialize(DB)
     log.info("Plugin initialization finished")
 
 def map_plugins(plugin_paths):

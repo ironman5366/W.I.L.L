@@ -1,8 +1,7 @@
 # Builtin imports
 import logging
-import sys
+import time
 # External imports
-import dataset
 from telegram import (ReplyKeyboardMarkup, ReplyKeyboardRemove, InlineKeyboardButton, InlineKeyboardMarkup)
 from telegram.ext import (
     Updater, CommandHandler, MessageHandler, Filters, Job, CallbackQueryHandler, RegexHandler, ConversationHandler,
@@ -10,9 +9,9 @@ from telegram.ext import (
 )
 
 # Internal imports
-import parser
 import plugin_handler
 import main
+
 
 log = logging.getLogger()
 
@@ -28,7 +27,7 @@ Commands:
 If not given a telegram command, W.I.L.L will try to interpret your command as a personal assistant
 '''
 
-db = main.DB
+db = None
 
 # Store the button dictionaries of data here because callback_query has to be a string
 data_store = {
@@ -40,7 +39,12 @@ data_store = {
     "s_2:4": {"type": "snooze_2", "length": 21600},
     "s_2:5": {"type": "snooze_2", "length": 86400},
     "d_1:1": {"type": "setup_default", "use_search": True},
-    "d_1:2": {"type": "setup_default", "use_search": False}
+    "d_1:2": {"type": "setup_default", "use_search": False},
+    "c_s:1": {"type": "change_settings", "change_settings": True},
+    "c_s:2": {"type": "change_settings", "change_settings": False},
+    "s_o:1": {"type": "settings_call", "settings_type": "wolfram"},
+    "s_o:2": {"type": "settings_call", "settings_type": "location"},
+    "s_o:3": {"type": "settings_call", "settings_type": "default_plugin"}
 }
 
 def help(bot, update):
@@ -81,6 +85,19 @@ def alarm(bot, job):
          InlineKeyboardButton("Dismiss", callback_data="s_1:2")]]
     snooze_inline = InlineKeyboardMarkup(keyboard)
     bot.sendMessage(chat_id, text=alarm_text, reply_markup=snooze_inline)
+
+def check_user_setup(bot, update):
+    '''Check to see if the user has all needed settings.
+     If they do, update the db to reflect that'''
+    userdata = db["users"]
+    user_table = userdata.find_one(chat_id=update.message.chat_id)
+    user_setup = (
+        user_table["wolfram_key"] and
+        user_table["default_plugin"] and
+        user_table["location"]
+    )
+    if user_setup:
+        user_table.update(dict(chat_id=update.message.chat_id, user_setup=True), ["chat_id"])
 
 
 def set_job(update, due, job_queue, chat_data, alarm_text, response_text=None):
@@ -140,8 +157,7 @@ def button(bot, update, job_queue, chat_data):
         #If not, get a list of plugins from plugin_handler and supply that as buttons
         chat_id = update.message.chat_id
         if use_search:
-            db = dataset.connect('sqlite:///will.db')
-            userdata = db["userdata"]
+            userdata = db["users"]
             user_table = userdata.find_one(chat_id=chat_id)
             data = dict(chat_id=chat_id, default_plugin="search")
             user_table.update(data, ['chat_id'])
@@ -178,8 +194,42 @@ def button(bot, update, job_queue, chat_data):
         user_table = userdata.find_one(chat_id=chat_id)
         data = dict(chat_id=chat_id, default_plugin=new_default)
         user_table.update(data, ['chat_id'])
+        ask_more_settings_change(bot, update)
+    elif data_type == "change_settings":
+        check_user_setup(bot, update)
+        if data["change_settings"]:
+            settings(bot,update)
+        else:
+            bot.sendMessage(update.message.chat_id, "Exiting settings.")
+    elif data_type == "settings_call":
+        setting_selection = data["settings_type"]
+        if setting_selection == "wolfram":
+            bot.sendMessage(update.message.chat_id, "Please paste in a new wolframalpha key")
+        elif setting_selection == "loaction":
+            bot.sendMessage(update.message.chat_id, "Please send a new location pin")
+        elif setting_selection == "default_plugin":
+            choose_default_plugin(bot, update)
+
+def set_wolfram(bot, update):
+    '''Collect a wolfram key and wait for it to be pasted in'''
+    bot.sendMessage(
+        update.message.chat_id,
+        "You need a wolframalpha key to use the search functions. If you don't have one, you can get it from" +
+        "http://products.wolframalpha.com/api/. Please paste one in now. I'll wait for 15 seconds, but"+
+        "you can still paste one in later and I'll recognize it."
+    )
+    time.sleep(15)
 
 
+
+def choose_default_plugin(bot, update):
+    '''Have the user select a default plugin'''
+    default_plugin_options = [
+        InlineKeyboardButton("Use search (recommended", callback_data="d_1:1"),
+        InlineKeyboardButton("Supply your own (experimental)", callback_data="d_1:2")
+    ]
+    default_selection = InlineKeyboardMarkup(default_plugin_options)
+    bot.sendMessage(update.message.chat_id, "What would you like to do?", reply_markup=default_selection)
 
 def settings(bot, update):
     '''User settings'''
@@ -193,28 +243,33 @@ def settings(bot, update):
     user_setup = user_table["user_setup"]
     #If the user has run the setup proces already
     if user_setup:
-        #TODO: do this with mutable and immutable settings
-        pass
+        settings = [
+            InlineKeyboardButton("Change Wolfram Key", callback_data="s_o:1"),
+            InlineKeyboardButton("Change Location", callback_data="s_o:2"),
+            InlineKeyboardButton("Change Default Plugin", callback_data="s_o:3")
+        ]
+        settings_keyboard = InlineKeyboardMarkup(settings)
+        bot.sendMessage(update.message.chat_id, settings_keyboard)
     else:
         bot.sendMessage(
             chat_id,
             "Welcome to W.I.L.L! Since this is your first time using W.I.L.L, I'll walk you through the setup process"
         )
+        set_wolfram(bot, update)
         bot.sendMessage(
             chat_id,
-            '''First, you'll select your default plugin (the plugin that runs when W.I.L.L can't figure out what you
+            '''Next, you'll select your default plugin (the plugin that runs when W.I.L.L can't figure out what you
              mean. The recommended plugin for this is "search" a plugin that searches wikipedia, wolframalpha, and
              google for a possible answer to whatever your question is. If you don't want to use search, you can provide
-             your own.
+             your own. I'll wait 20 seconds for you to make your choices before continuing
             '''
         )
-        default_plugin_options = [
-            InlineKeyboardButton("Use search (recommended", callback_data="d_1:1"),
-            InlineKeyboardButton("Supply your own (experimental)", callback_data="d_1:2")
-        ]
-        default_selection = InlineKeyboardMarkup(default_plugin_options)
-        bot.sendMessage(chat_id, "What would you like to do?", reply_markup=default_selection)
-        #TODO: Finish this!
+        choose_default_plugin(bot, update)
+        time.sleep(20)
+        bot.sendMessage("In order to give W.I.L.L your location, please send a location pin.")
+        time.sleep(60)
+        check_user_setup(bot, update)
+
 
 
 def start(bot, update):
@@ -242,7 +297,16 @@ def start(bot, update):
     update.message.reply_text(
         "The setting setup function will now be run. If you want to change these at any time, simply run /settings"
     )
+    settings(bot, update)
 
+def ask_more_settings_change(bot, update):
+    '''Ask the user if they want to change more settings'''
+    keyboard = [
+        InlineKeyboardButton("Yes", callback_data="c_s:1"),
+        InlineKeyboardButton("No", callback_data="c_s:2")
+        ]
+    markup = InlineKeyboardMarkup(keyboard)
+    bot.sendMessage(update.message.chat_id, "Would you like to change more settings?", reply_markup=markup)
 
 def accept_wolfram_key(bot, update):
     '''Store wolfram key given in setup'''
@@ -253,7 +317,27 @@ def accept_wolfram_key(bot, update):
     log.info("In accept wolfram, table is {0}".format(
         userdata
     ))
-    bot.sendMessage(update.message.chat_id, "Thank you! W.I.L.L is now ready to use. ")
+    bot.sendMessage(update.message.chat_id, "Thank you! Wolfram key set.")
+    ask_more_settings_change(bot, update)
+
+def location_handler(bot, update):
+    '''Handle when the user sends a location pin'''
+    sender_username = update.message.from_user.username
+    #Location object contains longitude and latitude
+    location = update.message.location
+    #Convert location object to json
+    location_json = location.de_json()
+    log.debug("Got location {0} from user {1}".format(
+        location_json, sender_username
+    ))
+    chat_id = update.message.chat_id
+    user_table = db["users"].find_one(chat_id=chat_id)
+    user_table.updsert(dict(chat_id=chat_id, location=location_json), ['chat_id'])
+    log.debug("Sent location data from user {0} to db".format(
+        sender_username
+    ))
+    bot.sendMessage("Logged location data")
+    check_user_setup(bot, update)
 
 
 def error(bot, update, error):
@@ -278,15 +362,18 @@ def shutdown(bot, update):
 
     else:
         update.message.reply_text("You need to be an administrator to shutdown W.I.L.L!")
-def initialize(bot_token):
+
+def initialize(bot_token, DB):
     '''Start the bot'''
+    global db
+    db = DB
     updater = Updater(bot_token)
     # Get the dispatcher to register handlers
     dp = updater.dispatcher
     # Use regex to match strings of text that look like wolfram keys (long alphanumeric strings)
 
     # on different commands - answer in Telegram
-    dp.add_handler(RegexHandler('[\s\S]* [\s\S]*', parser.parse, pass_job_queue=True, pass_chat_data=True))
+    dp.add_handler(RegexHandler('[\s\S]* [\s\S]*', main.command, pass_job_queue=True, pass_chat_data=True))
     # dp.add_handler(MessageHandler(Filters.text, parser.parse, pass_job_queue=True, pass_chat_data=True))
     dp.add_handler(RegexHandler('^[A-Z0-9]{6}-[A-Z0-9]{10}$', accept_wolfram_key))
     dp.add_handler(CommandHandler("start", start))
@@ -296,6 +383,7 @@ def initialize(bot_token):
     #    Filters.text, parser.parse,pass_job_queue=True,pass_chat_data=True
     # ))
     dp.add_handler(CommandHandler("shutdown", shutdown))
+    dp.add_handlder(MessageHandler(Filters.location, location_handler))
     # log all errors
     dp.add_error_handler(error)
 
