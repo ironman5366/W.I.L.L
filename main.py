@@ -29,6 +29,14 @@ def shutdown():
     #TODO: figure out what's keeping threads awake, fix it and change os._exit() to sys.exit()
     #sys.exit()
     os._exit(1)
+
+def command(bot, update ,job_queue, chat_data):
+    '''Control the processing of the command'''
+    #Call the parser
+    parse_data = parser.parse(bot,update,job_queue,chat_data)
+    log.info("Nlp parsing finished, adding data to event queue")
+    plugin_handler.subscriptions.send_event(parse_data)
+
 class main():
     '''Start W.I.L.L and determine data status'''
     def __init__(self):
@@ -44,14 +52,18 @@ class main():
             log.info("Initializing the database")
             global DB
             DB = dataset.connect(DB_URL)
+            log.info("In main, db tables are {0}".format(DB.tables))
+            #Define the database in plugin_handler
+            log.info("Setting plugin handler database")
+            plugin_handler.DB = DB
             log.info("Loading plugins")
-            plugin_handler.load('plugins')
+            plugin_handler.load('plugins', DB)
             #Initialize spacy
             log.info("Starting spacy nlp parser")
             parser.initialize()
             log.info("Starting the telegram interface")
             #Start the telegram bot
-            interface.initialize(token)
+            interface.initialize(token, DB)
         else:
             log.error('''
             Couldn't find will.conf. Please create a file named will.conf in a json format defining your database url
