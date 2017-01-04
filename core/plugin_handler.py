@@ -17,7 +17,7 @@ import interface
 
 log = logging.getLogger()
 
-dir_path = 'plugins'
+dir_path = 'core/plugins'
 
 plugin_subscriptions = []
 

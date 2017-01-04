@@ -1,6 +1,7 @@
 # External imports
 from flask import Flask
 from flask import request
+import flask
 import dataset
 import bcrypt
 
@@ -15,6 +16,7 @@ import datetime
 import Queue
 import os
 import json
+from logging.handlers import RotatingFileHandler
 
 app = Flask(__name__)
 
@@ -31,17 +33,25 @@ logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(leve
                     filemode='w', filename=logfile)
 ch = logging.StreamHandler(sys.stdout)
 ch.setLevel(logging.INFO)
-log = logging.getLogger()
+#log = logging.getLogger()
+handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
+handler.setLevel(logging.DEBUG)
+app.logger.setLevel(logging.DEBUG)
+app.logger.addHandler(logging.StreamHandler(sys.stdout))
+app.logger.addHandler(handler)
 
+app.logger.setLevel(logging.DEBUG)
+log = app.logger
 db_url = configuration_data["db_url"]
 db = dataset.connect(db_url)
 
-@app.route('/new_user', methods=["GET","POST"])
+@app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
     '''Put a new user in the database'''
     response = {"type": None, "data": {}, "text": None}
     try:
         username = request.form["username"]
+        log.debug("Username is {0}".format(username))
         password = request.form["password"]
         first_name = request.form["first_name"]
         last_name = request.form["last_name"]
@@ -63,9 +73,9 @@ def new_user():
             db.begin()
             # Hash the password
             log.info("Hashing password")
-            hashed = bcrypt.hashpw(password, bcrypt.gensalt())
+            hashed = bcrypt.hashpw(str(password), bcrypt.gensalt())
             log.debug("Hashed password is {0}".format(hashed))
-            is_admin = username in configuration_data.admins()
+            is_admin = username in configuration_data["admins"]
             try:
                 db['users'].insert({
                     "username": username,
@@ -78,10 +88,12 @@ def new_user():
                     "wolfram_key": wolfram_key
                 })
                 db.commit()
+                response["type"] = "success"
+                response["text"]  = "Thank you {0}, you are now registered for W.I.L.L".format(first_name)
             except:
                 db.rollback()
 
-    except IndexError:
+    except KeyError:
         log.error("Needed data not found in new user request")
         response["type"] = "error"
         response["text"] = "Couldn't find required data in request. " \
@@ -90,7 +102,7 @@ def new_user():
     return tools.return_json(response)
 
 
-@app.route('/start_session', methods=["GET","POST"])
+@app.route('/api/start_session', methods=["GET","POST"])
 def start_session():
     '''Generate a session id and start a new session'''
     # Check the information that the user has submitted
@@ -105,7 +117,7 @@ def start_session():
             # Check the password
             db_hash = user_data["password"]
             log.info("Db hash is {0}".format(db_hash))
-            user_auth = bcrypt.checkpw(password, db_hash)
+            user_auth = bcrypt.checkpw(str(password), db_hash)
             if user_auth:
                 # Authentication was successful, give the user a session id
                 log.info("Authentication successful for user {0}".format(username))
@@ -128,14 +140,14 @@ def start_session():
         else:
             response["type"] = "error"
             response["text"] = "Couldn't find user with username {0}".format(username)
-    except IndexError:
+    except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request data"
     # Render the response as json
     return tools.return_json(response)
 
 
-@app.route('/end_session', methods=["GET", "POST"])
+@app.route('/api/end_session', methods=["GET", "POST"])
 def end_session():
     '''End the users session'''
     response = {"type": None, "data": {}, "text": None}
@@ -150,14 +162,14 @@ def end_session():
         else:
             response["type"] = "error"
             response["text"] = "Session id {0} wasn't found in core.sessions".format(session_id)
-    except IndexError:
+    except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find session id in request data"
     # Render the response as json
     return tools.return_json(response)
 
 
-@app.route("/get_updates", methods=["GET", "POST"])
+@app.route("/api/get_updates", methods=["GET", "POST"])
 def get_updates():
     '''Get the updates for the user'''
     response = {"type": None, "data": {}, "text": None}
@@ -178,13 +190,13 @@ def get_updates():
         else:
             response["type"] = "error"
             response["text"] = "Session id {0} wasn't found in core.sessions".format(session_id)
-    except IndexError:
+    except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find session id in request data"
     return tools.return_json(response)
 
 
-@app.route('/command', methods=["GET", "POST"])
+@app.route('/api/command', methods=["GET", "POST"])
 def command():
     '''Take command and add it to the processing queue'''
     response = {"type": None, "data": {}, "text": None}
@@ -205,17 +217,22 @@ def command():
             response["type"] == "success"
         else:
             response["type"] = "error"
-    except IndexError:
+    except KeyError:
         log.info("Couldn't find session id and command in request data")
     return tools.return_json(response)
 
-
-if __name__ == '__main__':
+def start():
     log.info("Starting W.I.L.L")
     log.info("Loaded configuration file and started logging")
     log.info("Connecting to database")
     log.info("Starting W.I.L.L core")
     core.initialize(db)
     log.info("Starting sessions parsing thread")
+    core.sessions_monitor(db)
     log.info("Connected to database, running server")
-    app.run(host="0.0.0.0", port=80)
+    #app.run(debug=configuration_data["debug"])
+    #host="0.0.0.0", port=80,
+
+if __name__ == "__main__":
+    start()
+    app.run()

@@ -4,5 +4,5 @@ dataset == 0.7.1
 wolframalpha == 3.0
 importlib == 1.0.4
 beautifulsoup4 == 4.4.1
-flask == 0.10.1
+flask == 0.12
 bcrypt == 3.1.2

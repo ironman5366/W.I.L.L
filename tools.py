@@ -2,6 +2,7 @@
 import logging
 import json
 import os
+import uuid
 
 log = logging.getLogger()
 
@@ -9,16 +10,25 @@ session_nums = 0
 
 command_nums = 0
 
-def get_session_id():
+def initialize_session_tracking(db):
+    '''Set the session increment using the db'''
+    vars = db["vars"]
+    session_increment = vars.find_one(name="session_incremnet")
+    log.debug("Found session increment {0} from server".format(session_increment))
+    global session_nums
+    session_nums = session_increment
+
+def get_session_id(db):
     '''Incrementing session ids'''
     global session_nums
     session_nums+=1
-    session_str = str(session_nums)
-    session_len = len(session_str)
-    #Generate a 6 number session id
-    for i in range(0, 6-session_len):
-        session_str = "0"+session_str
+    session_id = uuid.uuid1()
+    session_str = str(session_id)
     log.debug("Generated session_id {0}".format(session_str))
+    log.debug("Updating session increment in db")
+    vars = db["vars"]
+    data = dict(name="session_id", value=session_nums)
+    vars.update(data, ['name'])
     return session_str
 
 def get_command_id(session_id):

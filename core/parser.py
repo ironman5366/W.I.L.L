@@ -13,8 +13,11 @@ import __init__
 
 log = logging.getLogger()
 
-nlp = None
-matcher = None
+log.debug("In parser, loading model")
+nlp = spacy.load('en')
+log.debug("Loaded model")
+matcher = Matcher(nlp.vocab)
+log.debug("Loaded matcher")
 
 def parse(command_data, session):
     '''Function that calls parsing'''
@@ -52,10 +55,3 @@ def parse(command_data, session):
     log.info("Finished parsing event_data, sending it into events queue")
     log.debug("Event_data is {0}".format(event_data))
     return event_data
-
-
-def initialize():
-    global nlp
-    global matcher
-    nlp = spacy.load('en')
-    matcher = Matcher(nlp.vocab)

@@ -47,6 +47,4 @@ class sessions_monitor():
 def initialize(db):
     '''Intialize the core modules of W.I.L.L'''
     log.info("Loading plugins")
-    plugin_handler.load("plugins", db)
-    log.info("Starting spacy nlp parser")
-    parser.initialize()
+    plugin_handler.load("core/plugins", db)
