@@ -105,9 +105,7 @@ def start_session():
             # Check the password
             db_hash = user_data["password"]
             log.info("Db hash is {0}".format(db_hash))
-            user_auth = (
-                bcrypt.hash(password, db_hash) == db_hash
-            )
+            user_auth = bcrypt.checkpw(password, db_hash)
             if user_auth:
                 # Authentication was successful, give the user a session id
                 log.info("Authentication successful for user {0}".format(username))
