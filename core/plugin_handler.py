@@ -66,7 +66,8 @@ class subscriptions():
         assert type(event) == dict
         event.update(dict(db=db))
         event_command = event["command"]
-        username = event["session"].username
+        log.debug("Event session is {0}".format(event["session"]))
+        username = event["session"]["username"]
         log.info("Processing event with command {0}, user {1}, chat_id {2}".format(
             event_command, username, event["update"].message.chat_id))
         user_table = user_data.find_one(username=username)

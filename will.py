@@ -126,7 +126,7 @@ def start_session():
 
                 core.sessions.update({
                     session_id: {
-                        "user": username,
+                        "username": username,
                         "commands": Queue.Queue(),
                         "created": datetime.datetime.now(),
                         "updates": Queue.Queue(),
@@ -216,6 +216,7 @@ def command():
             session_data["commands"].put(command_data)
             response["type"] = "success"
             response["text"] = "Command submitted"
+            response["data"].update(dict(command_id=command_id))
         else:
             response["type"] = "error"
             response["text"] = "Invalid session id"

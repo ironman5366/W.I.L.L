@@ -21,8 +21,8 @@ log.debug("Loaded matcher")
 
 def parse(command_data, session):
     '''Function that calls parsing'''
-    command = command_data["db"]
-    username = session["user"]
+    command = command_data["command"]
+    username = session["username"]
     log.info(
         "Parsing command {0} from user {1}".format(
             command, username

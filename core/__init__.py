@@ -12,12 +12,13 @@ log = logging.getLogger()
 sessions = {}
 
 class sessions_monitor():
-    def command(command_data, session,  db):
+    def command(self, command_data, session,  db):
         '''Control the processing of the command'''
         # Call the parser
+        command_data.update({"db": db})
         parse_data = parser.parse(command_data, session)
         log.info("Nlp parsing finished, adding data to event queue")
-        response = plugin_handler.subscriptions.process_event(parse_data, db)
+        response = plugin_handler.subscriptions().process_event(parse_data, db)
         log.debug("Got response {0} from plugin handler".format(response))
         command_id = command_data['id']
         log.info("Setting update for command {0} with response {1}".format(
@@ -43,6 +44,7 @@ class sessions_monitor():
                     self.command(new_command, session,  db)
     def __init__(self, db):
         sessions_thread = threading.Thread(target=self.monitor, args=(db, ))
+        sessions_thread.start()
 
 def initialize(db):
     '''Intialize the core modules of W.I.L.L'''

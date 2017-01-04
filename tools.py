@@ -26,9 +26,8 @@ def get_session_id(db):
     session_str = str(session_id)
     log.debug("Generated session_id {0}".format(session_str))
     log.debug("Updating session increment in db")
-    vars = db["vars"]
     data = dict(name="session_id", value=session_nums)
-    vars.update(data, ['name'])
+    db['vars'].update(data, ['name'])
     return session_str
 
 def get_command_id(session_id):
