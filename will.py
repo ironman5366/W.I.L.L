@@ -121,7 +121,7 @@ def start_session():
             if user_auth:
                 # Authentication was successful, give the user a session id
                 log.info("Authentication successful for user {0}".format(username))
-                session_id = tools.get_session_id()
+                session_id = tools.get_session_id(db)
                 # Register a session id
 
                 core.sessions.update({
@@ -214,11 +214,15 @@ def command():
                 "command": command
             }
             session_data["commands"].put(command_data)
-            response["type"] == "success"
+            response["type"] = "success"
+            response["text"] = "Command submitted"
         else:
             response["type"] = "error"
+            response["text"] = "Invalid session id"
     except KeyError:
         log.info("Couldn't find session id and command in request data")
+        response["type"] = "error"
+        response["text"] = "Couldn't find session id and command in request data"
     return tools.return_json(response)
 
 def start():
