@@ -10,7 +10,7 @@ from telegram.ext import (
 
 # Internal imports
 import plugin_handler
-import main
+import __init__
 
 
 log = logging.getLogger()
@@ -359,7 +359,7 @@ def shutdown(bot, update):
             sender_username
         ))
         update.message.reply_text("Shutting down!")
-        main.shutdown()
+        __init__.shutdown()
 
     else:
         update.message.reply_text("You need to be an administrator to shutdown W.I.L.L!")
@@ -374,7 +374,7 @@ def initialize(bot_token, DB):
     # Use regex to match strings of text that look like wolfram keys (long alphanumeric strings)
 
     # on different commands - answer in Telegram
-    dp.add_handler(RegexHandler('[\s\S]* [\s\S]*', main.command, pass_job_queue=True, pass_chat_data=True))
+    dp.add_handler(RegexHandler('[\s\S]* [\s\S]*', __init__.command, pass_job_queue=True, pass_chat_data=True))
     # dp.add_handler(MessageHandler(Filters.text, parser.parse, pass_job_queue=True, pass_chat_data=True))
     dp.add_handler(RegexHandler('^[A-Z0-9]{6}-[A-Z0-9]{10}$', accept_wolfram_key))
     dp.add_handler(CommandHandler("start", start))

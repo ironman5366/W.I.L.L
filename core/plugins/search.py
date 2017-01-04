@@ -61,8 +61,8 @@ def main(data):
     '''Start the search'''
     query = data["command"]
     log.info("In main search function with query {0}".format(query))
-    db = main.DB
-    user_table = db["userdata"].find_one(chat_id=data["update"].message.chat_id)
+    db = data["db"]
+    user_table = db["users"].find_one(username=data["session"]["username"])
     answer = False
     if "wolfram_key" in user_table.keys():
         log.info("Found wolframa key")

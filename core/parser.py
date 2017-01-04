@@ -9,26 +9,22 @@ from spacy.matcher import Matcher
 
 #Internal imports
 import plugin_handler
-import main
+import __init__
 
 log = logging.getLogger()
 
 nlp = None
 matcher = None
 
-def parse(bot, update ,job_queue, chat_data, db):
+def parse(command_data, session):
     '''Function that calls parsing'''
-    command = update.message.text
-    username = update.message.from_user.username
+    command = command_data["db"]
+    username = session["user"]
     log.info(
         "Parsing command {0} from user {1}".format(
             command, username
         )
      )
-    #Pull user data from database
-    userdata_table = db['userdata']
-    user = userdata_table.find_one(chat_id=update.message.chat_id)
-    user_first_name = user["first_name"]
     #Parse the command in spacy
     log.info("Running command through nlp")
     doc = nlp(unicode(command))
@@ -45,19 +41,17 @@ def parse(bot, update ,job_queue, chat_data, db):
             ent.label_:ent.text
         })
     log.info("Finished parsing ents")
-    command_data = {
+    event_data = {
         "command": command,
-        "bot": bot,
-        "update": update,
-        "job_queue": job_queue,
-        "chat_data": chat_data,
+        "session": session,
+        "command_data": command_data,
         "verbs": verbs,
         "ents": ents,
         "doc": doc
     }
-    log.info("Finished parsing command_data, sending it into events queue")
-    log.debug("Command_data is {0}".format(command_data))
-    return command_data
+    log.info("Finished parsing event_data, sending it into events queue")
+    log.debug("Event_data is {0}".format(event_data))
+    return event_data
 
 
 def initialize():

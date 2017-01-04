@@ -1,8 +1,7 @@
 # Builtin imports
 import logging
 # Internal imports
-from plugin_handler import subscribe
-from interface import set_job
+from core.plugin_handler import subscribe
 
 log = logging.getLogger()
 
@@ -148,6 +147,7 @@ def main(event):
         alert_text == "Reminder: {0}".format(event_command)
     log.info("Alert text is {0}".format(alert_text))
     #Set the reminder using interface.set_job
+    #TODO: redo this with a W.I.L.l set job function
     set_job(
         event["update"],
         time_in_seconds,
