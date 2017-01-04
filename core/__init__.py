@@ -27,7 +27,7 @@ class sessions_monitor():
         session_id = session['id']
         #Add the response to the update queue
         global sessions
-        sessions[session_id]["updates"].put({command_id:response})
+        sessions[session_id]["updates"].put({"command_id": command_id, "response": response})
 
     def monitor(self, db):
         '''Thread that handles the active command sessions'''

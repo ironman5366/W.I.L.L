@@ -175,21 +175,24 @@ def get_updates():
     response = {"type": None, "data": {}, "text": None}
     try:
         session_id = request.form["session_id"]
+        # Get data from the updates queue and put it into the response
         if session_id in core.sessions.keys():
             session_data = core.sessions[session_id]
-            # Get data from the updates queue and put it into the response
             while not session_data["updates"].empty():
                 update = session_data["updates"].get()
-                log.debug("Found update object {0}".format(update))
-                update_id = update["id"]
+                update_id = update["command_id"]
+                update_response = update["response"]
                 response["data"].update({
-                    update_id: update
+                    update_id: update_response
                 })
             response["type"] = "success"
             response["text"] = "Fetched updates"
         else:
+            log.debug("Couldn't find session id {0} in session keys {1}".format(
+                session_id, core.sessions.keys()
+            ))
             response["type"] = "error"
-            response["text"] = "Session id {0} wasn't found in core.sessions".format(session_id)
+            response["text"] = "Couldn't find session id {0} in sessions".format(session_id)
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find session id in request data"

@@ -68,8 +68,8 @@ class subscriptions():
         event_command = event["command"]
         log.debug("Event session is {0}".format(event["session"]))
         username = event["session"]["username"]
-        log.info("Processing event with command {0}, user {1}, chat_id {2}".format(
-            event_command, username, event["update"].message.chat_id))
+        log.info("Processing event with command {0}, user {1}".format(
+            event_command, username))
         user_table = user_data.find_one(username=username)
         event.update({"user_table":user_table})
         found_plugins = []
@@ -144,9 +144,14 @@ def subscribe(subscription_data):
         log.info("Subscribing function {0} to data {1}".format(
             f, subscription_data
         ))
+        log.info("1")
+        log.info(f)
+        log.info("2")
         subscription_data.update({
             'function': f
         })
+        log.info("3")
+        log.info("Appending subscription data {0} to plugin subscriptions".format(subscription_data))
         plugin_subscriptions.append(subscription_data)
     return wrap
 
