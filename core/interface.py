@@ -156,7 +156,7 @@ def button(bot, update, job_queue, chat_data):
         use_search = data["use_search"]
         #If the user wants to use search as the default, set that as the option.
         #If not, get a list of plugins from plugin_handler and supply that as buttons
-        chat_id = update.message.chat_id
+        chat_id = chat_data["chat_id"]
         if use_search:
             userdata = db["users"]
             user_table = userdata.find_one(chat_id=chat_id)
@@ -175,9 +175,11 @@ def button(bot, update, job_queue, chat_data):
                     callback_id: {"type": "custom_default", "name": plugin_name}
                 })
                 plugin_keyboard.append(InlineKeyboardButton(plugin_name, callback_data=callback_id))
+            final_keyboard = []
+            final_keyboard.append(plugin_keyboard)
             #Have the user choose which plugin they want to set as their default plugin
             map(create_inline, active_plugins)
-            keyboard = InlineKeyboardMarkup(plugin_keyboard)
+            keyboard = InlineKeyboardMarkup(final_keyboard)
             bot.sendMessage(
                 update.message.chat_id,
                 "Which plugin would you like to set as default?",
@@ -225,10 +227,10 @@ def set_wolfram(bot, update):
 
 def choose_default_plugin(bot, update):
     '''Have the user select a default plugin'''
-    default_plugin_options = [
+    default_plugin_options = [[
         InlineKeyboardButton("Use search (recommended", callback_data="d_1:1"),
         InlineKeyboardButton("Supply your own (experimental)", callback_data="d_1:2")
-    ]
+    ]]
     default_selection = InlineKeyboardMarkup(default_plugin_options)
     bot.sendMessage(update.message.chat_id, "What would you like to do?", reply_markup=default_selection)
 
