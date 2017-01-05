@@ -3,12 +3,32 @@ import logging
 import json
 import os
 import uuid
+import time
 
 log = logging.getLogger()
 
 session_nums = 0
 
 command_nums = 0
+
+def load_key(key_type, db):
+    '''Load and cycle keys from the databse'''
+    working_keys = db.query('SELECT * FROM `keys` WHERE type="{0}" and uses<= max_uses'.format(key_type))
+    correct_key = sorted(working_keys, key=lambda x: x["num"])[0]
+    key_uses = correct_key["uses"]
+    key_value = correct_key["value"]
+    updated_uses = key_uses+1
+    #Assume that keys reset monthly
+    key_reset = correct_key["reset"]
+    current_time = time.time()
+    if current_time > key_reset:
+        db["keys"].update(dict(
+            uses=0, reset=current_time+2592000, type=correct_key["type"]
+        ), ['type'])
+    db["keys"].update(dict(
+        uses=updated_uses, num=correct_key["num"], type=correct_key["type"]
+    ), ['num', 'type'])
+    return key_value
 
 def initialize_session_tracking(db):
     '''Set the session increment using the db'''

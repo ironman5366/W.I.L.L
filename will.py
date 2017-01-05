@@ -1,7 +1,6 @@
 # External imports
 from flask import Flask
 from flask import request
-import flask
 import dataset
 import bcrypt
 
@@ -57,7 +56,6 @@ def new_user():
         last_name = request.form["last_name"]
         email = request.form["email"]
         default_plugin = request.form["default_plugin"]
-        wolfram_key = request.form["wolfram_key"]
         log.info("Attempting to create new user with username {0} and email {1}".format(username, password))
         # Check to see if the username exists
         users = db["users"]
@@ -84,8 +82,7 @@ def new_user():
                     "email": email,
                     "password": hashed,
                     "admin": is_admin,
-                    "default_plugin": default_plugin,
-                    "wolfram_key": wolfram_key
+                    "default_plugin": default_plugin
                 })
                 db.commit()
                 response["type"] = "success"
@@ -98,7 +95,7 @@ def new_user():
         response["type"] = "error"
         response["text"] = "Couldn't find required data in request. " \
                            "To create a new user, a username, password, first name, last name, default plugin," \
-                           "wolframalpha key, and email is required"
+                           "and email is required"
     return tools.return_json(response)
 
 
@@ -107,6 +104,7 @@ def start_session():
     '''Generate a session id and start a new session'''
     # Check the information that the user has submitted
     response = {"type": None, "data": {}, "text": None}
+    log.debug("In start session")
     try:
         username = request.form["username"]
         password = request.form["password"]
@@ -216,10 +214,13 @@ def command():
                 "id": command_id,
                 "command": command
             }
+            command_response = core.sessions_monitor.command(
+                command_data, core.sessions[session_id], db, add_to_updates_queue=False
+            )
             session_data["commands"].put(command_data)
             response["type"] = "success"
-            response["text"] = "Command submitted"
-            response["data"].update(dict(command_id=command_id))
+            response["text"] = command_response
+            response["data"].update(dict(command_id=command_id, command_response=command_response))
         else:
             response["type"] = "error"
             response["text"] = "Invalid session id"
@@ -227,6 +228,31 @@ def command():
         log.info("Couldn't find session id and command in request data")
         response["type"] = "error"
         response["text"] = "Couldn't find session id and command in request data"
+    return tools.return_json(response)
+
+@app.route('/api/get_sessions', methods=["GET", "POST"])
+def get_sessions():
+    '''Return a list of open sessions for the user'''
+    response = {"type": None, "data": {}, "text": None}
+    sessions = core.sessions
+    try:
+        username = request.form["username"]
+        password = request.form["password"]
+        db_hash = db['users'].find_one(username=username)["password"]
+        user_auth = bcrypt.checkpw(password, db_hash)
+        if user_auth:
+            response["data"].update({"sessions":[]})
+            for session in sessions:
+                if sessions[session]["username"] == username:
+                    response["data"]["sessions"].append(session)
+            response["type"] = "success"
+            response["text"] = "Fetched active sessions"
+        else:
+            response["type"] = "error"
+            response["text"] = "Invalid username/password combination"
+    except KeyError:
+        response["type"] = "error"
+        response["text"] = "Couldn't find username and password in request"
     return tools.return_json(response)
 
 def start():
@@ -243,4 +269,5 @@ def start():
 
 if __name__ == "__main__":
     start()
-    app.run()
+    log.info("Running app")
+    app.run(debug=configuration_data["debug"])

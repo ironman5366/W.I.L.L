@@ -12,7 +12,8 @@ log = logging.getLogger()
 sessions = {}
 
 class sessions_monitor():
-    def command(self, command_data, session,  db):
+    @staticmethod
+    def command(command_data, session,  db, add_to_updates_queue=True):
         '''Control the processing of the command'''
         # Call the parser
         command_data.update({"db": db})
@@ -27,10 +28,12 @@ class sessions_monitor():
         session_id = session['id']
         #Add the response to the update queue
         global sessions
-        sessions[session_id]["updates"].put({"command_id": command_id, "response": response})
+        if add_to_updates_queue:
+            sessions[session_id]["updates"].put({"command_id": command_id, "response": response})
+        return response
 
     def monitor(self, db):
-        '''Thread that handles the active command sessions'''
+        '''Thread that handles the passive command sessions'''
         while True:
             time.sleep(0.1)
             for session_id in sessions:
@@ -41,7 +44,7 @@ class sessions_monitor():
                     log.info("Found command {0} in session {1}, submitting it for parsing".format(
                         new_command, session_id
                     ))
-                    self.command(new_command, session,  db)
+                    sessions_monitor.command(new_command, session,  db)
     def __init__(self, db):
         sessions_thread = threading.Thread(target=self.monitor, args=(db, ))
         sessions_thread.start()

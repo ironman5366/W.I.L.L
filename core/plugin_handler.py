@@ -3,17 +3,9 @@ import logging
 import os
 import sys
 import time
-import threading
-import json
 
 #External imports
 import importlib
-from Queue import Queue
-import dataset
-
-#Internal imports
-import __init__
-import interface
 
 log = logging.getLogger()
 
@@ -144,9 +136,6 @@ def subscribe(subscription_data):
         log.info("Subscribing function {0} to data {1}".format(
             f, subscription_data
         ))
-        log.info("1")
-        log.info(f)
-        log.info("2")
         subscription_data.update({
             'function': f
         })

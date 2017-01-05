@@ -1,6 +1,6 @@
 # Internal imports
-from plugin_handler import subscribe
-import main
+from core.plugin_handler import subscribe
+import tools
 
 # External imports
 import wolframalpha
@@ -62,17 +62,12 @@ def main(data):
     query = data["command"]
     log.info("In main search function with query {0}".format(query))
     db = data["db"]
-    user_table = db["users"].find_one(username=data["session"]["username"])
     answer = False
-    if "wolfram_key" in user_table.keys():
-        log.info("Found wolframa key")
-        wolfram_key = user_table["wolfram_key"]
-        log.debug("Wolfram key is {0} for user {1}".format(
-            wolfram_key, data["update"].message.from_user.username
-        ))
-        wolfram_response = search_wolfram(query, wolfram_key)
-        # If it found an answer answer will be set to that, if not it'll still be false
-        answer = wolfram_response
+    #TODO: use wolfram key from db
+    wolfram_key = tools.load_key("wolfram", db)
+    wolfram_response = search_wolfram(query, wolfram_key)
+    # If it found an answer answer will be set to that, if not it'll still be false
+    answer = wolfram_response
     if answer:
         return answer
     else:
