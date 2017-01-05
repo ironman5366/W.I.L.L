@@ -139,7 +139,6 @@ def subscribe(subscription_data):
         subscription_data.update({
             'function': f
         })
-        log.info("3")
         log.info("Appending subscription data {0} to plugin subscriptions".format(subscription_data))
         plugin_subscriptions.append(subscription_data)
     return wrap
