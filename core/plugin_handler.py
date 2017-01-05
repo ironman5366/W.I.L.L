@@ -153,7 +153,7 @@ def load(dir_path, DB):
 
 def map_plugins(plugin_paths):
     log.info("Mapping plugins to processing function")
-    map(lambda plugin: process_plugins(plugin), plugin_paths)
+    map(process_plugins, plugin_paths)
 
 class PythonLoader:
     '''The class that loads the plugins'''
