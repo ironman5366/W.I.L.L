@@ -59,21 +59,21 @@ As you can see, each response object has three objects.
     - A dictionary that contains any request specific data the user should interpret
 
 API Methods:
-- /api/new_user
+- `/api/new_user`
     - Requires the following parameters in the request
-    - first_name
-    - last_name
-    - username
-    - password (the password will laster be encrypted by bcrypt in the databsae)
-    - email
-    - default_plugin (It's usually best just to submit search for this)
-- /api/start_session
-    - Takes username and password and returns a session_id in data
-- /api/command
-    - Takes session_id and command and returns a command response in data
-- /api/end_session
-    Takes a session_id and ends it
-- /api/get_updates
-   - Takes a session id and returns all pending updates and notifications
-- /api/get_sessions
-   - Takes a username and password and returns all active sessions
+    - `first_name`
+    - `last_name`
+    - `username`
+    - `password` (the password will laster be encrypted by bcrypt in the databsae)
+    - `email`
+    - `default_plugin` (It's usually best just to submit search for this)
+- `/api/start_session`
+    - Takes `username` and `password` and returns a `session_id` in `data`
+- `/api/command`
+    - Takes `session_id` and `command` and returns `command_response` in `data`
+- `/api/end_session`
+    Takes a `session_id` and ends it
+- `/api/get_updates`
+   - Takes a `session_id` and returns all pending updates and notifications
+- `/api/get_sessions`
+   - Takes a `username` and `password` and returns all active sessions
