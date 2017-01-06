@@ -1,27 +1,61 @@
-##W.I.L.L
+#W.I.L.L
 
-Welcome to the new W.I.L.L
-
-##TODO
-- Rework db so that it works user by chat id and not username
-- Add encryption to db
-- Add db backups and restorations when server starts and stops
-- Fix reminders
-- Add location stuff
-- Add google search
-- Make sure that setup script is running dbsetup
-- Add spacy.en.download to setup script
-- Add a stop.py that is used by a plugin
-- Add message to let user know that bot is ready
-- Fix it so that default plugin runs last
-- Add new interfaces
-- Add code that let's the user interface with local devices
+##Welcome to W.I.L.L
+W.I.L.L is an open source personal assistant that aims to be free, easy to use, and expandable by the user.
+It runs on a python based plugin framework accessible by a JSON API that let's you access it from a variety of different platforms.
+We've provided some platforms for you, but if you don't like any of those, you can easily create your own, or, if you want to change W.I.L.L, setup your own version
 
 
-##Setup
+##Quickstart
 
-sudo pip install -r requirements.txt
+###Use a provided platform
 
-python dbsetup.py
+####Signup
+Before you can use W.I.L.L, you need to sign up.
+You can sign up for free at http://67.205.186.54/static/signup_page.html
 
-python main.py
+#####Telegram
+All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
+
+###Use the json api
+The main W.I.L.L server is at http://67.205.186.54
+It runs on a flask server that provides a JSON API
+
+###Quickstart
+####Send a request with python
+```python
+import requests
+import json
+#Assume that the user has already signed up
+server_url = "http://67.205.186.54/api"
+payload = dict(username="myusername", password="mypassword")
+#Start the session and generate a session token. This session token will endure until you go to /end_session or the server reboots
+response = requests.post(url="{0}/start_session".format(server_url), data=payload)
+#{"type": "success", "text": "Authentication successful", "data": {"session_id": "aaaa-bbbb-cccc-dddd"}
+session_id = response["data"]["session_id"]
+#Submit a command
+command_data = dict(session_id=session_id, command="What is the meaning of life?")
+answer = requests.post(url="{0}/command".format(server_url), data=command_data)
+#{"type": "success", "text", "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)", "data": {"command_id": "aaaa-bbbb-cccc-dddd_1", "command_response": "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)"}}
+print answer["text"]
+#42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)
+```
+
+
+###API Docs:
+The core of he JSON API is a response object. A response object looks like this:
+```json
+{"type": "success", "text": "Request successful!" "data": {}}
+```
+As you can see, each response object has three objects.
+1. Type
+..*  The type of the response. This will be either `success`, `error`, or `response`
+..*  `success` indicates that a request completed successfully
+..*  `error` indicates that a request encountered an error
+..* `response`indicates that the request requires a response or a callback. The information for this will usually be in data
+2. Text
+..* The message to the user
+3. Data
+..* A dictionary that contains any request specific data the user should interpret
+
+TODO: Finish the docs on ids
