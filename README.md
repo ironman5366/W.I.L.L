@@ -45,17 +45,35 @@ print answer["text"]
 ###API Docs:
 The core of he JSON API is a response object. A response object looks like this:
 ```json
-{"type": "success", "text": "Request successful!" "data": {}}
+{"type": "success", "text": "Request successful!", "data": {}}
 ```
 As you can see, each response object has three objects.
 1. Type
-..*  The type of the response. This will be either `success`, `error`, or `response`
-..*  `success` indicates that a request completed successfully
-..*  `error` indicates that a request encountered an error
+..* The type of the response. This will be either `success`, `error`, or `response`
+..* `success` indicates that a request completed successfully
+..* `error` indicates that a request encountered an error
 ..* `response`indicates that the request requires a response or a callback. The information for this will usually be in data
 2. Text
 ..* The message to the user
 3. Data
 ..* A dictionary that contains any request specific data the user should interpret
 
-TODO: Finish the docs on ids
+API Methods:
+1. /api/new_user
+..* Requires the following parameters in the request
+..1. first_name
+..2. last_name
+..3. username
+..4. password (the password will be encrypted by bcrypt in the database)
+..5. email
+..6. default_plugin (It's usually best just to submit search for this)
+2. /api/start_session
+..* Takes username and password and returns a session_id in data
+3. /api/command
+..* Takes session_id and command and returns a command response in data
+4. /api/end_session
+..* Takes a session_id and ends it
+5. /api/get_updates
+..* Takes a session id and returns all pending updates and notifications
+6. /api/get_sessions
+..* Takes a username and password and returns all active sessions
