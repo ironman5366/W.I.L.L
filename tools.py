@@ -19,6 +19,7 @@ def load_key(key_type, db, load_url=False):
     key_value = correct_key["value"]
     updated_uses = key_uses+1
     #Assume that keys reset monthly
+    db['keys'].update(dict(type=key_type, uses=updated_uses), ['type'])
     if load_url:
         return (key_value, correct_key["url"])
     return key_value
