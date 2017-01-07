@@ -1,7 +1,10 @@
 # Builtin imports
 import logging
+import time
 # Internal imports
+import core
 from core.plugin_handler import subscribe
+import tools
 
 log = logging.getLogger()
 
@@ -146,15 +149,15 @@ def main(event):
     if not alert_text:
         alert_text == "Reminder: {0}".format(event_command)
     log.info("Alert text is {0}".format(alert_text))
-    #Set the reminder using interface.set_job
-    #TODO: redo this with a W.I.L.l set job function
-    set_job(
-        event["update"],
-        time_in_seconds,
-        event["job_queue"],
-        event["chat_data"],
-        alert_text
-    )
+    #Set the reminder using the events framework
+    event_id = tools.get_event_uid("notification")
+    core.events.update({event_id:{
+        "username": event["session"]["username"],
+        "time": time.time()+time_in_seconds,
+        "value": alert_text,
+        "type": "notification",
+        "uid": event_id
+    }})
     return "Got it. In {0} I'll let you know to {1}".format(
         time, alert_text
     )

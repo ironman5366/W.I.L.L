@@ -77,3 +77,43 @@ API Methods:
    - Takes a `session_id` and returns all pending updates and notifications
 - `/api/get_sessions`
    - Takes a `username` and `password` and returns all active sessions
+
+
+###Events framework
+W.I.L.L has a customizable events framework that allows you to pass events and notifications that will be asynchronously
+pushed to the user. 
+At the moment W.I.L.L offers three classes of events, two of which endure between reboots of the server
+- `notification`
+    - A pending notification to the user. Unlike the rest of the notifications, as well as being available from 
+    `/api/get_updates`, a notification is also pushed to the user in various ways, including email, telegram, and text.
+    Information about which of these the user has enabled is stored in a JSON array in the database
+    - Endures between server updates
+- `url`
+    - A url that will be opened, the contents of the page pushed to the updates for `/api/get_updates`
+    - Endures between server updates
+- `function`
+    - A function object that will be run, the result pushed to the updates for `/api/get_updates`
+    - Does not endure between server updates, as a python `func` object cannot be stored between runs
+
+An event object is defined by 5 keys:
+- `type`
+    - The type of the notification, `notification`, `url`, or `function`
+- `username`
+    - The username of the user who the event belongs to
+- `value`
+    - The data of the event. In a `notification` event it's the notification text, it's the url in a `url` event, 
+    and the `func` object in a `function` event
+- `time`
+    - The time when the event should be run in Unix epoch time.
+    - Can be generated with the builtin `time` module like so:
+    - ```python
+    import time
+    #The current epoch time
+    current_time = time.time()
+    #Set the time for a minute
+    event_activation_time = current_time+60
+    ```
+- `uid`
+    - A modified `uuid` object providing a unique identifier for the event
+    - Generated with `tools.get_event_uid(type)` where `type` is the `type` key explained above
+    

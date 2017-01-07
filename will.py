@@ -16,6 +16,7 @@ import Queue
 import os
 import json
 from logging.handlers import RotatingFileHandler
+import atexit
 
 app = Flask(__name__)
 
@@ -43,6 +44,11 @@ app.logger.setLevel(logging.DEBUG)
 log = app.logger
 db_url = configuration_data["db_url"]
 db = dataset.connect(db_url)
+
+@atexit.register
+def shutdown():
+    log.info("Shutting down W.I.L.L, dumping events to db")
+    tools.dump_events(core.events, db)
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
@@ -122,11 +128,6 @@ def start_session():
                 log.info("Authentication successful for user {0}".format(username))
                 session_id = tools.get_session_id(db)
                 #Start monitoring notifications
-                user_table = db['users']
-                user = user_table.find_one(username=username)
-                user_notifications_json = user["notifications"]
-                notifications = json.loads(user_notifications)
-                core.sessions_monitor
                 # Register a session id
                 core.sessions.update({
                     session_id: {
@@ -224,9 +225,7 @@ def command():
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
             session_data["commands"].put(command_data)
-            response["type"] = "success"
-            response["text"] = command_response
-            response["data"].update(dict(command_id=command_id, command_response=command_response))
+            response = command_response
         else:
             response["type"] = "error"
             response["text"] = "Invalid session id"

@@ -11,6 +11,26 @@ session_nums = 0
 
 command_nums = 0
 
+event_types = {
+        "notification": "NOT",
+        "url": "URL",
+        "function": "FUN"
+    }
+
+def get_event_uid(type):
+    '''Get a uid using the session_id and the uid_type'''
+    e_type = event_types[type]
+    return "{0}:{1}".format(e_type, str(uuid.uuid1()))
+
+def dump_events(events, db):
+    #Delete all events from db that should be finished
+    events_table = db['events']
+    events_table.delete(time < time.time())
+    for event in events:
+        #Remove one time events that had functions in them
+        if event["type"] != "function":
+            events_table.upsert(event, ['uid'])
+
 def load_key(key_type, db, load_url=False):
     '''Load and cycle keys from the databse'''
     working_keys = db.query('SELECT * FROM `keys` WHERE type="{0}" and uses <= max_uses'.format(key_type))

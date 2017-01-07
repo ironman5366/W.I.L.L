@@ -2,7 +2,7 @@
 import logging
 import threading
 import time
-import Queue
+import urllib2
 
 #Internal modules
 import plugin_handler
@@ -13,7 +13,7 @@ log = logging.getLogger()
 
 sessions = {}
 
-notifications_queue = Queue.Queue()
+events = []
 
 class sessions_monitor():
     @staticmethod
@@ -36,26 +36,47 @@ class sessions_monitor():
             sessions[session_id]["updates"].put({"command_id": command_id, "response": response})
         return response
 
+    @staticmethod
+    def update_sesisons(username, update_data):
+        active_sessions = [i for i in sessions if sessions["i"]["username"] == username]
+        map(lambda s: sessions[s]["updates"].put(update_data), active_sessions)
+
     def monitor(self, db):
         '''Thread that handles the passive command sessions'''
         while True:
             time.sleep(0.1)
-            if not notifications_queue.empty():
-                notification = notifications_queue.get()
-                #See if the notification specified a handler function
-                notification_handler = notification['handler']
-                if notification_handler:
-                    notification_handler(notification)
-                else:
-                    username = notification["user"]
-                    #Active sessions for the user
-                    active_sessions = [i for i in sessions if sessions["i"]["username"] == username]
-                    map(lambda s: sessions[s]["updates"].put(notification), active_sessions)
-                    notification_thread = threading.Thread(
-                        target=notification.send_notification, args=(notification, db))
-                    notification_thread.start()
+            if events:
+                for event in events:
+                    current_time = time.time()
+                    if event["time"] >= current_time:
+                        event_type = event["type"]
+                        if event_type == "notification":
+                            username = event["user"]
+                            #Active sessions for the user
+                            sessions_monitor.update_sessions(username, event)
+                            update_data = {"type": "notification", "text": event["text"], "data": event}
+                            sessions_monitor.update_sessions(username, update_data)
+                            notification_thread = threading.Thread(
+                                  target=notification.send_notification, args=(event, db))
+                            notification_thread.start()
+                        elif event_type == "url":
+                            response = urllib2.urlopen(event["value"]).read()
+                            update_data = {"type": "event", "text": response, "data": event}
+                            username = event["username"]
+                            sessions_monitor.update_sessions(username, update_data)
+                        elif event_type == "function":
+                            response = event["value"]()
+                            update_data = {"type": "event", "text": response, "data": event}
+                            username = event["username"]
+                            sessions_monitor.update_sessions(username, update_data)
+                        global events
+                        events.remove(event)
+
 
     def __init__(self, db):
+        #Pull pending notifications
+        for i in db['events'].all():
+            events.append(i)
         sessions_thread = threading.Thread(target=self.monitor, args=(db, ))
         sessions_thread.start()
 
