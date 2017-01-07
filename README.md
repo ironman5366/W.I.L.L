@@ -97,7 +97,7 @@ At the moment W.I.L.L offers three classes of events, two of which endure betwee
 
 An event object is defined by 5 keys:
 - `type`
-    - The type of the notification, `notification`, `url`, or `function`
+    - The type of the event, `notification`, `url`, or `function`
 - `username`
     - The username of the user who the event belongs to
 - `value`
