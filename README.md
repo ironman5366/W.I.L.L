@@ -106,13 +106,13 @@ An event object is defined by 5 keys:
 - `time`
     - The time when the event should be run in Unix epoch time.
     - Can be generated with the builtin `time` module like so:
-    - ```python
+ ```python
     import time
     #The current epoch time
     current_time = time.time()
     #Set the time for a minute
     event_activation_time = current_time+60
-    ```
+```
 - `uid`
     - A modified `uuid` object providing a unique identifier for the event
     - Generated with `tools.get_event_uid(type)` where `type` is the `type` key explained above
