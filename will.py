@@ -82,7 +82,8 @@ def new_user():
                     "email": email,
                     "password": hashed,
                     "admin": is_admin,
-                    "default_plugin": default_plugin
+                    "default_plugin": default_plugin,
+                    "notifications": "{}"
                 })
                 db.commit()
                 response["type"] = "success"
@@ -120,8 +121,13 @@ def start_session():
                 # Authentication was successful, give the user a session id
                 log.info("Authentication successful for user {0}".format(username))
                 session_id = tools.get_session_id(db)
+                #Start monitoring notifications
+                user_table = db['users']
+                user = user_table.find_one(username=username)
+                user_notifications_json = user["notifications"]
+                notifications = json.loads(user_notifications)
+                core.sessions_monitor
                 # Register a session id
-
                 core.sessions.update({
                     session_id: {
                         "username": username,

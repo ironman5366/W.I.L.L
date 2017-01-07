@@ -2,14 +2,18 @@
 import logging
 import threading
 import time
+import Queue
 
 #Internal modules
 import plugin_handler
 import parser
+import core.notification as notification
 
 log = logging.getLogger()
 
 sessions = {}
+
+notifications_queue = Queue.Queue()
 
 class sessions_monitor():
     @staticmethod
@@ -36,15 +40,21 @@ class sessions_monitor():
         '''Thread that handles the passive command sessions'''
         while True:
             time.sleep(0.1)
-            for session_id in sessions:
-                session = sessions[session_id]
-                #Check for new commands in the session command queue
-                new_command = session["commands"].get()
-                if new_command:
-                    log.info("Found command {0} in session {1}, submitting it for parsing".format(
-                        new_command, session_id
-                    ))
-                    sessions_monitor.command(new_command, session,  db)
+            if not notifications_queue.empty():
+                notification = notifications_queue.get()
+                #See if the notification specified a handler function
+                notification_handler = notification['handler']
+                if notification_handler:
+                    notification_handler(notification)
+                else:
+                    username = notification["user"]
+                    #Active sessions for the user
+                    active_sessions = [i for i in sessions if sessions["i"]["username"] == username]
+                    map(lambda s: sessions[s]["updates"].put(notification), active_sessions)
+                    notification_thread = threading.Thread(
+                        target=notification.send_notification, args=(notification, db))
+                    notification_thread.start()
+
     def __init__(self, db):
         sessions_thread = threading.Thread(target=self.monitor, args=(db, ))
         sessions_thread.start()
