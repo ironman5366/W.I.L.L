@@ -49,4 +49,4 @@ class send_notification():
                 first_name = user_table["first_name"]
                 last_name = user_table["last_name"]
                 send_notification.email(mailgun_key, mailgun_url, user_email, msg_summary, msg, first_name, last_name)
-            #TODO: add options for more notification methods (phone, telegram, etc.)
+            #TODO: add options for more notification methods (phone, W.I.L.L-Telegram, etc.)

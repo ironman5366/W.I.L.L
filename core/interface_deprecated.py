@@ -9,8 +9,8 @@ from telegram.ext import (
 )
 
 # Internal imports
-import plugin_handler
-import __init__
+import core.plugin_handler
+import core
 
 
 log = logging.getLogger()
@@ -24,7 +24,7 @@ Commands:
 /help: Print this string
 /start: Start the bot and create a userdata table with your username
 /settings: Change user settings
-If not given a telegram command, W.I.L.L will try to interpret your command as a personal assistant
+If not given a W.I.L.L-Telegram command, W.I.L.L will try to interpret your command as a personal assistant
 '''
 
 db = None
@@ -151,7 +151,7 @@ def button(bot, update, job_queue, chat_data):
             data["plugin_name"]
         ))
         # Call the plugin
-        plugin_handler.subscriptions().call_plugin(plugin_function, event_data)
+        core.plugin_handler.subscriptions().call_plugin(plugin_function, event_data)
     elif data_type == "setup_default":
         use_search = data["use_search"]
         #If the user wants to use search as the default, set that as the option.
@@ -164,7 +164,7 @@ def button(bot, update, job_queue, chat_data):
             user_table.update(data, ['chat_id'])
         else:
             #Grab the list of plugins from plugin_handler and ask the user which one they'd like as their default
-            active_plugins = plugin_handler.plugin_subscriptions
+            active_plugins = core.plugin_handler.plugin_subscriptions
             plugin_keyboard = []
             #For creating the datastore ids
             def create_inline(plugin):
@@ -361,7 +361,7 @@ def shutdown(bot, update):
             sender_username
         ))
         update.message.reply_text("Shutting down!")
-        __init__.shutdown()
+        core.shutdown()
 
     else:
         update.message.reply_text("You need to be an administrator to shutdown W.I.L.L!")
@@ -376,7 +376,7 @@ def initialize(bot_token, DB):
     # Use regex to match strings of text that look like wolfram keys (long alphanumeric strings)
 
     # on different commands - answer in Telegram
-    dp.add_handler(RegexHandler('[\s\S]* [\s\S]*', __init__.command, pass_job_queue=True, pass_chat_data=True))
+    dp.add_handler(RegexHandler('[\s\S]* [\s\S]*', core.command, pass_job_queue=True, pass_chat_data=True))
     # dp.add_handler(MessageHandler(Filters.text, parser.parse, pass_job_queue=True, pass_chat_data=True))
     dp.add_handler(RegexHandler('^[A-Z0-9]{6}-[A-Z0-9]{10}$', accept_wolfram_key))
     dp.add_handler(CommandHandler("start", start))

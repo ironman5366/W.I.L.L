@@ -89,7 +89,8 @@ def new_user():
                     "password": hashed,
                     "admin": is_admin,
                     "default_plugin": default_plugin,
-                    "notifications": "{}"
+                    "notifications": json.dumps(["email"]),
+                    "ip": request.environ["REMOTE_ADDR"]
                 })
                 db.commit()
                 response["type"] = "success"

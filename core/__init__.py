@@ -43,6 +43,7 @@ class sessions_monitor():
 
     def monitor(self, db):
         '''Thread that handles the passive command sessions'''
+        global events
         while True:
             time.sleep(0.1)
             if events:
@@ -69,7 +70,6 @@ class sessions_monitor():
                             update_data = {"type": "event", "text": response, "data": event}
                             username = event["username"]
                             sessions_monitor.update_sessions(username, update_data)
-                        global events
                         events.remove(event)
 
 
