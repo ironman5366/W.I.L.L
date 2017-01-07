@@ -41,7 +41,7 @@ class send_notification():
                     words = msg.split()
                     words_num = len(words)
                     if words_num >= 5:
-                        msg_summary = ' '.join(words[0:4])
+                        msg_summary = ' '.join(words[0:5])
                     else:
                         msg_summary = msg
                 msg_summary = "W.I.L.L - "+msg_summary
