@@ -17,32 +17,48 @@ else:
     print "Couldn't find will.conf file, exiting"
     os._exit(1)
 
+if "debug_db" in configuration_data.keys():
+    db = dataset.connect(configuration_data["debug_db"])
+else:
+    db = dataset.connect(configuration_data["db_url"])
+
 class KeySort(unittest.TestCase):
     def test_key_sort(self):
-        if "debug_db" in configuration_data.keys():
-            db = dataset.connect(configuration_data["debug_db"])
-        else:
-            db = dataset.connect(configuration_data["db_url"])
         key = tools.load_key("wolfram", db)
         self.assertEqual(True, True)
 
-class plugins_subscribed(unittest.TestCase):
+class plugin_tests(unittest.TestCase):
     def test_subscriptions(self):
-        if "debug_db" in configuration_data.keys():
-            db = dataset.connect(configuration_data["debug_db"])
-        else:
-            db = dataset.connect(configuration_data["db_url"])
         plugin_handler.load('core/plugins', db)
         plugin_num = 2
+        print plugin_handler.plugin_subscriptions
         self.assertEqual(len(plugin_handler.plugin_subscriptions), plugin_num)
-
+    def test_search(self):
+        call_function = None
+        plugin_handler.load('core/plugins', db)
+        for i in plugin_handler.plugin_subscriptions:
+            if i['name'] == "search":
+                call_function = i["function"]
+        searches = [
+            "Who is the queen of england?",
+            "How old is putin?",
+            "When did napoleon die?",
+            "Who invented python?",
+            "what day is it",
+            "what's 27 times 62",
+            "When did bach die?",
+            "Who is will beddow?"
+        ]
+        def do_search(query, call_function):
+            print (plugin_handler.subscriptions().call_plugin(call_function, {
+                "command": query, "db": db, "user_table":db['users'].find_one(username="willbeddow")}))
+        map(lambda x: do_search(x, call_function), searches)
 class notification_send(unittest.TestCase):
     def test_email(self):
-        if "debug_db" in configuration_data.keys():
-            db = dataset.connect(configuration_data["debug_db"])
-        else:
-            db = dataset.connect(configuration_data["db_url"])
-        notification.send_notification({"username": "willbeddow", "text": "This is a sample reminder that also tests the 5 word summary"}, db)
+        notification.send_notification(
+            {"username": "willbeddow",
+             "text": "This is a sample reminder that also tests the 5 word summary"},
+            db)
 
 if __name__ == '__main__':
     unittest.main()
