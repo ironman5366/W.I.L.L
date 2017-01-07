@@ -29,7 +29,7 @@ def search_google(query):
     first_url = urls[0]
     html = urllib2.urlopen(first_url).read()
     #Parse the html using bs4
-    soup = BeautifulSoup(html)
+    soup = BeautifulSoup(html, "html.parser")
     [s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title'])]
     text = soup.getText()
     # break into lines and remove leading and trailing space on each
