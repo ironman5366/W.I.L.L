@@ -44,11 +44,8 @@ app.logger.setLevel(logging.DEBUG)
 log = app.logger
 db_url = configuration_data["db_url"]
 db = dataset.connect(db_url)
+core.db = db
 
-@atexit.register
-def shutdown():
-    log.info("Shutting down W.I.L.L, dumping events to db")
-    tools.dump_events(core.events, db)
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
@@ -94,7 +91,7 @@ def new_user():
                 })
                 db.commit()
                 response["type"] = "success"
-                response["text"]  = "Thank you {0}, you are now registered for W.I.L.L".format(first_name)
+                response["text"] = "Thank you {0}, you are now registered for W.I.L.L".format(first_name)
             except:
                 db.rollback()
 
@@ -206,7 +203,7 @@ def get_updates():
 
 
 @app.route('/api/command', methods=["GET", "POST"])
-def command():
+def process_command():
     '''Take command and add it to the processing queue'''
     response = {"type": None, "data": {}, "text": None}
     try:
@@ -226,7 +223,9 @@ def command():
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
             session_data["commands"].put(command_data)
-            response = command_response
+            response["type"] = "success"
+            response["text"] = command_response
+            response["data"].update({command_id:command_response})
         else:
             response["type"] = "error"
             response["text"] = "Invalid session id"

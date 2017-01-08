@@ -87,7 +87,7 @@ class subscriptions():
             log.info("Running plugin {0}".format(plugin))
             plugin_function = plugin['function']
             #Call the plugin
-            self.call_plugin(plugin_function,event)
+            return self.call_plugin(plugin_function,event)
         elif plugin_len > 1:
             #Ask the user which one they want to run
             plugin_names = {}

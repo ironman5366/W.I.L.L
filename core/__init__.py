@@ -3,11 +3,13 @@ import logging
 import threading
 import time
 import urllib2
+import atexit
 
 #Internal modules
 import plugin_handler
 import parser
 import core.notification as notification
+import tools
 
 log = logging.getLogger()
 
@@ -34,11 +36,13 @@ class sessions_monitor():
         global sessions
         if add_to_updates_queue:
             sessions[session_id]["updates"].put({"command_id": command_id, "response": response})
+        #TODO: make it so that plugin_handler can send an error
+        #TODO: accept a dict
         return response
 
     @staticmethod
-    def update_sesisons(username, update_data):
-        active_sessions = [i for i in sessions if sessions["i"]["username"] == username]
+    def update_sessions(username, update_data):
+        active_sessions = [i for i in sessions if sessions[i]["username"] == username]
         map(lambda s: sessions[s]["updates"].put(update_data), active_sessions)
 
     def monitor(self, db):
@@ -48,14 +52,15 @@ class sessions_monitor():
             time.sleep(0.1)
             if events:
                 for event in events:
+                    log.debug("Processing event {0}".format(event))
                     current_time = time.time()
                     if event["time"] >= current_time:
                         event_type = event["type"]
                         if event_type == "notification":
-                            username = event["user"]
+                            username = event["username"]
                             #Active sessions for the user
                             sessions_monitor.update_sessions(username, event)
-                            update_data = {"type": "notification", "text": event["text"], "data": event}
+                            update_data = {"type": "notification", "text": event["value"], "data": event}
                             sessions_monitor.update_sessions(username, update_data)
                             notification_thread = threading.Thread(
                                   target=notification.send_notification, args=(event, db))
@@ -79,6 +84,11 @@ class sessions_monitor():
             events.append(i)
         sessions_thread = threading.Thread(target=self.monitor, args=(db, ))
         sessions_thread.start()
+
+@atexit.register
+def shutdown():
+    log.info("Shutting down W.I.L.L, dumping events to db")
+    tools.dump_events(events, db)
 
 def initialize(db):
     '''Intialize the core modules of W.I.L.L'''

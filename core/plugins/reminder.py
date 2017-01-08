@@ -110,7 +110,7 @@ def find_alert(event, time_words):
                             token_split, conjunction_split
                         )
                     )
-                    return conjunction_split
+                    return ''.join(sentence.split(token_split)[1:])
                     #TODO: fix this and then add thread safe error handling
             except IndexError:
                 #For some reason the sentence can't be split by the original token
@@ -142,22 +142,22 @@ def main(event):
     ))
     # TODO: ask the user about which time they want to ues
     # TODO: add dates processing
-    time = times[0]
-    time_in_seconds = convert_seconds(time)
+    time_message = times[0]
+    time_in_seconds = convert_seconds(time_message)
     #Find the alert text
-    alert_text = find_alert(event, time)
+    alert_text = find_alert(event, time_message)
     if not alert_text:
         alert_text == "Reminder: {0}".format(event_command)
     log.info("Alert text is {0}".format(alert_text))
     #Set the reminder using the events framework
     event_id = tools.get_event_uid("notification")
-    core.events.update({event_id:{
+    core.events.append({
         "username": event["session"]["username"],
         "time": time.time()+time_in_seconds,
         "value": alert_text,
         "type": "notification",
         "uid": event_id
-    }})
+    })
     return "Got it. In {0} I'll let you know to {1}".format(
-        time, alert_text
+        time_message, alert_text
     )
