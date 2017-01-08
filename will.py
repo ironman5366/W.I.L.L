@@ -3,6 +3,9 @@ from flask import Flask
 from flask import request
 import dataset
 import bcrypt
+from flask_socketio import SocketIO
+from flask_socketio import send, emit
+
 
 # Internal imports
 import tools
@@ -19,6 +22,7 @@ from logging.handlers import RotatingFileHandler
 import atexit
 
 app = Flask(__name__)
+socketio = SocketIO(app)
 
 # Load the will.conf file
 if os.path.isfile("will.conf"):
@@ -44,8 +48,11 @@ app.logger.setLevel(logging.DEBUG)
 log = app.logger
 db_url = configuration_data["db_url"]
 db = dataset.connect(db_url)
-core.db = db
 
+@atexit.register
+def shutdown():
+    log.info("Shutting down W.I.L.L, dumping events to db")
+    tools.dump_events(events, db)
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
@@ -172,12 +179,14 @@ def end_session():
     return tools.return_json(response)
 
 
-@app.route("/api/get_updates", methods=["GET", "POST"])
-def get_updates():
+
+@socketio.on('get_updates')
+def get_updates(session_id):
     '''Get the updates for the user'''
     response = {"type": None, "data": {}, "text": None}
     try:
-        session_id = request.form["session_id"]
+        session_id = session_id['session_id']
+        log.debug("Got session id {0} from socketio".format(session_id))
         # Get data from the updates queue and put it into the response
         if session_id in core.sessions.keys():
             session_data = core.sessions[session_id]
@@ -200,7 +209,7 @@ def get_updates():
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find session id in request data"
-    return tools.return_json(response)
+    emit("update", tools.return_json(response))
 
 
 @app.route('/api/command', methods=["GET", "POST"])
@@ -277,4 +286,5 @@ def start():
 if __name__ == "__main__":
     start()
     log.info("Running app")
-    app.run(debug=configuration_data["debug"])
+    #app.run(debug=configuration_data["debug"])
+    socketio.run(app, host="0.0.0.0", port=80)

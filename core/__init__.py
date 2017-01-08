@@ -44,6 +44,7 @@ class sessions_monitor():
     def update_sessions(username, update_data):
         active_sessions = [i for i in sessions if sessions[i]["username"] == username]
         map(lambda s: sessions[s]["updates"].put(update_data), active_sessions)
+        map(lambda s: emit({"update": tools.return_json(update_data)}), active_sessions)
 
     def monitor(self, db):
         '''Thread that handles the passive command sessions'''
@@ -82,13 +83,8 @@ class sessions_monitor():
         #Pull pending notifications
         for i in db['events'].all():
             events.append(i)
-        sessions_thread = threading.Thread(target=self.monitor, args=(db, ))
+        sessions_thread = threading.Thread(target=self.monitor, args=(db, request, ))
         sessions_thread.start()
-
-@atexit.register
-def shutdown():
-    log.info("Shutting down W.I.L.L, dumping events to db")
-    tools.dump_events(events, db)
 
 def initialize(db):
     '''Intialize the core modules of W.I.L.L'''
