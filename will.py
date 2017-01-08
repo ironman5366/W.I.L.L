@@ -183,8 +183,9 @@ def get_updates():
             session_data = core.sessions[session_id]
             while not session_data["updates"].empty():
                 update = session_data["updates"].get()
-                update_id = update["command_id"]
-                update_response = update["response"]
+                log.debug("Found update {0} for session {1}".format(update, session_id))
+                update_id = update["uid"]
+                update_response = update["value"]
                 response["data"].update({
                     update_id: update_response
                 })
@@ -222,6 +223,7 @@ def process_command():
             command_response = core.sessions_monitor.command(
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
+            log.info("Command response is {0}".format(command_response))
             session_data["commands"].put(command_data)
             response["type"] = "success"
             response["text"] = command_response
@@ -244,7 +246,7 @@ def get_sessions():
         username = request.form["username"]
         password = request.form["password"]
         db_hash = db['users'].find_one(username=username)["password"]
-        user_auth = bcrypt.checkpw(password, db_hash)
+        user_auth = bcrypt.checkpw(str(password), db_hash)
         if user_auth:
             response["data"].update({"sessions":[]})
             for session in sessions:

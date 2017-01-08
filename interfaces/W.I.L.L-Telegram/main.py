@@ -55,7 +55,8 @@ def get_updates():
             data = updates["data"]
             if data:
                 for update in data:
-                    bot.send_message(user["chat_id"], update.values()[0])
+                    update_value = data[update]
+                    bot.send_message(user["chat_id"], update_value)
 
 def login(bot, update):
     '''Login to W.I.L.L and store the session id in the db'''
@@ -123,7 +124,7 @@ def main():
     dp.add_handler(MessageHandler(Filters.text, command))
     dp.add_error_handler(error)
     update_thread = threading.Thread(target=get_updates)
-    #update_thread.start()
+    update_thread.start()
     updater.start_polling()
     updater.idle()
 
