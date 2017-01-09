@@ -82,7 +82,7 @@ class sessions_monitor():
         #Pull pending notifications
         for i in db['events'].all():
             events.append(i)
-        sessions_thread = threading.Thread(target=self.monitor, args=(db, request, ))
+        sessions_thread = threading.Thread(target=self.monitor, args=(db,))
         sessions_thread.start()
 
 def initialize(db):

@@ -1,8 +1,10 @@
 # External imports
-from flask import Flask
+from flask import Flask, session
 from flask import request
+from flask import render_template
 import dataset
 import bcrypt
+import requests
 
 # Internal imports
 import tools
@@ -41,6 +43,7 @@ app.logger.addHandler(logging.StreamHandler(sys.stdout))
 app.logger.addHandler(handler)
 
 app.logger.setLevel(logging.DEBUG)
+app.secret_key = configuration_data["secret_key"]
 log = app.logger
 db_url = configuration_data["db_url"]
 db = dataset.connect(db_url)
@@ -147,7 +150,12 @@ def start_session():
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request data"
     # Render the response as json
-    return tools.return_json(response)
+    if "redirect" in request.form.keys():
+        session.update({"session_data": response})
+        log.info("Rendering command template")
+        return render_template("command.html")
+    else:
+        return tools.return_json(response)
 
 
 @app.route('/api/end_session', methods=["GET", "POST"])
@@ -174,12 +182,15 @@ def end_session():
 @app.route("/api/get_updates", methods=["GET", "POST"])
 def get_updates():
     '''Websocket thread for getting updates'''
+    log.info("Subscribing to updates")
     ws = request.environ.get("wsgi.websocket", None)
     log.debug("Web socket retrieved")
-    #TODO: rework this for all sessions
     if ws:
+        ws.send("Connected")
         #If the websocket is available
-        session_id = request.form["session_id"]
+        log.info("Waiting for session id")
+        session_id = ws.receive()
+        log.info("Got session id {0}".format(session_id))
         if session_id:
             if session_id in core.sessions.keys():
                 #If the session id is valid
@@ -219,6 +230,25 @@ def get_updates():
         return tools.return_json({"type": "error", "text": "Couldn't access websocket library", "data": {}})
 
 
+@app.route("/")
+def main():
+    return render_template("index.html")
+
+@app.route('/command', methods=["GET", "POST"])
+def command():
+    username = request.form["username"]
+    password = request.form["password"]
+    user_table = db["users"].find_one(username=username)
+    db_hash = user_table["password"]
+    if bcrypt.checkpw(str(password), db_hash):
+        log.info("Starting session for user {0}".format(username))
+        session_data = json.loads(start_session())
+        session_id = session_data["data"]["session_id"]
+        session.update({"session_id":session_id})
+        log.info("Rendering template")
+        return render_template("command.html")
+    else:
+        return "Invalid password"
 @app.route('/api/command', methods=["GET", "POST"])
 def process_command():
     '''Take command and add it to the processing queue'''
