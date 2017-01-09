@@ -44,7 +44,6 @@ class sessions_monitor():
     def update_sessions(username, update_data):
         active_sessions = [i for i in sessions if sessions[i]["username"] == username]
         map(lambda s: sessions[s]["updates"].put(update_data), active_sessions)
-        map(lambda s: emit({"update": tools.return_json(update_data)}), active_sessions)
 
     def monitor(self, db):
         '''Thread that handles the passive command sessions'''
