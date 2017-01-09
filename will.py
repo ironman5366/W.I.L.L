@@ -2,6 +2,7 @@
 from flask import Flask, session
 from flask import request
 from flask import render_template
+from flask_socketio import SocketIO
 import dataset
 import bcrypt
 
@@ -47,6 +48,8 @@ log = app.logger
 db_url = configuration_data["db_url"]
 db = dataset.connect(db_url)
 core.db = db
+
+socketio = SocketIO(app)
 
 
 @app.route('/api/new_user', methods=["GET","POST"])
@@ -178,57 +181,35 @@ def end_session():
     # Render the response as json
     return tools.return_json(response)
 
-@app.route("/api/get_updates", methods=["GET", "POST"])
-def get_updates():
+
+@socketio.on("get_updates", namespace="/api/get_updates")
+def get_updates(data):
     '''Websocket thread for getting updates'''
     log.info("Subscribing to updates")
-    ws = request.environ.get("wsgi.websocket", None)
-    log.debug("Web socket retrieved")
-    if ws:
-        ws.send("Connected")
-        #If the websocket is available
-        log.info("Waiting for session id")
-        session_id = ws.receive()
-        log.info("Got session id {0}".format(session_id))
-        if session_id:
-            if session_id in core.sessions.keys():
-                #If the session id is valid
-                log.debug("Subscribing client {0} to updates for session_id {1}".format(
-                    request.environ["REMOTE_ADDR"], session_id
-                ))
-                #Keep running this loop while the session is active
-                log.info("Starting update loop")
-                while session_id in core.sessions.keys():
-                    time.sleep(1)
-                    session_data = core.sessions[session_id]
-                    session_updates = session_data["updates"]
-                    while not session_updates.empty():
-                        log.info("Serving updates")
-                        update = session_updates.get()
-                        log.debug("Pushing update {0}".format(update))
-                        update_data = {"type": "update", "text": update["value"], "data": tools.return_json(update)}
-                        update_json = tools.return_json(update_data)
-                        ws.send(update_json)
-                return tools.return_json({"type":"success","text":"Finished update loop","data":{}})
-            else:
-                log.debug("Session id {0} is invalid".format(session_id))
-                ws.send(tools.return_json({
-                    "type": "error",
-                    "text": "Invalid session id",
-                    "data": {}
-                }))
-                return
-
+    session_id = data["session_id"]
+    if session_id:
+        if session_id in core.sessions.keys():
+            #If the session id is valid
+            log.debug("Subscribing client {0} to updates for session_id {1}".format(
+                request.environ["REMOTE_ADDR"], session_id
+            ))
+            #Keep running this loop while the session is active
+            log.info("Starting update loop")
+            while session_id in core.sessions.keys():
+                time.sleep(1)
+                session_data = core.sessions[session_id]
+                session_updates = session_data["updates"]
+                while not session_updates.empty():
+                    log.info("Serving updates")
+                    update = session_updates.get()
+                    log.debug("Pushing update {0}".format(update))
+                    socketio.emit('update', update)
+            return tools.return_json({"type":"success","text":"Finished update loop","data":{}})
         else:
-            ws.send(tools.return_json({
-                "type": "error",
-                "text": "Couldn't find session id in request data",
-                "data": {}
-            }))
-            return
+            log.debug("Session id {0} is invalid".format(session_id))
+            socketio.emit("update", {"value": "Error, invalid session id"})
     else:
-        log.error("Couldn't access wsgi.websocket")
-        return tools.return_json({"type": "error", "text": "Couldn't access websocket library", "data": {}})
+        socketio.emit("update", {"value": "Error, couldn't find session id in update request"})
 
 
 @app.route("/")
@@ -324,4 +305,5 @@ def start():
 if __name__ == "__main__":
     start()
     log.info("Running app")
-    app.run(debug=configuration_data["debug"])
+    socketio.run(
+        app, host=configuration_data["host"], port=configuration_data["port"], debug=configuration_data["debug"])
