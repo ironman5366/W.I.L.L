@@ -6,7 +6,7 @@ After=network-online.target
 Type=idle
 WorkingDirectory=/usr/local/W.I.L.L
 Restart=always
-ExecStart=/usr/bin/python /usr/local/W.I.L.L/will-run.py
+ExecStart=/usr/bin/python /usr/local/W.I.L.L/will.py
 TimeoutStopSec=5
 
 [Install]
