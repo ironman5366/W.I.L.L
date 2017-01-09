@@ -4,7 +4,6 @@ from flask import request
 from flask import render_template
 import dataset
 import bcrypt
-import requests
 
 # Internal imports
 import tools
@@ -19,6 +18,7 @@ import os
 import json
 from logging.handlers import RotatingFileHandler
 import time
+import threading
 
 app = Flask(__name__)
 
@@ -198,17 +198,19 @@ def get_updates():
                     request.environ["REMOTE_ADDR"], session_id
                 ))
                 #Keep running this loop while the session is active
+                log.info("Starting update loop")
                 while session_id in core.sessions.keys():
                     time.sleep(1)
                     session_data = core.sessions[session_id]
                     session_updates = session_data["updates"]
                     while not session_updates.empty():
+                        log.info("Serving updates")
                         update = session_updates.get()
                         log.debug("Pushing update {0}".format(update))
                         update_data = {"type": "update", "text": update["value"], "data": tools.return_json(update)}
                         update_json = tools.return_json(update_data)
                         ws.send(update_json)
-
+                return tools.return_json({"type":"success","text":"Finished update loop","data":{}})
             else:
                 log.debug("Session id {0} is invalid".format(session_id))
                 ws.send(tools.return_json({

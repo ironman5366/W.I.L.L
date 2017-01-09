@@ -12,7 +12,7 @@
 
 <iframe name="hiddenFrame" class="hide"></iframe>
     <script>
-        establish_websocket()
+        establish_websocket('{{ session['session_id'] }}')
     </script>
     <body>
         <div id='frame'>

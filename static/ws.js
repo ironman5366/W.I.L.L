@@ -4,15 +4,22 @@
 var ws,                 // websocket
     prev_data;          // remember data fetched last time
 
-function establish_websocket() {
+function establish_websocket(session_id) {
     if ("WebSocket" in window) {
         ws = new WebSocket("ws://" + document.domain +"/api/get_updates");
         // + ":" + port.toString() +
         ws.onstart = function() {
-            ws.send('started');
+            ws.send("Connected")
         }
-        ws.onmessage = function (msg) {
-            alert(msg);
+        ws.onmessage = function (msgobject) {
+            var msg = msgobject.data;
+            console.log("Got msg:" +msg);
+            if (msg == "Connected"){
+                ws.send(session_id)
+            }
+            else{
+               alert(msg);
+            }
         };
         ws.onclose = function (msg) {
             $("#updated").html('SERVER DISCONNECT');
