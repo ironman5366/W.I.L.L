@@ -30,12 +30,12 @@ import json
 server_url = "http://67.205.186.54/api"
 payload = dict(username="myusername", password="mypassword")
 #Start the session and generate a session token. This session token will endure until you go to /end_session or the server reboots
-response = requests.post(url="{0}/start_session".format(server_url), data=payload)
+response = requests.post(url="{0}/api/start_session".format(server_url), data=payload)
 #{"type": "success", "text": "Authentication successful", "data": {"session_id": "aaaa-bbbb-cccc-dddd"}
 session_id = response["data"]["session_id"]
 #Submit a command
 command_data = dict(session_id=session_id, command="What is the meaning of life?")
-answer = requests.post(url="{0}/command".format(server_url), data=command_data)
+answer = requests.post(url="{0}/api/command".format(server_url), data=command_data)
 #{"type": "success", "text", "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)", "data": {"command_id": "aaaa-bbbb-cccc-dddd_1", "command_response": "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)"}}
 print answer["text"]
 #42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)

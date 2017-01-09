@@ -12,6 +12,7 @@ Updater, CommandHandler, MessageHandler, Filters
 )
 import requests
 import dataset
+import websocket
 
 CONF_FILE = "will-telegram.conf"
 
@@ -41,6 +42,17 @@ There are only two commands that you need to learn about for this bot:
 def help(bot, update):
     '''Echo the help string'''
     bot.sendMessage(update.message.chat_id, help_str)
+
+def on_close(ws):
+    log.info("Closed websocket")
+
+def on_open(ws):
+    log.info("Opened websocket")
+
+def on_message(ws, message):
+    bot = telegram.Bot(TOKEN)
+    telegram_table = db["telegram"]
+
 
 def get_updates():
     #Not working yet: TODO: fix
@@ -126,6 +138,13 @@ def main():
     update_thread = threading.Thread(target=get_updates)
     update_thread.start()
     updater.start_polling()
+    websocket.enableTrace(True)
+    ws = websocket.WebSocketApp("ws://echo.websocket.org/",
+                                on_message=on_message,
+                                on_error=on_error,
+                                on_close=on_close)
+    ws.on_open = on_open
+    ws.run_forever()
     updater.idle()
 
 if __name__ == "__main__":

@@ -9,3 +9,4 @@ bcrypt == 3.1.2
 requests == 2.12.4
 google == 1.9.3
 wikipedia == 1.4.0
+websocket-client == 0.35.0

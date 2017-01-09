@@ -16,7 +16,7 @@ import Queue
 import os
 import json
 from logging.handlers import RotatingFileHandler
-import atexit
+import time
 
 app = Flask(__name__)
 
@@ -171,36 +171,52 @@ def end_session():
     # Render the response as json
     return tools.return_json(response)
 
-
 @app.route("/api/get_updates", methods=["GET", "POST"])
 def get_updates():
-    '''Get the updates for the user'''
-    response = {"type": None, "data": {}, "text": None}
-    try:
+    '''Websocket thread for getting updates'''
+    ws = request.environ.get("wsgi.websocket", None)
+    log.debug("Web socket retrieved")
+    #TODO: rework this for all sessions
+    if ws:
+        #If the websocket is available
         session_id = request.form["session_id"]
-        # Get data from the updates queue and put it into the response
-        if session_id in core.sessions.keys():
-            session_data = core.sessions[session_id]
-            while not session_data["updates"].empty():
-                update = session_data["updates"].get()
-                log.debug("Found update {0} for session {1}".format(update, session_id))
-                update_id = update["uid"]
-                update_response = update["value"]
-                response["data"].update({
-                    update_id: update_response
-                })
-            response["type"] = "success"
-            response["text"] = "Fetched updates"
+        if session_id:
+            if session_id in core.sessions.keys():
+                #If the session id is valid
+                log.debug("Subscribing client {0} to updates for session_id {1}".format(
+                    request.environ["REMOTE_ADDR"], session_id
+                ))
+                #Keep running this loop while the session is active
+                while session_id in core.sessions.keys():
+                    time.sleep(1)
+                    session_data = core.sessions[session_id]
+                    session_updates = session_data["updates"]
+                    while not session_updates.empty():
+                        update = session_updates.get()
+                        log.debug("Pushing update {0}".format(update))
+                        update_data = {"type": "update", "text": update["value"], "data": tools.return_json(update)}
+                        update_json = tools.return_json(update_data)
+                        ws.send(update_json)
+
+            else:
+                log.debug("Session id {0} is invalid".format(session_id))
+                ws.send(tools.return_json({
+                    "type": "error",
+                    "text": "Invalid session id",
+                    "data": {}
+                }))
+                return
+
         else:
-            log.debug("Couldn't find session id {0} in session keys {1}".format(
-                session_id, core.sessions.keys()
-            ))
-            response["type"] = "error"
-            response["text"] = "Couldn't find session id {0} in sessions".format(session_id)
-    except KeyError:
-        response["type"] = "error"
-        response["text"] = "Couldn't find session id in request data"
-    return tools.return_json(response)
+            ws.send(tools.return_json({
+                "type": "error",
+                "text": "Couldn't find session id in request data",
+                "data": {}
+            }))
+            return
+    else:
+        log.error("Couldn't access wsgi.websocket")
+        return tools.return_json({"type": "error", "text": "Couldn't access websocket library", "data": {}})
 
 
 @app.route('/api/command', methods=["GET", "POST"])
