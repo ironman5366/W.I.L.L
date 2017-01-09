@@ -18,7 +18,6 @@ import os
 import json
 from logging.handlers import RotatingFileHandler
 import time
-import threading
 
 app = Flask(__name__)
 
