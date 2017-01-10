@@ -150,6 +150,8 @@ def main(event):
         alert_text == "Reminder: {0}".format(event_command)
     log.info("Alert text is {0}".format(alert_text))
     #Set the reminder using the events framework
+    alert_time = time.time()+time_in_seconds
+    log.info("Alert time is {0}, time is {1}, time_in seconds is {2}".format(alert_time, time.time(), time_in_seconds))
     event_id = tools.get_event_uid("notification")
     core.events.append({
         "username": event["session"]["username"],

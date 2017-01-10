@@ -34,7 +34,7 @@ class send_notification():
                     username, notification
                 ))
                 mailgun_key, mailgun_url = tools.load_key('mailgun', db, load_url=True)
-                msg = notification["text"]
+                msg = notification["value"]
                 if "summary" in notification.keys():
                     msg_summary = notification["summary"]
                 else:
@@ -48,5 +48,7 @@ class send_notification():
                 user_email = user_table["email"]
                 first_name = user_table["first_name"]
                 last_name = user_table["last_name"]
+                log.info("Sending email with subject {0} to email {1}".format(msg_summary, user_email))
                 send_notification.email(mailgun_key, mailgun_url, user_email, msg_summary, msg, first_name, last_name)
+                log.debug("Successfully sent email with subject {0} to email {1}".format(msg_summary, user_email))
             #TODO: add options for more notification methods (phone, W.I.L.L-Telegram, etc.)
