@@ -193,7 +193,7 @@ def update_loop(session_id):
             log.debug("Pushing update {0}".format(update))
             socketio.emit('update', update)
 
-@socketio.on("get_updates", namespace="/api/get_updates")
+@socketio.on("get_updates")
 def get_updates(data):
     '''Websocket thread for getting updates'''
     log.info("Subscribing to updates")
@@ -206,6 +206,7 @@ def get_updates(data):
             ))
             #Keep running this loop while the session is active
             log.info("Starting update loop")
+            socketio.emit("debug", {"value": "Starting update loop"})
             update_thread = threading.Thread(target=update_loop, args=(session_id,))
             update_thread.start()
         else:

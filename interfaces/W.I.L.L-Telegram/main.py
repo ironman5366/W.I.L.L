@@ -7,12 +7,12 @@ import threading
 
 #External imports
 import telegram
+from socketIO_client import SocketIO, LoggingNamespace, BaseNamespace
 from telegram.ext import (
 Updater, CommandHandler, MessageHandler, Filters
 )
 import requests
 import dataset
-import websocket
 
 CONF_FILE = "will-telegram.conf"
 
@@ -24,9 +24,10 @@ if os.path.isfile('will-telegram.conf'):
     DB_URL = configuration_data["db_url"]
 
 
-logging.basicConfig(level=logging.INFO,
+logging.basicConfig(level=logging.DEBUG,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    filename=LOGFILE
+                    filename=LOGFILE,
+                    filemode='w'
                     )
 
 log = logging.getLogger()
@@ -39,36 +40,18 @@ There are only two commands that you need to learn about for this bot:
 /login <username> <password>: login to W.I.L.L and generate a session token.
 /help: Print this message
 '''
+
 def help(bot, update):
     '''Echo the help string'''
     bot.sendMessage(update.message.chat_id, help_str)
 
-def on_close(ws):
-    log.info("Closed websocket")
-
-def on_open(ws):
-    log.info("Opened websocket")
-
-def on_message(ws, message):
-    bot = telegram.Bot(TOKEN)
-    telegram_table = db["telegram"]
-
-
-def get_updates():
-    #Not working yet: TODO: fix
-    bot = telegram.Bot(TOKEN)
-    telegram_table = db['telegram']
-    while True:
-        time.sleep(5)
-        for user in telegram_table.all():
-            user_session_id = user["session_id"]
-            payload = {"session_id": user_session_id}
-            updates = requests.post(url="{0}/api/get_updates".format(SERVER_URL), data=payload).json()
-            data = updates["data"]
-            if data:
-                for update in data:
-                    update_value = data[update]
-                    bot.send_message(user["chat_id"], update_value)
+def socket_io_thread(bot,session_id, chat_id ):
+    socketIO = SocketIO(SERVER_URL, 80)
+    socketIO.on('connect', lambda: socketIO.emit("get_updates", session_id))
+    socketIO.on('update', lambda x: bot.sendMessage(chat_id, (x["value"])))
+    socketIO.on('disconnect', lambda x: bot.sendMessage(chat_id, "Update server has disconnected"))
+    socketIO.on('debug', lambda x: log.info("Got debug message {0} from socketIO".format(x["value"])))
+    socketIO.wait()
 
 def login(bot, update):
     '''Login to W.I.L.L and store the session id in the db'''
@@ -81,10 +64,15 @@ def login(bot, update):
     response = requests.post(url="{0}/api/start_session".format(SERVER_URL), data=payload).json()
     if response["type"] == "success":
         log.info("Logged in user {0} successfully, putting their session token in the db")
-        update.message.reply_text(response["text"])
+        update.message.reply_text(response["text"]+" Thank you for logging in. For security, please delete the /login" \
+                                                    " command in the chat")
         db['telegram'].upsert(dict(
             username=username, chat_id=update.message.chat_id, session_id=response["data"]["session_id"])
-        ,['username'])
+            , ['username']
+        )
+        socket_thread = threading.Thread(target=socket_io_thread, args=(
+            bot, response["data"]["session_id"],update.message.chat_id))
+        socket_thread.start()
     else:
         log.info("Got error logging in with user {0}. Error text is {1}".format(username, response["text"]))
         update.message.reply_text(response["text"])
@@ -123,9 +111,12 @@ def command(bot, update):
             update.message.reply_text("Didn't receive a response from the W.I.L.L server, W.I.L.L is most likely down")
     else:
         update.message.reply_text("Couldn't find you in the database. Please run /login <username> <password>")
+
+
 def error(bot, update, error):
     '''Log an error'''
     log.warn('Update "%s" caused error "%s"' % (update, error))
+
 
 def main():
     updater = Updater(TOKEN)
@@ -135,16 +126,7 @@ def main():
     dp.add_handler(CommandHandler("help", help))
     dp.add_handler(MessageHandler(Filters.text, command))
     dp.add_error_handler(error)
-    update_thread = threading.Thread(target=get_updates)
-    update_thread.start()
     updater.start_polling()
-    websocket.enableTrace(True)
-    ws = websocket.WebSocketApp("ws://echo.websocket.org/",
-                                on_message=on_message,
-                                on_error=on_error,
-                                on_close=on_close)
-    ws.on_open = on_open
-    ws.run_forever()
     updater.idle()
 
 if __name__ == "__main__":

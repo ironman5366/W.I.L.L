@@ -8,19 +8,12 @@
         <link href='{{ url_for("static", filename="style.css") }}' rel='stylesheet' type='text/css'>
         <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
         <script type="text/javascript" charset="utf-8">
-            var socket = io.connect('http://' + document.domain + ':' + location.port  + "/api/get_updates");
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
             socket.on('connect', function() {
                 socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
             socket.on('update', function(data){
                 console.log("Received update "+data);
                 alert(data["value"]);
-            })
-            socket.on('update', function(){
-                console.log("Got update w/o message")
-            })
-            socket.on('message', function(messsage){
-                console.log("Got message" +message)
-                alert(message["value"])
             })
         </script>
     </head>

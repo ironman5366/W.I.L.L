@@ -175,6 +175,6 @@ def main(event):
         "type": "notification",
         "uid": event_id
     })
-    return "Got it. In {0} I'll let you know to {1}".format(
+    return "Got it. In {0} I'll send you the following reminder: {1}".format(
         time_message, alert_text
     )
