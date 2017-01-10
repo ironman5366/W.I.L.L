@@ -34,7 +34,7 @@ class send_notification():
                     username, notification
                 ))
                 mailgun_key, mailgun_url = tools.load_key('mailgun', db, load_url=True)
-                msg = notification["value"]
+                msg = notification["text"]
                 if "summary" in notification.keys():
                     msg_summary = notification["summary"]
                 else:

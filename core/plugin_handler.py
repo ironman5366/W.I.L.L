@@ -43,7 +43,7 @@ class subscriptions():
                 response = "An error occurred while executing plugin"
         if not response:
             response = "Done"
-        response = str(response)
+        response = response.encode('ascii', 'ignore')
         log.info("Plugin response is {0}".format(response))
         #Send the message
         return response

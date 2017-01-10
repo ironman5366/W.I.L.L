@@ -23,7 +23,7 @@ def search_google(query):
         url = search_object.next()
         urls.append(url)
         if "wikipedia.org/wiki" in url:
-            response = wikipedia.summary(wikipedia.suggest(query)) + "(wikipedia)"
+            response = wikipedia.summary(wikipedia.search(query)[0]) + "(wikipedia)"
             return response
     #If there were no wikipedia pages
     first_url = urls[0]

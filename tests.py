@@ -47,7 +47,8 @@ class plugin_tests(unittest.TestCase):
             "what day is it",
             "what's 27 times 62",
             "When did bach die?",
-            "Who is will beddow?"
+            "Who is will beddow?",
+            "Who's obama?"
         ]
         def do_search(query, call_function):
             print (plugin_handler.subscriptions().call_plugin(call_function, {
