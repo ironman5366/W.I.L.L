@@ -52,9 +52,9 @@ class sessions_monitor():
             time.sleep(0.1)
             if events:
                 for event in events:
-                    log.debug("Processing event {0}".format(event))
                     current_time = time.time()
                     if event["time"] <= current_time:
+                        log.debug("Processing event {0}".format(event))
                         event_type = event["type"]
                         if event_type == "notification":
                             username = event["username"]

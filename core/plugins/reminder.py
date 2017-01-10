@@ -93,24 +93,39 @@ def find_alert(event, time_words):
     #If the text after time_split is longer than 1 character
     #Look for a conjunction and return the sentence after the conjunction
     doc = event["doc"]
+    adp_tags = [token.orth_ for token in doc if token.pos_ == "ADP" or token.pos_ == "PART"]
     for token in doc:
         #TODO: take this logging out, too verbose for even debug logs
         token_tag = token.pos_
         #If the word is a coordinating conjunction
-        if token_tag == "ADP":
+        if token_tag == "ADP" or token_tag == "PART":
             #Split the sentence by the conjunction
             token_orth = token.orth_
             log.debug("Token {0} has proper tag".format(token_orth))
-            token_split = token_orth+" "
+            token_split = " "+token_orth+" "
+            log.info("Token split is {0}".format(token_split))
             try:
-                conjunction_split = sentence.split(token_split)[1]
-                if (len(conjunction_split) > 1) and (conjunction_split in sentence.split(time_split)):
+                orth_split = sentence.split(token_split)
+                conjunction_split = orth_split[1]
+                log.info("Orth split is {0}, conjunction split is {1}".format(orth_split, conjunction_split))
+                if (len(conjunction_split) > 1):
                     log.debug(
                         "Token being split by is {0}, split is {1}".format(
                             token_split, conjunction_split
                         )
                     )
-                    return ''.join(sentence.split(token_split)[1:])
+                    log.debug("Conjunction split is {0}, removing time words {1} if present".format(
+                        conjunction_split, time_words
+                    ))
+                    if time_words in conjunction_split:
+                        conjunction_split = conjunction_split.split(time_words)[1]
+                    log.debug(
+                        "After checking for time words conjunction split is {0}, checking for adp tags {1}".format(
+                        conjunction_split, adp_tags))
+                    for word in conjunction_split.split(" "):
+                        if word in adp_tags:
+                            conjunction_split = conjunction_split.split(word)[1]
+                    return conjunction_split
                     #TODO: fix this and then add thread safe error handling
             except IndexError:
                 #For some reason the sentence can't be split by the original token
