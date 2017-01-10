@@ -7,10 +7,6 @@ import dataset
 from spacy.symbols import nsubj, VERB
 from spacy.matcher import Matcher
 
-#Internal imports
-import plugin_handler
-import __init__
-
 log = logging.getLogger()
 
 log.debug("In parser, loading model")

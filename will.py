@@ -19,6 +19,7 @@ import os
 import json
 from logging.handlers import RotatingFileHandler
 import time
+import threading
 
 app = Flask(__name__)
 
@@ -181,6 +182,16 @@ def end_session():
     # Render the response as json
     return tools.return_json(response)
 
+def update_loop(session_id):
+    while session_id in core.sessions.keys():
+        time.sleep(1)
+        session_data = core.sessions[session_id]
+        session_updates = session_data["updates"]
+        while not session_updates.empty():
+            log.info("Serving updates")
+            update = session_updates.get()
+            log.debug("Pushing update {0}".format(update))
+            socketio.emit('update', update)
 
 @socketio.on("get_updates", namespace="/api/get_updates")
 def get_updates(data):
@@ -195,16 +206,8 @@ def get_updates(data):
             ))
             #Keep running this loop while the session is active
             log.info("Starting update loop")
-            while session_id in core.sessions.keys():
-                time.sleep(1)
-                session_data = core.sessions[session_id]
-                session_updates = session_data["updates"]
-                while not session_updates.empty():
-                    log.info("Serving updates")
-                    update = session_updates.get()
-                    log.debug("Pushing update {0}".format(update))
-                    socketio.emit('update', update)
-            return tools.return_json({"type":"success","text":"Finished update loop","data":{}})
+            update_thread = threading.Thread(target=update_loop, args=(session_id,))
+            update_thread.start()
         else:
             log.debug("Session id {0} is invalid".format(session_id))
             socketio.emit("update", {"value": "Error, invalid session id"})
@@ -299,8 +302,6 @@ def start():
     log.info("Starting sessions parsing thread")
     core.sessions_monitor(db)
     log.info("Connected to database, running server")
-    #app.run(debug=configuration_data["debug"])
-    #host="0.0.0.0", port=80,
 
 if __name__ == "__main__":
     start()

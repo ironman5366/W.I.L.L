@@ -12,21 +12,22 @@
             socket.on('connect', function() {
                 socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
             socket.on('update', function(data){
-                console.log("Recieved update "+data);
+                console.log("Received update "+data);
                 alert(data["value"]);
+            })
+            socket.on('update', function(){
+                console.log("Got update w/o message")
+            })
+            socket.on('message', function(messsage){
+                console.log("Got message" +message)
+                alert(message["value"])
             })
         </script>
     </head>
 
 <iframe name="hiddenFrame" class="hide"></iframe>
-    <script>
-        establish_websocket('{{ session['session_id'] }}')
-    </script>
     <body>
         <div id='frame'>
-			<div id='updated'>UPDATED</div>
-            <div id="session">
-
             </div>
 			<form name="command" target="hiddenFrame" action="/api/command" method="post">
 				 <input type="text" name="command" id="command">
