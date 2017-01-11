@@ -5,6 +5,7 @@ import newspaper
 #Builtin imports
 import logging
 import threading
+import time
 
 log = logging.getLogger()
 
@@ -20,6 +21,16 @@ def news_reader(event):
     event_user = event['session']['username']
     user_table = db['users'].find_one(username=event_user)
     user_news_site = user_table["news_site"]
+    news_table = db["news"]
+    cached_sites = [site.values()[0] for site in db.query("SELECT site from `news`")]
+    log.debug("Cached sites are {0}".format(cached_sites))
+    if user_news_site in cached_sites:
+        site_row = news_table.find_one(site=user_news_site)
+        site_time = site_row["time"]
+        if time.time()<site_time+43200:
+            log.info("Using cached news for site {0}".format(user_news_site))
+            news_str = site_row["news_str"]
+            return news_str
     log.info("Parsing news site {0} for user {1}".format(user_news_site, event_user))
     site_object = newspaper.build(user_news_site)
     log.debug("Finished building newspaper object")
@@ -36,7 +47,7 @@ def news_reader(event):
         article.parse()
         log.debug("Finished debugging {0}, running nlp".format(article_url))
         article.nlp()
-        article_str = "{0} ({1})\n{2}".format(
+        article_str = "{0} ({1})\n{2}\n".format(
             article.title.encode('ascii', 'ignore'), article_url, article.summary)
         output_strs.append(article_str)
     article_threads = []
@@ -50,4 +61,5 @@ def news_reader(event):
     log.debug("Compiling article output {0} into string".format(output_strs))
     output_str = '\n'.join(output_strs)
     log.debug("Returning output string {0}".format(output_str))
+    db["news"].upsert(dict(site=user_news_site,time=time.time(),news_str=output_str), ['site'])
     return output_str
