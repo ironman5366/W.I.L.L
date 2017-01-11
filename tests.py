@@ -30,7 +30,7 @@ class KeySort(unittest.TestCase):
 class plugin_tests(unittest.TestCase):
     def test_subscriptions(self):
         plugin_handler.load('core/plugins', db)
-        plugin_num = 2
+        plugin_num = 3
         print plugin_handler.plugin_subscriptions
         self.assertEqual(len(plugin_handler.plugin_subscriptions), plugin_num)
     def test_search(self):
@@ -54,11 +54,18 @@ class plugin_tests(unittest.TestCase):
             print (plugin_handler.subscriptions().call_plugin(call_function, {
                 "command": query, "db": db, "user_table":db['users'].find_one(username="willbeddow")}))
         map(lambda x: do_search(x, call_function), searches)
+    def test_news(self):
+        call_function = None
+        plugin_handler.load('core/plugins', db)
+        for i in plugin_handler.plugin_subscriptions:
+            if i['name'] == "news":
+                call_function = i["function"]
+        print call_function({"command": "Read me the news", "username": "willbeddow", "db": db})
 class notification_send(unittest.TestCase):
     def test_email(self):
         notification.send_notification(
             {"username": "willbeddow",
-             "text": "This is a sample reminder that also tests the 5 word summary"},
+             "value": "This is a sample reminder that also tests the 5 word summary"},
             db)
 
 if __name__ == '__main__':

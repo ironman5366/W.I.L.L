@@ -1,0 +1,53 @@
+#Internal imports
+from core.plugin_handler import subscribe
+#External imports
+import newspaper
+#Builtin imports
+import logging
+import threading
+
+log = logging.getLogger()
+
+def is_news(event):
+    '''Determine whether to read the news'''
+    event_words = [token.orth_.lower() for token in event["doc"]]
+    return "news" in event_words
+
+@subscribe({"name": "news", "check": is_news})
+def news_reader(event):
+    '''Use the excellent newspaper module to fetch the news from the readers favorite site'''
+    db = event['db']
+    event_user = event['session']['username']
+    user_table = db['users'].find_one(username=event_user)
+    user_news_site = user_table["news_site"]
+    log.info("Parsing news site {0} for user {1}".format(user_news_site, event_user))
+    site_object = newspaper.build(user_news_site)
+    log.debug("Finished building newspaper object")
+    top_articles = site_object.articles[0:4]
+    output_strs = []
+    #Use multithreading to build the objects for the articles
+    def build_article_object(article_url):
+        '''Build a formatted string with the article title, summary, and url'''
+        log.debug("Building article object for article {0}".format(article_url))
+        article = newspaper.Article(article_url)
+        log.debug("Downloading article {0}".format(article_url))
+        article.download()
+        log.debug("Finished downloading article {0}, parsing".format(article_url))
+        article.parse()
+        log.debug("Finished debugging {0}, running nlp".format(article_url))
+        article.nlp()
+        article_str = "{0} ({1})\n{2}".format(
+            article.title.encode('ascii', 'ignore'), article_url, article.summary)
+        output_strs.append(article_str)
+    article_threads = []
+    map(
+        lambda article: article_threads.append(threading.Thread(target=build_article_object, args=(article.url,))),
+        top_articles
+    )
+    [thread.start() for thread in article_threads]
+    log.debug("Started news parsing threads, waiting for parsing to finish")
+    [thread.join() for thread in article_threads]
+    log.debug("Compiling article output {0} into string".format(output_strs))
+    output_str = '\n'.join(output_strs)
+    log.debug("Returning output string {0}".format(output_str))
+    return output_str

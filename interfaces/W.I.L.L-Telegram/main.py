@@ -47,6 +47,7 @@ def help(bot, update):
 
 def socket_io_thread(bot,session_id, chat_id ):
     socketIO = SocketIO(SERVER_URL, 80)
+    log.info("In socket_io thread")
     socketIO.on('connect', lambda: socketIO.emit("get_updates", session_id))
     socketIO.on('update', lambda x: bot.sendMessage(chat_id, (x["value"])))
     socketIO.on('disconnect', lambda x: bot.sendMessage(chat_id, "Update server has disconnected"))

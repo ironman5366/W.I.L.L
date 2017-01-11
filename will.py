@@ -63,6 +63,7 @@ def new_user():
         password = request.form["password"]
         first_name = request.form["first_name"]
         last_name = request.form["last_name"]
+        news_site = request.form["news"]
         email = request.form["email"]
         default_plugin = request.form["default_plugin"]
         log.info("Attempting to create new user with username {0} and email {1}".format(username, password))
@@ -93,7 +94,8 @@ def new_user():
                     "admin": is_admin,
                     "default_plugin": default_plugin,
                     "notifications": json.dumps(["email"]),
-                    "ip": request.environ["REMOTE_ADDR"]
+                    "ip": request.environ["REMOTE_ADDR"],
+                    "news_site": news_site
                 })
                 db.commit()
                 response["type"] = "success"
