@@ -118,7 +118,8 @@ def find_alert(event, time_words):
                         conjunction_split, time_words
                     ))
                     if time_words in conjunction_split:
-                        conjunction_split = conjunction_split.split(time_words)[1]
+                        time_words_c_split = conjunction_split.split(time_words)
+                        conjunction_split = " ".join(time_words_c_split)
                     log.debug(
                         "After checking for time words conjunction split is {0}, checking for adp tags {1}".format(
                         conjunction_split, adp_tags))

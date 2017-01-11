@@ -293,6 +293,7 @@ def main():
             else:
                 log.info("User tokens don't match.\n{0}\n{1}".format(request.cookies.get("user_token"),
                                                                      db["users"].find_one(username=username)["user_token"]))
+                session["logged-in"] = False
         else:
             log.info("Couldn't find user token in cookies")
             session["logged-in"] = False
