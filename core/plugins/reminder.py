@@ -119,13 +119,15 @@ def find_alert(event, time_words):
                     ))
                     if time_words in conjunction_split:
                         time_words_c_split = conjunction_split.split(time_words)
+                        time_join = " ".join(time_words_c_split)
+                        log.debug("Time words split is {0}, time join is {1}".format(time_words_c_split, time_join))
                         conjunction_split = " ".join(time_words_c_split)
                     log.debug(
                         "After checking for time words conjunction split is {0}, checking for adp tags {1}".format(
                         conjunction_split, adp_tags))
                     for word in conjunction_split.split(" "):
                         if word in adp_tags:
-                            conjunction_split = conjunction_split.split(word)[1]
+                            conjunction_split = " ".join(conjunction_split.split(word))
                     return conjunction_split
                     #TODO: fix this and then add thread safe error handling
             except IndexError:
