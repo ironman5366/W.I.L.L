@@ -73,7 +73,8 @@ def login(bot, update):
         )
         socket_thread = threading.Thread(target=socket_io_thread, args=(
             bot, response["data"]["session_id"],update.message.chat_id))
-        socket_thread.start()
+        #TODO: fix this later
+        #socket_thread.start()
     else:
         log.info("Got error logging in with user {0}. Error text is {1}".format(username, response["text"]))
         update.message.reply_text(response["text"])
