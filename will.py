@@ -3,6 +3,8 @@ from flask import Flask, session
 from flask import request
 from flask import render_template
 from flask_socketio import SocketIO
+from flask import redirect
+from flask import make_response
 import dataset
 import bcrypt
 
@@ -111,6 +113,20 @@ def new_user():
                            "and email is required"
     return tools.return_json(response)
 
+def gen_session(username):
+    session_id = tools.get_session_id(db)
+    # Start monitoring notifications
+    # Register a session id
+    core.sessions.update({
+        session_id: {
+            "username": username,
+            "commands": Queue.Queue(),
+            "created": datetime.datetime.now(),
+            "updates": Queue.Queue(),
+            "id": session_id
+        }
+    })
+    return session_id
 
 @app.route('/api/start_session', methods=["GET","POST"])
 def start_session():
@@ -125,29 +141,21 @@ def start_session():
         users = db["users"]
         user_data = users.find_one(username=username)
         if user_data:
+            user_data = db["users"].find_one(username=username)
             # Check the password
             db_hash = user_data["password"]
-            log.info("Db hash is {0}".format(db_hash))
             user_auth = bcrypt.checkpw(str(password), db_hash)
             if user_auth:
-                # Authentication was successful, give the user a session id
                 log.info("Authentication successful for user {0}".format(username))
-                session_id = tools.get_session_id(db)
-                #Start monitoring notifications
-                # Register a session id
-                core.sessions.update({
-                    session_id: {
-                        "username": username,
-                        "commands": Queue.Queue(),
-                        "created": datetime.datetime.now(),
-                        "updates": Queue.Queue(),
-                        "id": session_id
-                    }
-                })
                 # Return the session id to the user
-                response["type"] = "success"
-                response["text"] = "Authentication successful"
-                response["data"].update({"session_id": session_id})
+                session_id = gen_session(username)
+                if session_id:
+                    response["type"] = "success"
+                    response["text"] = "Authentication successful"
+                    response["data"].update({"session_id": session_id})
+                else:
+                    response["type"] = "error"
+                    response["text"] = "Invalud username/password"
         else:
             response["type"] = "error"
             response["text"] = "Couldn't find user with username {0}".format(username)
@@ -155,8 +163,10 @@ def start_session():
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request data"
     # Render the response as json
-    if "redirect" in request.form.keys():
+    if request.method == "GET":
         session.update({"session_data": response})
+        if response["type"] == "success":
+            return redirect("/")
         log.info("Rendering command template")
         return render_template("command.html")
     else:
@@ -218,9 +228,79 @@ def get_updates(data):
         socketio.emit("update", {"value": "Error, couldn't find session id in update request"})
 
 
-@app.route("/")
+@app.route("/login", methods=["POST"])
+def login():
+    response = {"type": None, "text": None, "data": {}}
+    try:
+        username = str(request.form["username"])
+        password = request.form["password"]
+        user_table = db["users"].find_one(username=username)
+        db_hash = user_table["password"]
+        if bcrypt.checkpw(str(password), db_hash):
+            log.info("Logged in user {0}".format(username))
+            #Generate user token
+            session["logged-in"] = True
+            session["username"] = username
+            user_token = tools.get_user_token(username)
+            db['users'].upsert({"username":username, "user_token":user_token}, ['username'])
+            response["type"] = "success"
+            response["text"] = "Authentication successful"
+            response["data"].update({"user_token":user_token})
+        else:
+            response["type"] = "error"
+            response["text"] = "Invalid username/password"
+    except KeyError:
+        response["type"] = "error"
+        response["text"] = "Couldn't find username and password in request data"
+    resp = make_response(redirect("/"))
+    if response["type"] == "success":
+        log.info("Setting cookies for username and user token for user {0}".format(username))
+        session["username"] = username
+        session["user_token"] = response["data"]["user_token"]
+    return resp
+
+@app.route("/", methods=["GET", "POST"])
 def main():
-    return render_template("index.html")
+    if "username" in session.keys():
+        username = session["username"]
+    else:
+        username = None
+    if username:
+        log.info("Found username {0} in cookies".format(username))
+    log.info("Setting session data")
+    if "logged-in" not in session.keys():
+        session["logged-in"] = False
+    session["welcome-message"] = "Welcome to W.I.L.L"
+    if username:
+        user_table = db["users"].find_one(username=username)
+        if "user_token" in user_table.keys() and "user_token" in session.keys():
+            user_token = session["user_token"]
+            if user_table["user_token"] == user_token:
+                log.info("User {0} authenticated via user_token in cookies".format(username))
+                new_token = tools.get_user_token(username)
+                db["users"].upsert({"username":username, "user_token": new_token}, ['username'])
+                session["logged-in"] = True
+                user_first_name = user_table["first_name"]
+                session["welcome-message"] = "Welcome back {0}".format(user_first_name)
+                session_id = gen_session(username)
+                session["session_id"] = session_id
+                session["user_token"] = new_token
+                log.info("Generated session id {0} for user {1}".format(
+                    session_id, username
+                ))
+                resp = make_response(render_template('index.html'))
+                return resp
+            else:
+                log.info("User tokens don't match.\n{0}\n{1}".format(request.cookies.get("user_token"),
+                                                                     db["users"].find_one(username=username)["user_token"]))
+        else:
+            log.info("Couldn't find user token in cookies")
+            session["logged-in"] = False
+    else:
+        log.info("Couldn't find username in cookies")
+        session["logged-in"] = False
+    #If the cookies aren't found
+    return render_template('index.html')
 
 @app.route('/command', methods=["GET", "POST"])
 def command():
@@ -263,6 +343,7 @@ def process_command():
             response["text"] = command_response
             response["data"].update({command_id:command_response})
         else:
+            log.info("Couldn't find session id {0} in sessions".format(session_id))
             response["type"] = "error"
             response["text"] = "Invalid session id"
     except KeyError:

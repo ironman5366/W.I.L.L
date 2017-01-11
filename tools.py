@@ -84,6 +84,11 @@ def load_configuration():
     else:
         log.error("Couldn't find will.conf")
 
+def get_user_token(username):
+    user_uid = uuid.uuid3(uuid.NAMESPACE_DNS, str(username))
+    gen_uid = uuid.uuid1()
+    return str(gen_uid)+":u:"+str(user_uid)
+
 def return_json(response):
     '''Render response as json and return it'''
     #Make sure the needed keys are in the response data
