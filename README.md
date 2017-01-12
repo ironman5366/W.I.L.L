@@ -27,7 +27,7 @@ It runs on a flask server that provides a JSON API
 import requests
 import json
 #Assume that the user has already signed up
-server_url = "http://67.205.186.54/api"
+server_url = "http://willbeddow.com"
 payload = dict(username="myusername", password="mypassword")
 #Start the session and generate a session token. This session token will endure until you go to /end_session or the server reboots
 response = requests.post(url="{0}/api/start_session".format(server_url), data=payload)
