@@ -18,7 +18,7 @@ You can sign up for free at http://67.205.186.54/static/signup_page.html
 All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
 
 ###Use the json api
-The main W.I.L.L server is at http://67.205.186.54
+The main W.I.L.L server, as well as the web app, is at http://willbeddow.com
 It runs on a flask server that provides a JSON API
 
 ###Quickstart
