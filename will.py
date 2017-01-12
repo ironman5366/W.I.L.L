@@ -65,9 +65,7 @@ def new_user():
         password = request.form["password"]
         first_name = request.form["first_name"]
         last_name = request.form["last_name"]
-        news_site = request.form["news"]
         email = request.form["email"]
-        default_plugin = request.form["default_plugin"]
         log.info("Attempting to create new user with username {0} and email {1}".format(username, password))
         # Check to see if the username exists
         users = db["users"]
@@ -94,10 +92,10 @@ def new_user():
                     "email": email,
                     "password": hashed,
                     "admin": is_admin,
-                    "default_plugin": default_plugin,
+                    "default_plugin": "search",
                     "notifications": json.dumps(["email"]),
                     "ip": request.environ["REMOTE_ADDR"],
-                    "news_site": news_site
+                    "news_site": "http://reuters.com"
                 })
                 db.commit()
                 response["type"] = "success"
@@ -109,9 +107,13 @@ def new_user():
         log.error("Needed data not found in new user request")
         response["type"] = "error"
         response["text"] = "Couldn't find required data in request. " \
-                           "To create a new user, a username, password, first name, last name, default plugin," \
+                           "To create a new user, a username, password, first name, last name," \
                            "and email is required"
     return tools.return_json(response)
+
+@app.route("/signup")
+def signup():
+    return render_template("signup.html")
 
 def gen_session(username):
     session_id = tools.get_session_id(db)
@@ -338,7 +340,10 @@ def process_command():
             command_response = core.sessions_monitor.command(
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
-            log.info("Command response is {0}".format(command_response))
+            if len(command_response) > 100:
+                log.info("Command response is {0}..".format(command_response[0:100]))
+            else:
+                log.info("Command response is {0}".format(command_response))
             session_data["commands"].put(command_data)
             response["type"] = "success"
             response["text"] = command_response

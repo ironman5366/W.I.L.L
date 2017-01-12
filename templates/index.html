@@ -11,22 +11,50 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/html5shiv.js") }}"></script><![endif]-->
 		<link rel="stylesheet" href="{{ url_for("static", filename="assets/css/main.css") }}" />
+        <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" type="image/x-icon">
 		<!--[if lte IE 8]><link rel="stylesheet" href="{{ url_for("static", filename="assets/css/ie8.css") }}" /><![endif]-->
 	</head>
+    <script>
+        // request permission on page load
+        document.addEventListener('DOMContentLoaded', function () {
+        if (!Notification) {
+            alert('Desktop notifications not available in your browser. Try Chromium.');
+            return;
+        }
+        if (Notification.permission !== "granted")
+            Notification.requestPermission();
+        });
+        function notifyMe(notification) {
+            if (Notification.permission !== "granted")
+            Notification.requestPermission();
+        else {
+            var notification = new Notification('W.I.L.L', {
+            icon: "{{ url_for("static", filename="logo.png") }}",
+                body: notification,
+        });
+            notification.onclick = function () {
+        };
+        }
+        }
+</script>
     <script src="{{ url_for("static", filename="assets/js/jquery.min.js") }}"></script>
+
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
-        {% if session["logged_in"] %}{
+        {% if session["logged-in"] %}{
             <script type="text/javascript" charset="utf-8">
                  var socket = io.connect('http://' + document.domain + ':' + location.port);
-                socket.on('connect', function() {
-                socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
-                socket.on('update', function(data){
-                    console.log("Received update "+data);
-                    ///TODO: do this as a stylish notification instead
-                    $("#notification").fadeIn("slow").append(data["value"]);
-                    $(".dismiss").click(function(){
-                        $("#notification").fadeOut("slow");
-                    });
+                 console.log("Starting socketio")
+                 socket.on('connect', function() {
+                 socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
+                 socket.on('update', function(data){
+                    console.log("Received update "+data["value"]);
+                    String.prototype.isEmpty = function() {
+                        return (this.length === 0 || !this.trim());
+                    };
+                    if (data["value"].isEmpty() == false){
+                        notifyMe(data["value"]);
+                    }
+
                 })
         </script>
         {% endif %}
@@ -78,23 +106,14 @@
 						<ul>
 							<li><a href="index.html">Home</a></li>
 							<li>
-								<a href="#" class="icon fa-angle-down">Layouts</a>
+								<a href="#" class="icon fa-angle-down">Menu</a>
 								<ul>
-									<li><a href="{{ url_for("static", filename="generic.html") }}">Generic</a></li>
-									<li><a href="{{ url_for("static", filename="contact.html") }}">Contact</a></li>
-									<li><a href="{{ url_for("static", filename="elements.html") }}">Elements</a></li>
-									<li>
-										<a href="#">Submenu</a>
-										<ul>
-											<li><a href="#">Settings</a></li>
-											<li><a href="#">About W.I.L.L</a></li>
-											<li><a href="#">My Account</a></li>
-											<li><a href="#">Donate</a></li>
-										</ul>
-									</li>
+                                    <li><a href="/settings">Settings</a></li>
+									<li><a href="https://github.com/ironman5366/tree/dev">About W.I.L.L</a></li>
+									<li><a href="/signup">Signup</a></li>
 								</ul>
 							</li>
-							<li><a href="#" class="button">Sign Up</a></li>
+							<li><a href="/signup" class="button">Sign Up</a></li>
 						</ul>
 					</nav>
 				</header>
@@ -130,37 +149,45 @@
 					<section class="box special">
 						<header class="major">
 							<h2>Introducing W.I.L.L.
-							<br />
+							<br/>
 							Your new assistant</h2>
-							<p>Blandit varius ut praesent nascetur eu penatibus nisi risus faucibus nunc ornare<br />
-							adipiscing nunc adipiscing. Condimentum turpis massa.</p>
+							<p>Meet W.I.L.L, a free, open-source personal assistant that can do everything from
+                            read the news to setting reminders - on any platform you want.</p>
+                            <br></br>
+                            <li><a href="https://github.com/ironman5366/W.I.L.L/tree/dev" class="button">Visit the docs</a></li>
 						</header>
-						<span class="image featured"><img src="{{ url_for("static", filename="assets/images/pic01.jpg") }}" alt="" /></span>
+						<span class="image featured"><img src="{{ url_for("static", filename="logo.png") }}" alt="" /></span>
+
 					</section>
 
 					<section class="box special features">
 						<div class="features-row">
 							<section>
 								<span class="icon major fa-bolt accent2"></span>
-								<h3>Magna etiam</h3>
-								<p>Integer volutpat ante et accumsan commophasellus sed aliquam feugiat lorem aliquet ut enim rutrum phasellus iaculis accumsan dolore magna aliquam veroeros.</p>
+								<h3>Free</h3>
+								<p>W.I.L.L is, and always will be, free for the user. I pay for hosting entirely out of
+                                pocket and my only source of income from W.I.L.L is donations. </p>
 							</section>
 							<section>
 								<span class="icon major fa-area-chart accent3"></span>
-								<h3>Ipsum dolor</h3>
-								<p>Integer volutpat ante et accumsan commophasellus sed aliquam feugiat lorem aliquet ut enim rutrum phasellus iaculis accumsan dolore magna aliquam veroeros.</p>
+								<h3>Smart</h3>
+								<p>W.I.L.L uses spacy.io to process every command, and determines exactly what you mean with
+                                advanced natural language processing.</p>
 							</section>
 						</div>
 						<div class="features-row">
 							<section>
 								<span class="icon major fa-cloud accent4"></span>
-								<h3>Sed feugiat</h3>
-								<p>Integer volutpat ante et accumsan commophasellus sed aliquam feugiat lorem aliquet ut enim rutrum phasellus iaculis accumsan dolore magna aliquam veroeros.</p>
+								<h3>Multi platform</h3>
+								<p>W.I.L.L runs on a publicly available JSON API. That means that it's super easy
+                                to make requests to W.I.L.L - any internet connected device can do it. Want an app,
+                                site, or add in that runs W.I.L.L? There's an API for that. </p>
 							</section>
 							<section>
 								<span class="icon major fa-lock accent5"></span>
-								<h3>Enim phasellus</h3>
-								<p>Integer volutpat ante et accumsan commophasellus sed aliquam feugiat lorem aliquet ut enim rutrum phasellus iaculis accumsan dolore magna aliquam veroeros.</p>
+								<h3>Secure</h3>
+								<p>All of W.I.L.Ls database queries are internal and secure, and passwords are salted
+                                    and hashed using bcrypt. W.I.L.L works to keep your data safe</p>
 							</section>
 						</div>
 					</section>
@@ -170,13 +197,18 @@
 
 							<section class="box special">
 								<span class="image featured"><img src="{{ url_for("static", filename="images/pic02.jpg") }}" alt="" /></span>
-								<h3>Sed lorem adipiscing</h3>
-								<p>Integer volutpat ante et accumsan commophasellus sed aliquam feugiat lorem aliquet ut enim rutrum phasellus iaculis accumsan dolore magna aliquam veroeros.</p>
-								<ul class="actions">
-									<li><a href="#" class="button alt">Learn More</a></li>
-								</ul>
+								<h3>Contribute to W.I.L.Ls development and hosting</h3>
+								<p>I pay for W.L.L.L completely out of pocket and provide it for free to the users.
+                                Hosting costs total around $45 per month.</p>
+                                <form action="https://www.paypal.com/cgi-bin/webscr" method="post" target="_top">
+                                    <input type="hidden" name="cmd" value="_s-xclick">
+                                    <input type="hidden" name="encrypted" value="-----BEGIN PKCS7-----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-----END PKCS7-----
+                                    ">
+                                    <input type="image" src="https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif" border="0" name="submit" alt="PayPal - The safer, easier way to pay online!">
+                                    <img alt="" border="0" src="https://www.paypalobjects.com/en_US/i/scr/pixel.gif" width="1" height="1">
+                                    </form>
 							</section>
-
+<!--
 						</div>
 						<div class="6u 12u(narrower)">
 							<section class="box special">
@@ -192,8 +224,9 @@
 					</div>
 
 				</section>
-
+				-->
 			<!-- CTA -->
+                            <!--
 				<section id="cta">
 
 					<h2>Sign up for beta access</h2>
@@ -211,19 +244,20 @@
 					</form>
 
 				</section>
-
+            -->
 			<!-- Footer -->
 				<footer id="footer">
 					<ul class="icons">
-						<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
+						<!--<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
 						<li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
 						<li><a href="#" class="icon fa-instagram"><span class="label">Instagram</span></a></li>
 						<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
 						<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
 						<li><a href="#" class="icon fa-google-plus"><span class="label">Google+</span></a></li>
+						-->
 					</ul>
 					<ul class="copyright">
-						<li>&copy; Untitled. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+						<li>&copy;Will Beddow. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
 					</ul>
 				</footer>
 

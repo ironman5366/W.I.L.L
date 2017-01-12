@@ -7,6 +7,7 @@ import wolframalpha
 import wikipedia
 import google
 from bs4 import BeautifulSoup
+from newspaper import Article
 
 # Builtin imports
 import logging
@@ -23,23 +24,46 @@ def search_google(query):
         url = search_object.next()
         urls.append(url)
         if "wikipedia.org/wiki" in url:
-            response = wikipedia.summary(wikipedia.search(query)[0]) + "(wikipedia)"
+            wikipedia_search = wikipedia.search(query)[0]
+            url = wikipedia.page(wikipedia_search).url
+            response = wikipedia.summary(wikipedia_search) + " ({0})".format(url)
             return response
     #If there were no wikipedia pages
     first_url = urls[0]
-    html = urllib2.urlopen(first_url).read()
-    #Parse the html using bs4
-    soup = BeautifulSoup(html, "html.parser")
-    [s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title'])]
-    text = soup.getText()
-    # break into lines and remove leading and trailing space on each
-    lines = (line.strip() for line in text.splitlines())
-    # break multi-headlines into a line each
-    chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
-    # drop blank lines
-    soup_text = '\n'.join(chunk for chunk in chunks if chunk)
-    response = format(soup_text) + "({0})".format(first_url)
-    return response
+    try:
+        article = Article(first_url)
+        article.download()
+        article.parse()
+        article.nlp()
+        article_summary = article.summary.decode('ascii', 'ignore')
+        article_title = article.title.decode('ascii', 'ignore')
+        return "{0}\n{1} - ({2}".format(
+            article_summary, article_title, first_url
+        )
+
+    except Exception as article_exception:
+        try:
+            log.debug("Got error {0}, {1} while using newspaper, switching to bs4".format(
+            article_exception.message,article_exception.args
+            ))
+            html = urllib2.urlopen(first_url).read()
+            #Parse the html using bs4
+            soup = BeautifulSoup(html, "html.parser")
+            [s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title'])]
+            text = soup.getText()
+         # break into lines and remove leading and trailing space on each
+            lines = (line.strip() for line in text.splitlines())
+            # break multi-headlines into a line each
+            chunks = (phrase.strip() for line in lines for phrase in line.split("  "))
+            # drop blank lines
+            soup_text = '\n'.join(chunk for chunk in chunks if " " in chunk)
+            response = format(soup_text) + " ({0})".format(first_url)
+            return response
+        except Exception as search_exception:
+            log.info("Error {0},{1} occurred while searching query {2}".format(
+                search_exception.message, search_exception.args, query
+            ))
+            return "Error encountered on query {0}".format(query)
 def search_wolfram(query, api_key):
     '''Search wolframalpha'''
     client = wolframalpha.Client(api_key)
