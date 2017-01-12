@@ -12,7 +12,7 @@ We've provided some platforms for you, but if you don't like any of those, you c
 
 ####Signup
 Before you can use W.I.L.L, you need to sign up.
-You can sign up for free at http://67.205.186.54/static/signup_page.html
+You can sign up for free at http://willbeddow.com/signup
 
 #####Telegram
 All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
