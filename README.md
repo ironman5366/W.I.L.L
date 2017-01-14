@@ -1,186 +1,117 @@
-# W.I.L.L
+#W.I.L.L
 
-W.I.L.L is a Python based, event and plugin driven personal assistant.
+##Welcome to W.I.L.L
+W.I.L.L is an open source personal assistant that aims to be free, easy to use, and expandable by the user.
+It runs on a python based plugin framework accessible by a JSON API that let's you access it from a variety of different platforms.
+We've provided some platforms for you, but if you don't like any of those, you can easily create your own, or, if you want to change W.I.L.L, setup your own version
 
-  - Smart, efficient, spacy driven multithreaded nlp
-  - A full, event driven plugin framework supporting multiple types of plugins with room for expansion
-  - Can be used with a variety of different clients
 
-Plugins:
-  - Can be written in Python or JSON (more coming!) 
-  - Are activated on W.I.L.L initiation or shutdown
-  - Are activated based on entity recognition, POS tags, keywords, or even the presence of questions
-  - Can interactively communicate with the user without having to re-run parsing every time
-  
+##Quickstart
 
-W.I.L.L started as my personal project but now has an active community of users and contributers. If you want to contribute by adding plugins, or even editing the framework, just submit a pull reuqest! Working plugins that are legal, useful, and original will always be accepted. 
+###Use a provided platform
 
-### Version
-3.0.1
+####Signup
+Before you can use W.I.L.L, you need to sign up.
+You can sign up for free at http://willbeddow.com/signup
 
-### Tech
+#####Telegram
+All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
 
-W.I.L.L is open source with a  [public repository][will]
- on GitHub.
+###Use the json api
+The main W.I.L.L server, as well as the web app, is at http://willbeddow.com
+It runs on a flask server that provides a JSON API
 
-### Installation
-To install, run
-```bash
-git clone https://github.com/ironman5366/W.I.L.L.git
-cd W.I.L.L
-pip install -r requirements.txt
+###Quickstart
+####Send a request with python
+```python
+import requests
+import json
+#Assume that the user has already signed up
+server_url = "http://willbeddow.com"
+payload = dict(username="myusername", password="mypassword")
+#Start the session and generate a session token. This session token will endure until you go to /end_session or the server reboots
+response = requests.post(url="{0}/api/start_session".format(server_url), data=payload)
+#{"type": "success", "text": "Authentication successful", "data": {"session_id": "aaaa-bbbb-cccc-dddd"}
+session_id = response["data"]["session_id"]
+#Submit a command
+command_data = dict(session_id=session_id, command="What is the meaning of life?")
+answer = requests.post(url="{0}/api/command".format(server_url), data=command_data)
+#{"type": "success", "text", "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)", "data": {"command_id": "aaaa-bbbb-cccc-dddd_1", "command_response": "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)"}}
+print answer["text"]
+#42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)
 ```
 
-After installation, you need a WolframAlpha API key to run the search module. Get one from http://products.wolframalpha.com/api/
-
-After you have it, go to your W.I.L.L installation directory (find out where pip installs things on your OS), and copy example_config.json to config.json. Then, add the following lines as the last item entry:
+###API Docs:
+The core of the JSON API is a response object. A response object looks like this:
 ```json
-"wolfram":
-  {
-    "keys": ["YOUR_KEY"]
-  }
+{"type": "success", "text": "Request successful!", "data": {}}
 ```
-### Plugins
+As you can see, each response object has three objects.
+- Type
+    - The type of the response. This will be either `success`, `error`, or `response`
+    - `success` indicates that a request completed successfully
+    - `error` indicates that a request encountered an error
+    - `response`indicates that the request requires a response or a callback. The information for this will usually be in data
+-  Text
+    - The message to the user
+- Data
+    - A dictionary that contains any request specific data the user should interpret
 
-The following plugins are currently available for W.I.L.L, with many more on the way.
+API Methods:
+- `/api/new_user`
+    - Requires the following parameters in the request
+    - `first_name`
+    - `last_name`
+    - `username`
+    - `password` (the password will laster be encrypted by bcrypt in the databsae)
+    - `email`
+    - `default_plugin` (It's usually best just to submit search for this)
+- `/api/start_session`
+    - Takes `username` and `password` and returns a `session_id` in `data`
+- `/api/command`
+    - Takes `session_id` and `command` and returns `command_response` in `data`
+- `/api/end_session`
+    Takes a `session_id` and ends it
+- `/api/get_updates`
+   - Takes a `session_id` and returns all pending updates and notifications
+- `/api/get_sessions`
+   - Takes a `username` and `password` and returns all active sessions
 
-Finished:
-* Open (Use xdg-open, start, or open to open any program or file on the operating system)
-* Search (Use Google, WolframAlpha, and Wikipedia to find an answer to most questions)
-* Execute (Execute a terminal command)
 
-In development:
-* Chromecast (Uses pychromecast and splinter to cast several popular streaming services)
-* Spotify (Access Spotify premium API)
+###Events framework
+W.I.L.L has a customizable events framework that allows you to pass events and notifications that will be asynchronously
+pushed to the user. 
+At the moment W.I.L.L offers three classes of events, two of which endure between reboots of the server
+- `notification`
+    - A pending notification to the user. Unlike the rest of the notifications, as well as being available from 
+    `/api/get_updates`, a notification is also pushed to the user in various ways, including email, telegram, and text.
+    Information about which of these the user has enabled is stored in a JSON array in the database
+    - Endures between server updates
+- `url`
+    - A url that will be opened, the contents of the page pushed to the updates for `/api/get_updates`
+    - Endures between server updates
+- `function`
+    - A function object that will be run, the result pushed to the updates for `/api/get_updates`
+    - Does not endure between server updates, as a python `func` object cannot be stored between runs
 
-### Plugin Creation
-
-Writing a plugin for W.I.L.L is easier than you might think. Currently, W.I.L.L supports two types of plugins. JSON and Python. All plugins should go in W.I.L.L/plugins.
-
-Special thanks to https://github.com/brenttaylor for his contributions to the plugin framework
-
-#### Python
-The way W.I.L.L is designed, you can plug in pretty much any python file that you've made, just by adding a decorator.
-Let's write a plugin. First, you need to import the API that W.I.L.L uses. If you're in the plugin directory, you can do that with this line:
-```python
-import will.plugins.API as API
+An event object is defined by 5 keys:
+- `type`
+    - The type of the event, `notification`, `url`, or `function`
+- `username`
+    - The username of the user who the event belongs to
+- `value`
+    - The data of the event. In a `notification` event it's the notification text, it's the url in a `url` event, 
+    and the `func` object in a `function` event
+- `time`
+    - The time when the event should be run in Unix epoch time.
+    - Can be generated with the builtin `time` module like so:
+ ```python
+    import time
+    #The current epoch time
+    current_time = time.time()
+    #Set the time for a minute
+    event_activation_time = current_time+60
 ```
-Now we can write a function that we want W.I.L.L to execute. All plugin functions should accept 4 arguments. The first will be the first word of the command. The second will be the raw, full text of the command. The third should be *args, and that will contain all of the nlp data that your plugin might want to access. The fourth should be **kwargs, and that will contain metadata about the command. You shouldn't needed this unless you're debugging the plugin framework
-```python
-def test_func(leader, sentence, *args, **kwargs):
-    print leader #The first word of the command
-    print sentence #The entire command
-    print args['ents'] #A dict of recognized entities
-    print args['struct'] #A dict of recognized pos tags
-    print kwargs #Dispatcher debug info
-```
-Now that we have that function, let's hook it up to the W.I.L.L API with a decorator. There are currently 4 functions inside the api that you can use. The first two go together. `@init`, which will run on initialization of W.I.L.L, and `@shutdown`, which will run as W.I.L.L exits. These do not need the standard arguments in the accompanying functions. Next, we have `@API.subscribe_to_any`. That will, as the name implies, be activated when any command is entered into W.I.L.L. Finally, the most important one. `@API.subscribe_to`. Unlike the others, this requires input data, so W.I.L.L can know under what circumstances to run it. You'll pass it a dictionary containing a neat package of information about the plugin. Included in this dictionary are the name of the plugin, what entities the plugin needs (list of supported entities can be found at https://spacy.io/docs#annotation-ner), what parts of speech the plugin needs, if the plugin needs questions, and any key words that it needs. Here's a sample of the dictionary.
-```python
-{
-"name" : "test",
-"ents_needed" : ["PERSON"], #Could also be left empty by writing "ents_needed" : False
-"structure" : {"needed":["VERB"]}, #Could also be left empty with "structure" : {"needed":False}
-"questions_needed" : False, #Always a bool, True or False if it needs questions or not
-"key_words" : ["test"] #Can be left empty with"key_words" : False
-}
-```
-Finally, you can load values in the config by importing will.config. Import it like this:
-```python
-import will.config as config
-```
-There are three methods available to plugins in config, `load_config`,`remove_config`, and `add_config`. `load_config`takes a header of something already in the config and returns the value. `add_config` updates the config with a dictionary passed to it, and `remove_config` removes takes a header and removes that item from the config. Like so:
-```python
-import will.config as config
-
-#Add an item to the config
-config.add_config({"docs_read" : True})
-
-#Load an item from the config
-docs_read = config.load_config("docs_read") #The value you just added
-
-#Remove the item from the config
-config.remove_config("docs_read")
-```
-
-Now that we've written our function defined the plugin, and familiarized ourself with the methods, let's tie it all together in a file.
-
-`W.I.L.L/plugins/test.py`
-```python
-import will.plugins.API as API
-import will.config as config
-
-#A function that will run on initialization
-@init
-def on_init():
-    print "W.I.L.L Started!"
-    #Add an item into the config
-    config.add_config({"will_started" : True})
-
-#The dictionary we made earlier
-plugin_data = 
-{
-"name" : "test",
-"ents_needed" : ["PERSON"], #Could also be left empty by writing "ents_needed" : False
-"structure" : {"needed":["VERB"]}, #Could also be left empty with "structure" : {"needed":False}
-"questions_needed" : False, #Always a bool, True or False if it needs questions or not
-"key_words" : ["test"] #Can be left empty with"key_words" : False
-}
-
-#Subscribe the plugin_data dictionary to the function we wrote earlier
-@API.subscribe_to(plugin_data)
-def test_func(leader, sentence, *args, **kwargs):
-    print leader #The first word of the command
-    print sentence #The entire command
-    print args['ents'] #A dict of recognized entities
-    print args['structure']['tags'] #A dict of recognized pos tags
-    print kwargs #Dispatcher debug info
-    #While we're in the function, why not load the config item we added earlier
-    will_started = config.load_config("will_started")
-    print will_started
-    
-#A function that will run as will exits
-@shutdown
-def on_shutdown():
-    print "W.I.L.L is shutting down"
-    #Remove the config item
-    config.remove_config("will_started")
-```
-
-Now let's run our plugin! So we can see what's going on, let's use W.I.L.L in the terminal:
-```python
->>>import will #This might take some time as the nlp models take time to load
->>>will.run()
-W.I.L.L Started!
->>>will.main("test this sentence includes Will, a person")
-test
-test this sentence includes Will, a person
-{"Will", "PERSON"}
-{'a': 'DT', 'sentence': 'NN', 'this': 'DT', 'is': 'VBZ', 'who': 'WP', ',': ',', 'includes': 'VBZ', 'Will': 'NNP', u'person': 'NN', 'test': 'NN'}
-{'signal': 'test', 'sender': _Any}
-True
->>>will.exit_func() #This will be called however W.I.L.L exits, you don't need to call it explicitly
-W.I.L.L is shutting down
-```
-And there you have it! A working W.I.L.L plugin!
-### Todos
- 
- - Write setup scripts
- - Add JSON plugin docs
- - Add client creation docs
- - Chromecast plugin
- - Spotify plugin
- - Add more structural NLP
- - Add more clients
-
-License
-----
-
-MIT
-
-These docs made on dillinger.io, off the default template. 
-
-
-
-
-
-   [will]: <https://github.com/ironman5366/W.I.L.L>
+- `uid`
+    - A modified `uuid` object providing a unique identifier for the event
+    - Generated with `tools.get_event_uid(type)` where `type` is the `type` key explained above
