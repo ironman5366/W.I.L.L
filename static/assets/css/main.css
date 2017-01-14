@@ -42,6 +42,7 @@
 
 	blockquote, q {
 		quotes: none;
+		white-space: pre-wrap;
 	}
 
 	blockquote:before, blockquote:after, q:before, q:after {
