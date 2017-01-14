@@ -207,6 +207,47 @@ def update_loop(session_id):
             log.debug("Pushing update {0}".format(update))
             socketio.emit('update', update)
 
+# @app.route("/api/settings", methods=["GET"])
+# def settings():
+#     response = {"type": None, "text": None, "data": {}}
+#     if "username" in request.form.keys() and "password" in request.form.keys():
+#         username = request.form["username"]
+#         password = request.form["password"]
+#         user_table = db["users"].find_one(username=username)
+#         if user_table:
+#             db_hash = user_table["password"]
+#             if bcrypt.checkpw(password, db_hash):
+#                 #TODO: write a framework that allowc ahgning of notifications
+#                 immutable_settings = ["username", "admin", "id", "user_token", "notifications"]
+#                 db.begin()
+#                 log.info("Changing settings for user {0}".format(username))
+#                 try:
+#                     for setting in request.form.keys():
+#                         if setting not in immutable_settings:
+#                             if setting == "password":
+#                                 commit_pw = bcrypt.hashpw(request.form["password"], bcrypt.gensalt())
+#                                 user_table.update({"username": username, "password": commit_pw}, ['username'])
+#                             user_table.upsert({"username": username, setting: request.form[setting]}, ['username'])
+#                     db.commit()
+#                     response["type"] = "success"
+#                     response["text"] = "Updated settings"
+#                 except:
+#                     response["type"] = "error"
+#                     response["text"] = "Error encountered while trying to update db, changes not committed"
+#                     db.rollback()
+#
+#         else:
+#             response["type"] = "error"
+#             response["text"] = "User {0} doesn't exist".format(username)
+#     else:
+#         response["type"] = "error"
+#         response["text"] = "Couldn't find username or password in request data"
+#
+# @app.route("/settings", methods=["GET"])
+# def settings_page():
+#     session["user"] = db["users"].find_one(username=session["username"])
+#     return render_template("settings.html")
+
 @socketio.on("get_updates")
 def get_updates(data):
     '''Websocket thread for getting updates'''
@@ -228,7 +269,6 @@ def get_updates(data):
             socketio.emit("update", {"value": "Error, invalid session id"})
     else:
         socketio.emit("update", {"value": "Error, couldn't find session id in update request"})
-
 
 @app.route("/login", methods=["POST"])
 def login():

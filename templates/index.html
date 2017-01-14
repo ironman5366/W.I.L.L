@@ -71,7 +71,6 @@
 
             //Send the proper header information along with the request
             http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-
             http.onreadystatechange = function() {//Call a function when the state changes.
             if(http.readyState == 4 && http.status == 200) {
                 console.log("Got response json "+http.responseText)
@@ -101,10 +100,10 @@
 
 			<!-- Header -->
 				<header id="header" class="alt">
-					<h1><a href="index.html">W.I.L.L</a></h1>
+					<h1><a href="/">W.I.L.L</a></h1>
 					<nav id="nav">
 						<ul>
-							<li><a href="index.html">Home</a></li>
+							<li><a href="/">Home</a></li>
 							<li>
 								<a href="#" class="icon fa-angle-down">Menu</a>
 								<ul>
@@ -271,6 +270,15 @@
 			<script src="{{ url_for("static", filename="assets/js/util.js") }}"></script>
 			<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/respond.min.js") }}"></script><![endif]-->
 			<script src="{{ url_for("static", filename="assets/js/main.js") }}"></script>
-
 	</body>
+<script>
+  (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+  (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+  m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+  })(window,document,'script','https://www.google-analytics.com/analytics.js','ga');
+
+  ga('create', 'UA-67885845-1', 'auto');
+  ga('send', 'pageview');
+
+</script>
 </html>
