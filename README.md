@@ -39,6 +39,8 @@ answer = requests.post(url="{0}/api/command".format(server_url), data=command_da
 #{"type": "success", "text", "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)", "data": {"command_id": "aaaa-bbbb-cccc-dddd_1", "command_response": "42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)"}}
 print answer["text"]
 #42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)
+#End your session
+requests.post(url="{0}/api/end_session".format(server_url), data={"session_id": session_id})
 ```
 
 ###API Docs:
