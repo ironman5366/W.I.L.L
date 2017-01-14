@@ -38,9 +38,9 @@
         }
 </script>
     <script src="{{ url_for("static", filename="assets/js/jquery.min.js") }}"></script>
-
+    <script src="{{ url_for("static", filename="assets/js/spin.js") }}"></script>
     <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
-        {% if session["logged-in"] %}{
+        {% if session["logged-in"] %}
             <script type="text/javascript" charset="utf-8">
                  var socket = io.connect('http://' + document.domain + ':' + location.port);
                  console.log("Starting socketio")
@@ -56,46 +56,9 @@
                 })
         </script>
         {% endif %}
-    <script>
-        function sendCommand(command){
-            command = document.getElementById("command").value;
-            session_id = "{{ session["session_id"] }}";
-            console.log("Sending command");
-            console.log("Submitting command "+command+" with session_id "+session_id);
-            var http = new XMLHttpRequest();
-            var url = "/api/command";
-            var params = "command="+command+"&session_id="+"{{ session["session_id"] }}";
-            http.open("POST", url, true);
 
-            //Send the proper header information along with the request
-            http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            http.onreadystatechange = function() {//Call a function when the state changes.
-            if(http.readyState == 4 && http.status == 200) {
-                console.log("Got response json "+http.responseText)
-                answer = JSON.parse(http.responseText);
-                answer_type = answer["type"]
-            if (answer_type == "success"){
-                answerDiv = document.getElementById("answer");
-                answerDiv.textContent = answer["text"];
-            }
-            else{
-                answerDiv = document.getElementById("answer");
-                answerDiv.textContent = "Error: "+answer["text"];
-            }
-            }
-                }
-                http.send(params);
-            }
-        $('#commandForm').submit(function (e) {
-            e.preventDefault();
-            console.log("Submitted command form");
-                sendCommand();
-                return false;
-    });
-    </script>
 	<body class="landing">
 		<div id="page-wrapper">
-
 			<!-- Header -->
 				<header id="header" class="alt">
 					<h1><a href="/">W.I.L.L</a></h1>
@@ -122,9 +85,10 @@
                         <form id="commandForm" method="POST" onsumbit="return false;">
                             <input type="text"  placeholder="Read the news for me" id="command" name="command">
                             <br>
-                            <input type="submit" value="Go" onclick="sendCommand(this.form.command.value); return false;">
+                            <input id="goButton" type="submit" value="Go" onclick="sendCommand(this.form.command.value); return false;">
                         </form>
                         <blockquote id="answer"></blockquote>
+                        <div id="loader"></div>
                     {% else %}
                         <h2>Login</h2>
                         <form method="POST", action="/login">
@@ -139,7 +103,74 @@
                         </form>
                     {% endif %}
 				</section>
+                <script>
+                var opts = {
+                  lines: 13 // The number of lines to draw
+                , length: 28 // The length of each line
+                , width: 14 // The line thickness
+                , radius: 42 // The radius of the inner circle
+                , scale: 0.5 // Scales overall size of the spinner
+                , corners: 1 // Corner roundness (0..1)
+                , color: '#ffa300' // #rgb or #rrggbb or array of colors
+                , opacity: 0.25 // Opacity of the lines
+                , rotate: 0 // The rotation offset
+                , direction: 1 // 1: clockwise, -1: counterclockwise
+                , speed: 1 // Rounds per second
+                , trail: 60 // Afterglow percentage
+                , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+                , zIndex: 2e9 // The z-index (defaults to 2000000000)
+                , className: 'spinner' // The CSS class to assign to the spinner
+                , top: '55%' // Top position relative to parent
+                , left: '50%' // Left position relative to parent
+                , shadow: false // Whether to render a shadow
+                , hwaccel: false // Whether to use hardware acceleration
+                , position: 'absolute' // Element positioning
+                }
+                var target = document.getElementById('loader');
+                var spinner = new Spinner(opts);
+                function sendCommand(command){
+                    command = document.getElementById("command").value;
+                    session_id = "{{ session["session_id"] }}";
+                    console.log("Sending command");
+                    console.log("Submitting command "+command+" with session_id "+session_id);
+                    var http = new XMLHttpRequest();
+                    var url = "/api/command";
+                    var params = "command="+command+"&session_id="+"{{ session["session_id"] }}";
+                    http.open("POST", url, true);
 
+                    //Send the proper header information along with the request
+                    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                    http.onreadystatechange = function() {//Call a function when the state changes.
+                    document.getElementById("goButton").style.visibility = 'visible';
+                    spinner.stop()
+                    if(http.readyState == 4 && http.status == 200) {
+                        console.log("Got response json "+http.responseText);
+                        answer = JSON.parse(http.responseText);
+                        answer_type = answer["type"];
+                    if (answer_type == "success"){
+                        answerDiv = document.getElementById("answer");
+                        answerDiv.textContent = answer["text"];
+                    }
+                    else{
+                        answerDiv = document.getElementById("answer");
+                        answerDiv.textContent = "Error: "+answer["text"];
+                    }
+                    }
+                    document.getElementById("answer").style.visibility = 'visible';
+                        }
+                        spinner.spin(target);
+                        //target.appendChild(spinner.el);
+                        document.getElementById("goButton").style.visibility = 'hidden';
+                        document.getElementById("answer").style.visibility = 'hidden';
+                        http.send(params);
+                    }
+                    $('#commandForm').submit(function (e) {
+                        e.preventDefault();
+                        console.log("Submitted command form");
+                            sendCommand();
+                            return false;
+                });
+    </script>
 			<!-- Main -->
 				<section id="main" class="container">
 
@@ -268,6 +299,7 @@
 			<script src="{{ url_for("static", filename="assets/js/util.js") }}"></script>
 			<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/respond.min.js") }}"></script><![endif]-->
 			<script src="{{ url_for("static", filename="assets/js/main.js") }}"></script>
+                    </div>
 	</body>
 <script>
   (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){

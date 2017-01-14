@@ -17,10 +17,16 @@ sessions = {}
 
 events = []
 
+processed_commands = 0
+
 class sessions_monitor():
     @staticmethod
     def command(command_data, session,  db, add_to_updates_queue=True):
         '''Control the processing of the command'''
+        global processed_commands
+        global successfully_run
+        global errored
+        processed_commands+=1
         # Call the parser
         command_data.update({"db": db})
         parse_data = parser.parse(command_data, session)

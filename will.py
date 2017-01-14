@@ -22,6 +22,7 @@ import json
 from logging.handlers import RotatingFileHandler
 import time
 import threading
+import time
 
 app = Flask(__name__)
 
@@ -54,6 +55,9 @@ core.db = db
 
 socketio = SocketIO(app)
 
+gmtime = time.gmtime()
+
+start_time = "{0}:{1} UTC".format(gmtime.tm_hour, gmtime.tm_min)
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
@@ -359,6 +363,28 @@ def main():
         session["logged-in"] = False
     #If the cookies aren't found
     return render_template('index.html')
+
+@app.route('/report', methods=["GET"])
+def report():
+    if "username" in session.keys() and "logged-in" in session.keys() and session["logged-in"]:
+        user_table = db["users"].find_one(username=session["username"])
+        if user_table:
+            if user_table["admin"]:
+                #Get the session_data
+                session["commands-processed"] = core.processed_commands
+                session["start-time"] = start_time
+                users_online = 0
+                users_processed = []
+                for session_id in core.sessions:
+                    session_data = core.sessions[session_id]
+                    session_user = session_data["username"]
+                    if session_user not in users_processed:
+                        users_processed.append(session_user)
+                        users_online+=1
+                session["users-online"] = users_online
+                session["active-sessions"] = len(core.sessions)
+                return render_template('report.html')
+    return redirect("/")
 
 @app.route('/command', methods=["GET", "POST"])
 def command():
