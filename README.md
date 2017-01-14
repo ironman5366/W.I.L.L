@@ -41,9 +41,8 @@ print answer["text"]
 #42 (according to the book The Hitchhiker's Guide to the Galaxy, by Douglas Adams)
 ```
 
-
 ###API Docs:
-The core of he JSON API is a response object. A response object looks like this:
+The core of the JSON API is a response object. A response object looks like this:
 ```json
 {"type": "success", "text": "Request successful!", "data": {}}
 ```
@@ -116,4 +115,3 @@ An event object is defined by 5 keys:
 - `uid`
     - A modified `uuid` object providing a unique identifier for the event
     - Generated with `tools.get_event_uid(type)` where `type` is the `type` key explained above
-    
