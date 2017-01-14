@@ -23,6 +23,9 @@ from logging.handlers import RotatingFileHandler
 import time
 import threading
 import time
+import datetime
+
+now = datetime.datetime.now()
 
 app = Flask(__name__)
 
@@ -57,7 +60,7 @@ socketio = SocketIO(app)
 
 gmtime = time.gmtime()
 
-start_time = "{0}:{1} UTC".format(gmtime.tm_hour, gmtime.tm_min)
+start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
