@@ -198,14 +198,29 @@ def end_session():
 
 def update_loop(session_id):
     while session_id in core.sessions.keys():
-        time.sleep(1)
-        session_data = core.sessions[session_id]
+        try:
+            session_data = core.sessions[session_id]
+        except KeyError:
+            #Session ended while loop was sleeping
+            break
         session_updates = session_data["updates"]
         while not session_updates.empty():
             log.info("Serving updates")
             update = session_updates.get()
             log.debug("Pushing update {0}".format(update))
             socketio.emit('update', update)
+        time.sleep(1)
+    log.info("Ending updates for finished session {0}".format(session_id))
+
+@socketio.on('disconnect')
+def disconnect_session():
+    '''End the webapp session and the update thread on disconnect'''
+    session_id = session["session_id"]
+    if session_id in core.sessions.keys():
+        log.info("Ending session {0}".format(session_id))
+        del core.sessions[session_id]
+    else:
+        log.debug("Session id {0} wasn't found in core.sessions".format(session_id))
 
 # @app.route("/api/settings", methods=["GET"])
 # def settings():

@@ -48,13 +48,11 @@
                  socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
                  socket.on('update', function(data){
                     console.log("Received update "+data["value"]);
-                    String.prototype.isEmpty = function() {
-                        return (this.length === 0 || !this.trim());
-                    };
-                    if (data["value"].isEmpty() == false){
-                        notifyMe(data["value"]);
+                    if (typeof data["value"] != "undefined"){
+                        if (data["value"].length >= 1 && data["value"].trim().length >= 1){
+                            notifyMe(data["value"]);
+                        }
                     }
-
                 })
         </script>
         {% endif %}
