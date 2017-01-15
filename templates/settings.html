@@ -6,12 +6,14 @@
 -->
 <html>
 	<head>
-		<title>Elements - Alpha by HTML5 UP</title>
-		<meta charset="utf-8" />
+		<title>W.I.L.L - settings</title>
+        <meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
-		<!--[if lte IE 8]><script src="assets/js/ie/html5shiv.js"></script><![endif]-->
-		<link rel="stylesheet" href="assets/css/main.css" />
-		<!--[if lte IE 8]><link rel="stylesheet" href="assets/css/ie8.css" /><![endif]-->
+		<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/html5shiv.js") }}"></script><![endif]-->
+		<link rel="stylesheet" href="{{ url_for("static", filename="assets/css/main.css") }}" />
+        <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" type="image/x-icon">
+		<!--[if lte IE 8]><link rel="stylesheet" href="{{ url_for("static", filename="assets/css/ie8.css") }}" /><![endif]-->
+        <script src="{{ url_for("static", filename="assets/js/spin.js") }}"></script>
 	</head>
 	<body>
 		<div id="page-wrapper">
@@ -33,10 +35,9 @@
 									<li><a href="/signup">Signup</a></li>
 								</ul>
 							</li>
-							<li><a href="/signup" class="button">Sign Up</a></li>
 						</ul>
 					</nav>
-							<li><a href="#" class="button">Sign Up</a></li>
+							<li><a href="/signup" class="button">Sign Up</a></li>
 						</ul>
 					</nav>
 				</header>
@@ -45,7 +46,7 @@
 				<section id="main" class="container">
 					<header>
 						<h2>Settings</h2>
-						<p>Change your settings for W>I.L.L</p>
+						<p>Change your settings for W.I.L.L</p>
 					</header>
 					<div class="row">
 						<div class="12u">
@@ -55,443 +56,102 @@
                                     <form onsubmit="return false;">
                                         <p>First Name:</p>
                                         <br>
-                                        <input type="text" name="first_name" value="{{ session["user"]["first_name"] }}">
+                                        <input type="text" id ="first_name" name="first_name" value="{{ session["user"]["first_name"] }}">
+                                        <br>
                                         <p>Last Name:</p>
+                                        <input type="text" id = "last_name" name="last_name" value="{{ session["user"]["last_name"] }}">
                                         <br>
-                                        <input type="text" name="last_name" value="{{ session["user"]["last_name"] }}">
                                         <p>Email:</p>
+                                        <input type="text" id = "email" name="email" value="{{ session["user"]["email"] }}">
                                         <br>
-                                        <input type="text" name="email" value="{{ session["user"]["email"] }}">
                                         <p>News site:</p>
+                                        <input type="text" id = "news_site" name="news_site" value="{{ session["user"]["news_site"] }}">
+                                        <p>Please put in your password to submit the settings:</p>
+                                        <input type="password" id="password" name="password" placeholder="Password">
+                                        <input type="hidden" id="username" name="username" value="{{ session["username"] }}">
                                         <br>
-                                        <input type="text" name="news_site" value="{{ session["user"]["news_site"] }}">
-                                        <p></p>
+                                        <input id="goButton" type="submit" onclick="submitSettings();">
                                     </form>
-									<h3>Text</h3>
-									<p>This is <b>bold</b> and this is <strong>strong</strong>. This is <i>italic</i> and this is <em>emphasized</em>.
-									This is <sup>superscript</sup> text and this is <sub>subscript</sub> text.
-									This is <u>underlined</u> and this is code: <code>for (;;) { ... }</code>. Finally, <a href="#">this is a link</a>.</p>
-
-									<hr />
-
-									<header>
-										<h3>Heading with a Subtitle</h3>
-										<p>Lorem ipsum dolor sit amet nullam id egestas urna aliquam</p>
-									</header>
-									<p>Nunc lacinia ante nunc ac lobortis. Interdum adipiscing gravida odio porttitor sem non mi integer non faucibus ornare mi ut ante amet placerat aliquet. Volutpat eu sed ante lacinia sapien lorem accumsan varius montes viverra nibh in adipiscing blandit tempus accumsan.</p>
-									<header>
-										<h4>Heading with a Subtitle</h4>
-										<p>Lorem ipsum dolor sit amet nullam id egestas urna aliquam</p>
-									</header>
-									<p>Nunc lacinia ante nunc ac lobortis. Interdum adipiscing gravida odio porttitor sem non mi integer non faucibus ornare mi ut ante amet placerat aliquet. Volutpat eu sed ante lacinia sapien lorem accumsan varius montes viverra nibh in adipiscing blandit tempus accumsan.</p>
-
-									<hr />
-
-									<h2>Heading Level 2</h2>
-									<h3>Heading Level 3</h3>
-									<h4>Heading Level 4</h4>
-									<h5>Heading Level 5</h5>
-									<h6>Heading Level 6</h6>
-
-									<hr />
-
-									<h4>Blockquote</h4>
-									<blockquote>Fringilla nisl. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan faucibus. Vestibulum ante ipsum primis in faucibus lorem ipsum dolor sit amet nullam adipiscing eu felis.</blockquote>
-
-									<h4>Preformatted</h4>
-									<pre>i = 0;
-
-	while (!deck.isInOrder()) {
-	    print 'Iteration ' + i;
-	    deck.shuffle();
-	    i++;
-	}
-
-	print 'It took ' + i + ' iterations to sort the deck.';
-	</pre>
-								</section>
-
-						</div>
-					</div>
-					<div class="row">
-						<div class="12u">
-
-							<!-- Lists -->
-								<section class="box">
-									<h3>Lists</h3>
-									<div class="row">
-										<div class="6u 12u(mobilep)">
-
-											<h4>Unordered</h4>
-											<ul>
-												<li>Dolor pulvinar etiam magna etiam.</li>
-												<li>Sagittis adipiscing lorem eleifend.</li>
-												<li>Felis enim feugiat dolore viverra.</li>
-											</ul>
-
-											<h4>Alternate</h4>
-											<ul class="alt">
-												<li>Dolor pulvinar etiam magna etiam.</li>
-												<li>Sagittis adipiscing lorem eleifend.</li>
-												<li>Felis enim feugiat dolore viverra.</li>
-											</ul>
-
-										</div>
-										<div class="6u 12u(mobilep)">
-
-											<h4>Ordered</h4>
-											<ol>
-												<li>Dolor pulvinar etiam magna etiam.</li>
-												<li>Etiam vel felis at lorem sed viverra.</li>
-												<li>Felis enim feugiat dolore viverra.</li>
-												<li>Dolor pulvinar etiam magna etiam.</li>
-												<li>Etiam vel felis at lorem sed viverra.</li>
-												<li>Felis enim feugiat dolore viverra.</li>
-											</ol>
-
-											<h4>Icons</h4>
-											<ul class="icons">
-												<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
-												<li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
-												<li><a href="#" class="icon fa-instagram"><span class="label">Instagram</span></a></li>
-												<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
-												<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
-												<li><a href="#" class="icon fa-tumblr"><span class="label">Tumblr</span></a></li>
-											</ul>
-
-										</div>
-									</div>
-
-									<h4>Actions</h4>
-									<ul class="actions">
-										<li><a href="#" class="button special">Default</a></li>
-										<li><a href="#" class="button">Default</a></li>
-										<li><a href="#" class="button alt">Default</a></li>
-									</ul>
-									<ul class="actions small">
-										<li><a href="#" class="button special small">Small</a></li>
-										<li><a href="#" class="button small">Small</a></li>
-										<li><a href="#" class="button alt small">Small</a></li>
-									</ul>
-									<div class="row">
-										<div class="3u 6u(narrower) 12u$(mobilep)">
-											<ul class="actions vertical">
-												<li><a href="#" class="button special">Default</a></li>
-												<li><a href="#" class="button">Default</a></li>
-												<li><a href="#" class="button alt">Default</a></li>
-											</ul>
-										</div>
-										<div class="3u 6u$(narrower) 12u$(mobilep)">
-											<ul class="actions vertical small">
-												<li><a href="#" class="button special small">Small</a></li>
-												<li><a href="#" class="button small">Small</a></li>
-												<li><a href="#" class="button alt small">Small</a></li>
-											</ul>
-										</div>
-										<div class="3u 6u(narrower) 12u$(mobilep)">
-											<ul class="actions vertical">
-												<li><a href="#" class="button special fit">Default</a></li>
-												<li><a href="#" class="button fit">Default</a></li>
-												<li><a href="#" class="button alt fit">Default</a></li>
-											</ul>
-										</div>
-										<div class="3u 6u$(narrower) 12u$(mobilep)">
-											<ul class="actions vertical small">
-												<li><a href="#" class="button special small fit">Small</a></li>
-												<li><a href="#" class="button small fit">Small</a></li>
-												<li><a href="#" class="button alt small fit">Small</a></li>
-											</ul>
-										</div>
-									</div>
-								</section>
-
-						</div>
-					</div>
-					<div class="row">
-						<div class="12u">
-
-							<!-- Table -->
-								<section class="box">
-									<h3>Table</h3>
-
-									<h4>Default</h4>
-									<div class="table-wrapper">
-										<table>
-											<thead>
-												<tr>
-													<th>Name</th>
-													<th>Description</th>
-													<th>Price</th>
-												</tr>
-											</thead>
-											<tbody>
-												<tr>
-													<td>Something</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Nothing</td>
-													<td>Vis ac commodo adipiscing arcu aliquet.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Something</td>
-													<td> Morbi faucibus arcu accumsan lorem.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Nothing</td>
-													<td>Vitae integer tempus condimentum.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Something</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-											</tbody>
-											<tfoot>
-												<tr>
-													<td colspan="2"></td>
-													<td>100.00</td>
-												</tr>
-											</tfoot>
-										</table>
-									</div>
-
-									<h4>Alternate</h4>
-									<div class="table-wrapper">
-										<table class="alt">
-											<thead>
-												<tr>
-													<th>Name</th>
-													<th>Description</th>
-													<th>Price</th>
-												</tr>
-											</thead>
-											<tbody>
-												<tr>
-													<td>Something</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Nothing</td>
-													<td>Vis ac commodo adipiscing arcu aliquet.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Something</td>
-													<td> Morbi faucibus arcu accumsan lorem.</td>
-													<td>29.99</td>
-												</tr>
-												<tr>
-													<td>Nothing</td>
-													<td>Vitae integer tempus condimentum.</td>
-													<td>19.99</td>
-												</tr>
-												<tr>
-													<td>Something</td>
-													<td>Ante turpis integer aliquet porttitor.</td>
-													<td>29.99</td>
-												</tr>
-											</tbody>
-											<tfoot>
-												<tr>
-													<td colspan="2"></td>
-													<td>100.00</td>
-												</tr>
-											</tfoot>
-										</table>
-									</div>
-								</section>
-
-						</div>
-					</div>
-					<div class="row">
-						<div class="12u">
-
-							<!-- Buttons -->
-								<section class="box">
-									<h3>Buttons</h3>
-									<ul class="actions">
-										<li><a href="#" class="button special">Special</a></li>
-										<li><a href="#" class="button">Default</a></li>
-										<li><a href="#" class="button alt">Alternate</a></li>
-									</ul>
-									<ul class="actions">
-										<li><a href="#" class="button special big">Big</a></li>
-										<li><a href="#" class="button">Default</a></li>
-										<li><a href="#" class="button alt small">Small</a></li>
-									</ul>
-									<ul class="actions fit">
-										<li><a href="#" class="button special fit">Fit</a></li>
-										<li><a href="#" class="button fit">Fit</a></li>
-										<li><a href="#" class="button alt fit">Fit</a></li>
-									</ul>
-									<ul class="actions fit small">
-										<li><a href="#" class="button special fit small">Fit + Small</a></li>
-										<li><a href="#" class="button fit small">Fit + Small</a></li>
-										<li><a href="#" class="button alt fit small">Fit + Small</a></li>
-									</ul>
-									<ul class="actions">
-										<li><a href="#" class="button special icon fa-search">Icon</a></li>
-										<li><a href="#" class="button icon fa-download">Icon</a></li>
-										<li><a href="#" class="button alt icon fa-check">Icon</a></li>
-									</ul>
-									<ul class="actions">
-										<li><span class="button special disabled">Special</span></li>
-										<li><span class="button disabled">Default</span></li>
-										<li><span class="button alt disabled">Alternate</span></li>
-									</ul>
-								</section>
-
-						</div>
-					</div>
-					<div class="row">
-						<div class="12u">
-
-							<!-- Form -->
-								<section class="box">
-									<h3>Form</h3>
-									<form method="post" action="#">
-										<div class="row uniform 50%">
-											<div class="6u 12u(mobilep)">
-												<input type="text" name="name" id="name" value="" placeholder="Name" />
-											</div>
-											<div class="6u 12u(mobilep)">
-												<input type="email" name="email" id="email" value="" placeholder="Email" />
-											</div>
-										</div>
-										<div class="row uniform 50%">
-											<div class="12u">
-												<div class="select-wrapper">
-													<select name="category" id="category">
-														<option value="">- Category -</option>
-														<option value="1">Manufacturing</option>
-														<option value="1">Shipping</option>
-														<option value="1">Administration</option>
-														<option value="1">Human Resources</option>
-													</select>
-												</div>
-											</div>
-										</div>
-										<div class="row uniform 50%">
-											<div class="4u 12u(narrower)">
-												<input type="radio" id="priority-low" name="priority" checked>
-												<label for="priority-low">Low Priority</label>
-											</div>
-											<div class="4u 12u(narrower)">
-												<input type="radio" id="priority-normal" name="priority">
-												<label for="priority-normal">Normal Priority</label>
-											</div>
-											<div class="4u 12u(narrower)">
-												<input type="radio" id="priority-high" name="priority">
-												<label for="priority-high">High Priority</label>
-											</div>
-										</div>
-										<div class="row uniform 50%">
-											<div class="6u 12u(narrower)">
-												<input type="checkbox" id="copy" name="copy">
-												<label for="copy">Email me a copy of this message</label>
-											</div>
-											<div class="6u 12u(narrower)">
-												<input type="checkbox" id="human" name="human" checked>
-												<label for="human">I am a human and not a robot</label>
-											</div>
-										</div>
-										<div class="row uniform 50%">
-											<div class="12u">
-												<textarea name="message" id="message" placeholder="Enter your message" rows="6"></textarea>
-											</div>
-										</div>
-										<div class="row uniform">
-											<div class="12u">
-												<ul class="actions">
-													<li><input type="submit" value="Send Message" /></li>
-													<li><input type="reset" value="Reset" class="alt" /></li>
-												</ul>
-											</div>
-										</div>
-									</form>
-
-									<hr />
-
-									<form method="post" action="#">
-										<div class="row uniform 50%">
-											<div class="9u 12u(mobilep)">
-												<input type="text" name="query" id="query" value="" placeholder="Query" />
-											</div>
-											<div class="3u 12u(mobilep)">
-												<input type="submit" value="Search" class="fit" />
-											</div>
-										</div>
-									</form>
-								</section>
-
-						</div>
-					</div>
-					<div class="row">
-						<div class="12u">
-
-							<!-- Image -->
-								<section class="box">
-									<h3>Image</h3>
-									<h4>Fit</h4>
-									<span class="image fit"><img src="images/pic04.jpg" alt="" /></span>
-									<div class="box alt">
-										<div class="row no-collapse 50% uniform">
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-										</div>
-										<div class="row no-collapse 50% uniform">
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-										</div>
-										<div class="row no-collapse 50% uniform">
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-											<div class="4u"><span class="image fit"><img src="images/pic04.jpg" alt="" /></span></div>
-										</div>
-									</div>
-
-									<h4>Left &amp; Right</h4>
-									<p><span class="image left"><img src="images/pic05.jpg" alt="" /></span>Fringilla nisl. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent.</p>
-									<p><span class="image right"><img src="images/pic05.jpg" alt="" /></span>Fringilla nisl. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent. Donec accumsan interdum nisi, quis tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent tincidunt felis sagittis eget. tempus euismod. Vestibulum ante ipsum primis in faucibus vestibulum. Blandit adipiscing eu felis iaculis volutpat ac adipiscing accumsan eu faucibus. Integer ac pellentesque praesent.</p>
-								</section>
-
-						</div>
-					</div>
-				</section>
+                                    <div id="loader">
+        <script>
+                var opts = {
+                  lines: 13 // The number of lines to draw
+                , length: 28 // The length of each line
+                , width: 14 // The line thickness
+                , radius: 42 // The radius of the inner circle
+                , scale: 0.5 // Scales overall size of the spinner
+                , corners: 1 // Corner roundness (0..1)
+                , color: '#ffa300' // #rgb or #rrggbb or array of colors
+                , opacity: 0.25 // Opacity of the lines
+                , rotate: 0 // The rotation offset
+                , direction: 1 // 1: clockwise, -1: counterclockwise
+                , speed: 1 // Rounds per second
+                , trail: 60 // Afterglow percentage
+                , fps: 20 // Frames per second when using setTimeout() as a fallback for CSS
+                , zIndex: 2e9 // The z-index (defaults to 2000000000)
+                , className: 'spinner' // The CSS class to assign to the spinner
+                , top: '55%' // Top position relative to parent
+                , left: '50%' // Left position relative to parent
+                , shadow: false // Whether to render a shadow
+                , hwaccel: false // Whether to use hardware acceleration
+                , position: 'absolute' // Element positioning
+                }
+                var target = document.getElementById('loader');
+                var spinner = new Spinner(opts);
+                function submitSettings(){
+                    console.log("Submitting settings");
+                    first_name=document.getElementById("first_name").value;
+                    last_name=document.getElementById("last_name").value;
+                    email=document.getElementById("email").value;
+                    username=document.getElementById("username").value;
+                    password=document.getElementById("password").value;
+                    var http = new XMLHttpRequest();
+                    var url = "/api/settings";
+                    var params="first_name="+first_name+"&"+"last_name="+last_name+"&"+"email="+email+"&"+"username="+username+"&"+"password="+password;
+                    http.open("POST", url, true);
+                    //Send the proper header information along with the request
+                    http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+                    http.onreadystatechange = function() {//Call a function when the state changes.
+                    document.getElementById("goButton").style.visibility = 'visible';
+                    if(http.readyState == 4 && http.status == 200) {
+                        spinner.stop();
+                        document.getElementById("goButton").style.visibility = 'visible';
+                        console.log("Got response json "+http.responseText);
+                        answer = JSON.parse(http.responseText);
+                        answer_type = answer["type"];
+                    if (answer_type == "success"){
+                        alert("Settings successfully updated.");
+                        window.location.href= "/";
+                    }
+                    else{
+                        answer_message = answer["text"];
+                        alert(answer_message);
+                    }
+                        }
+                        }
+                    document.getElementById("goButton").style.visibility = 'hidden';
+                    spinner.spin(target);
+                    http.send(params);
+                    }
+    </script>
 
 			<!-- Footer -->
 				<footer id="footer">
-					<ul class="icons">
-						<li><a href="#" class="icon fa-twitter"><span class="label">Twitter</span></a></li>
-						<li><a href="#" class="icon fa-facebook"><span class="label">Facebook</span></a></li>
-						<li><a href="#" class="icon fa-instagram"><span class="label">Instagram</span></a></li>
-						<li><a href="#" class="icon fa-github"><span class="label">Github</span></a></li>
-						<li><a href="#" class="icon fa-dribbble"><span class="label">Dribbble</span></a></li>
-						<li><a href="#" class="icon fa-google-plus"><span class="label">Google+</span></a></li>
-					</ul>
 					<ul class="copyright">
-						<li>&copy; Untitled. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
+						<li>&copy; Will Beddow. All rights reserved.</li><li>Design: <a href="http://html5up.net">HTML5 UP</a></li>
 					</ul>
 				</footer>
 
 		</div>
 
 		<!-- Scripts -->
-			<script src="assets/js/jquery.min.js"></script>
-			<script src="assets/js/jquery.dropotron.min.js"></script>
-			<script src="assets/js/jquery.scrollgress.min.js"></script>
-			<script src="assets/js/skel.min.js"></script>
-			<script src="assets/js/util.js"></script>
-			<!--[if lte IE 8]><script src="assets/js/ie/respond.min.js"></script><![endif]-->
-			<script src="assets/js/main.js"></script>
+				<script src="{{ url_for("static", filename="assets/js/jquery.min.js") }}"></script>
+			<script src="{{ url_for("static", filename="assets/js/jquery.dropotron.min.js") }}"></script>
+			<script src=".{{ url_for("static", filename="assets/js/jquery.scrollgress.min.js") }}"></script>
+			<script src="{{ url_for("static", filename="assets/js/skel.min.js") }}"></script>
+			<script src="{{ url_for("static", filename="assets/js/util.js") }}"></script>
+			<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/respond.min.js") }}"></script><![endif]-->
+			<script src="{{ url_for("static", filename="assets/js/main.js") }}"></script>
 
 	</body>
 </html>

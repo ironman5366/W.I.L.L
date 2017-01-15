@@ -139,12 +139,11 @@
                     var url = "/api/command";
                     var params = "command="+command+"&session_id="+"{{ session["session_id"] }}";
                     http.open("POST", url, true);
-
                     //Send the proper header information along with the request
                     http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
                     http.onreadystatechange = function() {//Call a function when the state changes.
                     document.getElementById("goButton").style.visibility = 'visible';
-                    spinner.stop()
+                    spinner.stop();
                     if(http.readyState == 4 && http.status == 200) {
                         console.log("Got response json "+http.responseText);
                         answer = JSON.parse(http.responseText);

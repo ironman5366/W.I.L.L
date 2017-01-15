@@ -229,46 +229,52 @@ def disconnect_session():
     else:
         log.debug("Session id {0} wasn't found in core.sessions".format(session_id))
 
-# @app.route("/api/settings", methods=["GET"])
-# def settings():
-#     response = {"type": None, "text": None, "data": {}}
-#     if "username" in request.form.keys() and "password" in request.form.keys():
-#         username = request.form["username"]
-#         password = request.form["password"]
-#         user_table = db["users"].find_one(username=username)
-#         if user_table:
-#             db_hash = user_table["password"]
-#             if bcrypt.checkpw(password, db_hash):
-#                 #TODO: write a framework that allowc ahgning of notifications
-#                 immutable_settings = ["username", "admin", "id", "user_token", "notifications"]
-#                 db.begin()
-#                 log.info("Changing settings for user {0}".format(username))
-#                 try:
-#                     for setting in request.form.keys():
-#                         if setting not in immutable_settings:
-#                             if setting == "password":
-#                                 commit_pw = bcrypt.hashpw(request.form["password"], bcrypt.gensalt())
-#                                 user_table.update({"username": username, "password": commit_pw}, ['username'])
-#                             user_table.upsert({"username": username, setting: request.form[setting]}, ['username'])
-#                     db.commit()
-#                     response["type"] = "success"
-#                     response["text"] = "Updated settings"
-#                 except:
-#                     response["type"] = "error"
-#                     response["text"] = "Error encountered while trying to update db, changes not committed"
-#                     db.rollback()
-#
-#         else:
-#             response["type"] = "error"
-#             response["text"] = "User {0} doesn't exist".format(username)
-#     else:
-#         response["type"] = "error"
-#         response["text"] = "Couldn't find username or password in request data"
-#
-# @app.route("/settings", methods=["GET"])
-# def settings_page():
-#     session["user"] = db["users"].find_one(username=session["username"])
-#     return render_template("settings.html")
+@app.route("/api/settings", methods=["POST"])
+def settings():
+    response = {"type": None, "text": None, "data": {}}
+    if "username" in request.form.keys() and "password" in request.form.keys():
+        username = request.form["username"]
+        password = request.form["password"]
+        user_table = db["users"].find_one(username=username)
+        if user_table:
+            db_hash = user_table["password"]
+            if bcrypt.checkpw(str(password), db_hash):
+                #TODO: write a framework that allowc ahgning of notifications
+                immutable_settings = ["username", "admin", "id", "user_token", "notifications"]
+                db.begin()
+                log.info("Changing settings for user {0}".format(username))
+                try:
+                    for setting in request.form.keys():
+                        if setting not in immutable_settings:
+                            db["users"].upsert({"username": username, setting: request.form[setting]}, ['username'])
+                    db.commit()
+                    response["type"] = "success"
+                    response["text"] = "Updated settings"
+                except Exception as db_error:
+                    log.debug("Exception {0}, {1} occurred while trying to commit changes to the database".format(
+                        db_error.message, db_error.args
+                    ))
+                    response["type"] = "error"
+                    response["text"] = "Error encountered while trying to update db, changes not committed"
+                    db.rollback()
+
+        else:
+            response["type"] = "error"
+            response["text"] = "User {0} doesn't exist".format(username)
+    else:
+        response["type"] = "error"
+        response["text"] = "Couldn't find username or password in request data"
+    return tools.return_json(response)
+
+@app.route("/settings", methods=["GET"])
+def settings_page():
+    if "username" in session.keys():
+        if "logged-in" in session.keys():
+            if session["logged-in"]:
+                session["user"] = db["users"].find_one(username=session["username"])
+                if session["user"]:
+                    return render_template("settings.html")
+    return redirect("/")
 
 @socketio.on("get_updates")
 def get_updates(data):
