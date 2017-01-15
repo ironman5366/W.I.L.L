@@ -15,7 +15,7 @@ class send_notification():
         return requests.post(
             mailgun_url,
             auth=("api", mailgun_key),
-            data={"from": "W.I.L.L <postmaster@sandbox06554aeb16304616ba6c4886d5433bf7.mailgun.org>",
+            data={"from": "W.I.L.L <postmaster@willbeddow.com>",
                   "to": "{0} {1} <{2}>".format(first_name,last_name,email),
                   "subject": msg_summary,
                   "text": msg})
