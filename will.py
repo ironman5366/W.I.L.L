@@ -240,7 +240,7 @@ def settings():
             db_hash = user_table["password"]
             if bcrypt.checkpw(str(password), db_hash):
                 #TODO: write a framework that allowc ahgning of notifications
-                immutable_settings = ["username", "admin", "id", "user_token", "notifications"]
+                immutable_settings = ["username", "admin", "id", "user_token", "notifications", "password"]
                 db.begin()
                 log.info("Changing settings for user {0}".format(username))
                 try:
