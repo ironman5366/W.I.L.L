@@ -70,6 +70,18 @@
                                         <input type="password" id="password" name="password" placeholder="Password">
                                         <input type="hidden" id="username" name="username" value="{{ session["username"] }}">
                                         <br>
+                                        <br>
+                                    <select name="country" class="countries" id="countryId">
+                                    <option value="">Select Country</option>
+                                    </select>
+                                 <br>
+                                 <select name="state" class="states" id="stateId">
+                                    <option value="">Select State</option>
+                                 </select>
+                                    <br>
+                                    <select name="city" class="cities" id="cityId">
+                                    <option value="">Select City</option>
+                                    </select>
                                         <input id="goButton" type="submit" onclick="submitSettings();">
                                     </form>
                                     <div id="loader">
@@ -105,9 +117,13 @@
                     email=document.getElementById("email").value;
                     username=document.getElementById("username").value;
                     password=document.getElementById("password").value;
+                     city = document.getElementById("cityId").value;
+                    country = document.getElementById("countryId").value;
+                    state = document.getElementById("stateId").value;
                     var http = new XMLHttpRequest();
                     var url = "/api/settings";
-                    var params="first_name="+first_name+"&"+"last_name="+last_name+"&"+"email="+email+"&"+"username="+username+"&"+"password="+password;
+                    var params="first_name="+first_name+"&"+"last_name="+last_name+"&"+"email="+email+"&"+"username="+
+                        username+"&"+"password="+password+"&city="+city+"&country="+country+"&state="+state;
                     http.open("POST", url, true);
                     //Send the proper header information along with the request
                     http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -152,6 +168,7 @@
 			<script src="{{ url_for("static", filename="assets/js/util.js") }}"></script>
 			<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/respond.min.js") }}"></script><![endif]-->
 			<script src="{{ url_for("static", filename="assets/js/main.js") }}"></script>
+            <script src="{{ url_for("static", filename="assets/js/location.js") }}"></script>
 
 	</body>
 </html>

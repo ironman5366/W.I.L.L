@@ -73,6 +73,9 @@ def new_user():
         first_name = request.form["first_name"]
         last_name = request.form["last_name"]
         email = request.form["email"]
+        city = request.form["city"]
+        country = request.form["country"]
+        state = request.form["state"]
         log.info("Attempting to create new user with username {0} and email {1}".format(username, password))
         # Check to see if the username exists
         users = db["users"]
@@ -102,7 +105,10 @@ def new_user():
                     "default_plugin": "search",
                     "notifications": json.dumps(["email"]),
                     "ip": request.environ["REMOTE_ADDR"],
-                    "news_site": "http://reuters.com"
+                    "news_site": "http://reuters.com",
+                    "city": city,
+                    "country": country,
+                    "state": state
                 })
                 db.commit()
                 response["type"] = "success"

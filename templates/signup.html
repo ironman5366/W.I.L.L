@@ -6,7 +6,7 @@
 -->
 <html>
 	<head>
-		<title>Contact - W.I.L.L</title>
+		<title>W.I.L.L - Sign Up</title>
 		<meta charset="utf-8" />
 		<meta name="viewport" content="width=device-width, initial-scale=1" />
 		<!--[if lte IE 8]><script src="{{ url_for("static", filename="assets/js/ie/html5shiv.js") }}"></script><![endif]-->
@@ -22,10 +22,13 @@
             last_name = document.getElementById("last_name").value;
             email = document.getElementById("email").value;
             password = document.getElementById("password").value;
+            city = document.getElementById("cityId").value;
+            country = document.getElementById("countryId").value;
+            state = document.getElementById("stateId").value;
             var http = new XMLHttpRequest();
             var url = "/api/new_user";
             var params = "username="+username+"&password="+password+"&first_name="+first_name+
-                "&last_name="+last_name+"&email="+email;
+                "&last_name="+last_name+"&email="+email+"&country="+country+"&city="+city+"&state="+state;
             http.open("POST", url, true);
             //Send the proper header information along with the request
             http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
@@ -87,9 +90,21 @@
                                 <div class="6u 12u(mobilep)">
 									<input type="password" name="password" id="password" value="" placeholder="Password" />
 								</div>
-								<div class="6u 12u(mobilep)">
+                                <div class="6u 12u(mobilep)">
 									<input type="email" name="email" id="email" value="" placeholder="Email" />
 								</div>
+                                <br>
+                                <select name="country" class="countries" id="countryId">
+                                <option value=""></option>
+                                </select>
+                                <br>
+                                <select name="state" class="states" id="stateId">
+                                <option value="">Select State</option>
+                                </select>
+                                <br>
+                                <select name="city" class="cities" id="cityId">
+                                <option value="">Select City</option>
+                                </select>
 							</div>
 							<div class="row uniform">
 								<div class="12u">
@@ -119,6 +134,7 @@
 			<script src="../static/assets/js/util.js"></script>
 			<!--[if lte IE 8]><script src="assets/js/ie/respond.min.js"></script><![endif]-->
 			<script src="../static/assets/js/main.js"></script>
+            <script src="{{ url_for("static", filename="assets/js/location.js") }}"></script>
 
 	</body>
 </html>
