@@ -3,6 +3,7 @@ from flask import Flask, session
 from flask import request
 from flask import render_template
 from flask_socketio import SocketIO
+from flask_socketio import join_room, leave_room
 from flask import redirect
 from flask import make_response
 import dataset
@@ -209,7 +210,7 @@ def end_session():
     # Render the response as json
     return tools.return_json(response)
 
-def update_loop(session_id):
+def update_loop(session_id, sid):
     while session_id in core.sessions.keys():
         try:
             session_data = core.sessions[session_id]
@@ -221,7 +222,7 @@ def update_loop(session_id):
             log.info("Serving updates")
             update = session_updates.get()
             log.debug("Pushing update {0}".format(update))
-            socketio.emit('update', update)
+            socketio.emit('update', update, room=sid)
         time.sleep(1)
     log.info("Ending updates for finished session {0}".format(session_id))
 
@@ -295,8 +296,7 @@ def get_updates(data):
             ))
             #Keep running this loop while the session is active
             log.info("Starting update loop")
-            socketio.emit("debug", {"value": "Starting update loop"})
-            update_thread = threading.Thread(target=update_loop, args=(session_id,))
+            update_thread = threading.Thread(target=update_loop, args=(session_id, request.sid))
             update_thread.start()
         else:
             log.debug("Session id {0} is invalid".format(session_id))

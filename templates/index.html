@@ -45,7 +45,7 @@
                  var socket = io.connect('http://' + document.domain + ':' + location.port);
                  console.log("Starting socketio")
                  socket.on('connect', function() {
-                 socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
+                    socket.emit('get_updates', {session_id: '{{ session["session_id"] }}'})});
                  socket.on('update', function(data){
                     console.log("Received update "+data["value"]);
                     if (typeof data["value"] != "undefined"){
