@@ -128,7 +128,7 @@ def find_alert(event, time_words):
                     for word in conjunction_split.split(" "):
                         if word in adp_tags:
                             conjunction_split = " ".join(conjunction_split.split(word))
-                    return conjunction_split
+                    return conjunction_split.lstrip()
                     #TODO: fix this and then add thread safe error handling
             except IndexError:
                 #For some reason the sentence can't be split by the original token
