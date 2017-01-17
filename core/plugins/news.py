@@ -18,7 +18,7 @@ def is_news(event):
 def news_reader(event):
     '''Use the excellent newspaper module to fetch the news from the readers favorite site'''
     db = event['db']
-    event_user = event['session']['username']
+    event_user = event['username']
     user_table = db['users'].find_one(username=event_user)
     user_news_site = user_table["news_site"]
     news_table = db["news"]

@@ -63,6 +63,7 @@ class subscriptions():
             event_command, username))
         user_table = user_data.find_one(username=username)
         event.update({"user_table":user_table})
+        event.update({"username":username})
         found_plugins = []
         default_plugin_name = user_table["default_plugin"]
         def plugin_check(plugin):

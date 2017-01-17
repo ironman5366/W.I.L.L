@@ -14,3 +14,4 @@ flask-socketio == 2.8.2
 gevent == 1.2.0
 gevent-websocket == 0.9.5
 newspaper == 0.0.9.8
+pyowm >= 2.6.0

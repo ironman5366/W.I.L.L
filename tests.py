@@ -30,7 +30,7 @@ class KeySort(unittest.TestCase):
 class plugin_tests(unittest.TestCase):
     def test_subscriptions(self):
         plugin_handler.load('core/plugins', db)
-        plugin_num = 3
+        plugin_num = 4
         print plugin_handler.plugin_subscriptions
         self.assertEqual(len(plugin_handler.plugin_subscriptions), plugin_num)
     def test_search(self):
@@ -61,6 +61,15 @@ class plugin_tests(unittest.TestCase):
             if i['name'] == "news":
                 call_function = i["function"]
         print call_function({"command": "Read me the news", "username": "willbeddow", "db": db})
+    def test_weather(self):
+        call_function = None
+        plugin_handler.load('core/plugins', db)
+        for i in plugin_handler.plugin_subscriptions:
+            if i['name'] == "weather":
+                call_function = i["function"]
+        response = call_function({"command": "Tell me the weather", "username": "willbeddow", "db": db})
+        logging.info("Weather response is {0}".format(response))
+        print response
 class notification_send(unittest.TestCase):
     def test_email(self):
         notification.send_notification(
