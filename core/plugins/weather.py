@@ -24,7 +24,11 @@ def main(event):
         owm = pyowm.OWM(pyowm_key)
         observation = owm.weather_at_place(fetch_str)
         w = observation.get_weather()
-        return w
+        status = w.get_detailed_status()
+        temperature = w.get_temperature('fahrenheit')
+        weather_str = "Weather for {0} is {1}, with a temperature of {2} F".format(
+            fetch_str, status, temperature["temp"])
+        return weather_str
     else:
         #TODO: try to use ip data
         return "Can't find location data for user. If you haven't added your location yet, do so now at " \
