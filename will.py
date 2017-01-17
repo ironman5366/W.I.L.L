@@ -69,8 +69,9 @@ start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftim
 def dump_events(*args):
     log.info("Dumping events")
     for event in core.events:
-        log.debug("Dumping event {0}".format(event))
-        db["events"].upsert(event, ['uid'])
+        if event["type"] != "function":
+            log.debug("Dumping event {0}".format(event))
+            db["events"].upsert(event, ['uid'])
 
 signal.signal(signal.SIGTERM, dump_events)
 
