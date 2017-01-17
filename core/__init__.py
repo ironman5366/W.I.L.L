@@ -3,7 +3,6 @@ import logging
 import threading
 import time
 import urllib2
-import atexit
 
 #Internal modules
 import plugin_handler

@@ -25,6 +25,8 @@ import time
 import threading
 import time
 import datetime
+import atexit
+import signal
 
 now = datetime.datetime.now()
 
@@ -62,6 +64,16 @@ socketio = SocketIO(app)
 gmtime = time.gmtime()
 
 start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
+
+@atexit.register
+def dump_events(*args):
+    log.info("Dumping events")
+    for event in core.events:
+        log.debug("Dumping event {0}".format(event))
+        db["events"].upsert(event, ['uid'])
+
+signal.signal(signal.SIGTERM, dump_events)
+
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
@@ -387,6 +399,7 @@ def report():
             if user_table["admin"]:
                 #Get the session_data
                 session["commands-processed"] = core.processed_commands
+                time_str = start_time
                 session["start-time"] = start_time
                 users_online = 0
                 users_processed = []
