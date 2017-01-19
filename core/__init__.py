@@ -85,6 +85,7 @@ class sessions_monitor():
 
     def __init__(self, db):
         #Pull pending notifications
+        db["events"].delete(time <= time.time())
         for i in db['events'].all():
             events.append(i)
         sessions_thread = threading.Thread(target=self.monitor, args=(db,))

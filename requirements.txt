@@ -15,3 +15,4 @@ gevent == 1.2.0
 gevent-websocket == 0.9.5
 newspaper == 0.0.9.8
 pyowm >= 2.6.0
+spotipy >= 2.4.4

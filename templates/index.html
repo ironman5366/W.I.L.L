@@ -148,9 +148,27 @@
                         console.log("Got response json "+http.responseText);
                         answer = JSON.parse(http.responseText);
                         answer_type = answer["type"];
-                    if (answer_type == "success"){
+                    if (answer_type == "success") {
                         answerDiv = document.getElementById("answer");
                         answerDiv.textContent = answer["text"];
+                        answer_data = answer["data"]
+                        answer_keys = Object.keys(answer_data);
+                        console.log("Answer keys are " + answer_keys);
+                        for (key_num in answer_keys) {
+                            key = answer_keys[key_num];
+                            console.log("Processing data key " + key);
+                            if (key == "url") {
+                                console.log("Found url object");
+                                var win = window.open(answer_data["url"], '_blank');
+                                if (win) {
+                                    //Browser has allowed it to be opened
+                                    win.focus();
+                                } else {
+                                    //Browser has blocked it
+                                    alert('Please allow popups for this website');
+                                }
+                            }
+                        }
                     }
                     else{
                         answerDiv = document.getElementById("answer");

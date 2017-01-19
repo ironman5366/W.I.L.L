@@ -112,6 +112,7 @@ def is_search(event):
 @subscribe({"name": "search", "check": is_search})
 def main(data):
     '''Start the search'''
+    response = {"text": None, "data":{}, "type": "success"}
     query = data["command"]
     log.info("In main search function with query {0}".format(query))
     db = data["db"]
@@ -121,6 +122,7 @@ def main(data):
     # If it found an answer answer will be set to that, if not it'll still be false
     answer = wolfram_response
     if answer:
-        return answer
+        response["text"] = answer
     else:
-        return search_google(query)
+        response["text"]=search_google(query)
+    return response

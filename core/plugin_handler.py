@@ -3,6 +3,7 @@ import logging
 import os
 import sys
 import time
+import traceback
 
 #External imports
 import importlib
@@ -28,22 +29,23 @@ class subscriptions():
         #Call the plugin. If there's a response, return it. If there's not, return "Done"
         try:
             response = plugin_function(event)
+            assert type(response) == dict
         except Exception as call_exception:
+            response = {"type": "error", "text": None, "data": {}}
+            exc_type, exc_value, exc_traceback = sys.exc_info()
             user_table = event["user_table"]
             #If the user is an adminstrator, give them the full error message.
             #If not, just let them know that an error occurred
             #Log the error regardless
-            error_string = "Error {0}, {1} occurred while executing plugin".format(
-                call_exception.message, call_exception.args
-            )
+            error_string = repr(traceback.format_exception(exc_type, exc_value,
+                                                  exc_traceback))
             log.error(error_string)
             if user_table["admin"]:
-                response = error_string
+                response["text"] = error_string
             else:
-                response = "An error occurred while executing plugin"
+                response["text"] = "An error occurred while executing plugin"
         if not response:
-            response = "Done"
-        response = response.encode('ascii', 'ignore')
+            response = {"type": "success", "text": "Done", "data":{}}
         #Send the message
         return response
 

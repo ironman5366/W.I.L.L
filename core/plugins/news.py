@@ -17,6 +17,7 @@ def is_news(event):
 @subscribe({"name": "news", "check": is_news})
 def news_reader(event):
     '''Use the excellent newspaper module to fetch the news from the readers favorite site'''
+    response = {"type": "success", "text": None, "data": {}}
     db = event['db']
     event_user = event['username']
     user_table = db['users'].find_one(username=event_user)
@@ -62,4 +63,5 @@ def news_reader(event):
     output_str = '\n'.join(output_strs)
     log.debug("Returning output string {0}".format(output_str))
     db["news"].upsert(dict(site=user_news_site,time=time.time(),news_str=output_str), ['site'])
-    return output_str
+    response["text"] = output_str
+    return response

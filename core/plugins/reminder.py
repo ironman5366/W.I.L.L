@@ -143,6 +143,7 @@ def find_alert(event, time_words):
 @subscribe({"name": "reminder", "check": is_reminder})
 def main(event):
     '''Set a reminder using the interface scheduler'''
+    response = {"type": "success", "text": None, "data": {}}
     event_command = event["command"]
     log.info("In set a reminder with command {0}".format(event_command))
     event_ents = event["ents"]
@@ -178,6 +179,7 @@ def main(event):
         "type": "notification",
         "uid": event_id
     })
-    return "Got it. In {0} I'll send you the following reminder: {1}".format(
+    response["text"] = "Got it. In {0} I'll send you the following reminder: {1}".format(
         time_message, alert_text
     )
+    return response

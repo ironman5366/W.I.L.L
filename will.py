@@ -162,10 +162,15 @@ def start_session():
     '''Generate a session id and start a new session'''
     # Check the information that the user has submitted
     response = {"type": None, "data": {}, "text": None}
-    log.debug("In start session")
     try:
-        username = request.form["username"]
-        password = request.form["password"]
+        if request.method == "POST":
+            username = request.form["username"]
+            password = request.form["password"]
+        elif request.method == "GET":
+            username = request.args.get("username", "")
+            password = request.args.get("password", "")
+            if not (username and password):
+                raise KeyError()
         log.info("Checking password for username {0}".format(username))
         users = db["users"]
         user_data = users.find_one(username=username)
@@ -450,14 +455,9 @@ def process_command():
             command_response = core.sessions_monitor.command(
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
-            if len(command_response) > 100:
-                log.info("Command response is {0}..".format(command_response[0:100]))
-            else:
-                log.info("Command response is {0}".format(command_response))
             session_data["commands"].put(command_data)
-            response["type"] = "success"
-            response["text"] = command_response
-            response["data"].update({command_id:command_response})
+            log.info("Returning command response {0}".format(tools.fold(str(command_response))))
+            response = command_response
         else:
             log.info("Couldn't find session id {0} in sessions".format(session_id))
             response["type"] = "error"

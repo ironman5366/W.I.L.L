@@ -108,3 +108,52 @@ def return_json(response):
             "data": None,
             "text": "Server returned malformed response {0}".format(response)
         }
+
+
+def fold(string, line_length=120, indent=0, indent_first_line=False, _runs=0):
+    """Fold a string into multiple Lines.
+    Parameters:
+    string: The string you want to fold.
+    line_length: The desired max line length (int)
+    indent: if you want lines to be indented, you can specify the number of
+        spaces here
+    indent_first_line: if this is True, the first line won't be indented.
+    Fold function by Max Ertl (https://github.com/Sirs0ri)
+    """
+    if indent > line_length:
+        log.debug("The indentation is higher than the desired line-length and will "
+              "therefore be ignored.")
+
+    # Set up the actual line length
+    if indent_first_line is False and _runs == 0:
+        length = line_length
+    else:
+        length = line_length - indent
+
+    # The actual folding:
+    if len(string) < length:
+        # no need to fold
+        return (string)
+    else:
+        s = ""
+        i = 0
+        # Find the last space that would be in the last 12 chars of the new line
+        # The text will be folded here, 12 proved to be a good value in my tests
+        for c in string[length:length - 12:-1]:
+            if c == " ":
+                # Space found, fold here and remove the space
+                s += string[0:length - i]
+                string = string[length + 1 - i:]
+                # Fold the rest of the string recursively
+                return "{}\n{}{}".format(s, " " * indent,
+                                         fold(string, line_length, indent,
+                                              indent_first_line, _runs + 1))
+            else:
+                # Character is not a space, move to the previous one
+                i += 1
+        # No space found in the last 12 chars of the new line. Use full length
+        s += string[0:length]
+        string = string[length:]
+        return "{}\n{}{}".format(s, " " * indent,
+                                 fold(string, line_length, indent,
+                                      indent_first_line, _runs + 1))
