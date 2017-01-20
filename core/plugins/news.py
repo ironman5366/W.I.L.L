@@ -1,5 +1,6 @@
 #Internal imports
 from core.plugin_handler import subscribe
+import tools
 #External imports
 import newspaper
 #Builtin imports
@@ -31,7 +32,7 @@ def news_reader(event):
         if time.time()<site_time+43200:
             log.info("Using cached news for site {0}".format(user_news_site))
             news_str = site_row["news_str"]
-            return news_str
+            response["text"] = news_str
     log.info("Parsing news site {0} for user {1}".format(user_news_site, event_user))
     site_object = newspaper.build(user_news_site)
     log.debug("Finished building newspaper object")
