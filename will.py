@@ -206,6 +206,23 @@ def start_session():
     else:
         return tools.return_json(response)
 
+@app.route('/api/check_session', methods=["GET", "POST"])
+def check_session():
+    response = {"type": None, "text": None, "data": {}}
+    try:
+        session_id = request.form["session_id"]
+        session_valid = (session_id in core.sessions.keys())
+        response["data"].update({"valid": session_valid})
+        response["type"] = "success"
+        if session_valid:
+            response["text"] = "Session id {0} is valid".format(session_id)
+        else:
+            response["text"] = "Session id {0} is invalid".format(session_id)
+    except KeyError:
+        response["type"] = "error"
+        response["text"] = "Couldn't find session_id in request data"
+        response["data"].update({"valid": False})
+    return tools.return_json(response)
 
 @app.route('/api/end_session', methods=["GET", "POST"])
 def end_session():
