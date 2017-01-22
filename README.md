@@ -14,6 +14,9 @@ We've provided some platforms for you, but if you don't like any of those, you c
 Before you can use W.I.L.L, you need to sign up.
 You can sign up for free at http://willbeddow.com/signup
 
+####Android
+W.I.L.L is now available as an android app, complete with voice commands and app hookins for services like spotify and netflix! Download it now from https://play.google.com/store/apps/details?id=com.willbeddow.will
+
 #####Telegram
 All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
 
