@@ -434,6 +434,9 @@ def report():
                         users_online+=1
                 session["users-online"] = users_online
                 session["active-sessions"] = len(core.sessions)
+                session["errors"] = core.error_num
+                session["success"] = core.success_num
+                session["users-list"] = users_processed
                 return render_template('report.html')
     return redirect("/")
 
