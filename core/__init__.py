@@ -29,11 +29,11 @@ class sessions_monitor():
         # Call the parser
         command_data.update({"db": db})
         parse_data = parser.parse(command_data, session)
-        log.info("Nlp parsing finished, adding data to event queue")
+        log.info(":{0}:nlp parsing finished, adding data to event queue".format(session["id"]))
         response = plugin_handler.subscriptions().process_event(parse_data, db)
         log.debug("Got response {0} from plugin handler".format(response))
         command_id = command_data['id']
-        log.info("Setting update for command {0} with response {1}".format(
+        log.info("{0}:Setting update for command with response {1}".format(
             command_id, response
         ))
         session_id = session['id']

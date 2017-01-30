@@ -67,10 +67,10 @@ start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftim
 
 @atexit.register
 def dump_events(*args):
-    log.info("Dumping events")
+    log.info(":SYS:Dumping events")
     for event in core.events:
         if event["type"] != "function":
-            log.debug("Dumping event {0}".format(event))
+            log.debug(":SYS:Dumping event {0}".format(event))
             db["events"].upsert(event, ['uid'])
 
 signal.signal(signal.SIGTERM, dump_events)
@@ -79,6 +79,7 @@ signal.signal(signal.SIGTERM, dump_events)
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
     '''Put a new user in the database'''
+    log.info(":API:/api/new_user")
     response = {"type": None, "data": {}, "text": None}
     try:
         username = request.form["username"]
@@ -90,7 +91,7 @@ def new_user():
         city = request.form["city"]
         country = request.form["country"]
         state = request.form["state"]
-        log.info("Attempting to create new user with username {0} and email {1}".format(username, password))
+        log.debug("Attempting to create new user with username {0} and email {1}".format(username, password))
         # Check to see if the username exists
         users = db["users"]
         if users.find_one(username=username):
@@ -101,10 +102,10 @@ def new_user():
             response["text"] = taken_message
         else:
             # Add the new user to the database
-            log.info("Adding a new user {0} to the database".format(username))
+            log.info(":{0}:Adding a new user to the database".format(username))
             db.begin()
             # Hash the password
-            log.info("Hashing password")
+            log.debug("Hashing password")
             hashed = bcrypt.hashpw(str(password), bcrypt.gensalt())
             log.debug("Hashed password is {0}".format(hashed))
             is_admin = username in configuration_data["admins"]
@@ -140,6 +141,7 @@ def new_user():
 
 @app.route("/signup")
 def signup():
+    log.info(":API:/api/signup")
     return render_template("signup.html")
 
 def gen_session(username):
@@ -160,6 +162,7 @@ def gen_session(username):
 @app.route('/api/start_session', methods=["GET","POST"])
 def start_session():
     '''Generate a session id and start a new session'''
+    log.info(":API:/api/start_session")
     # Check the information that the user has submitted
     response = {"type": None, "data": {}, "text": None}
     try:
@@ -171,7 +174,7 @@ def start_session():
             password = request.args.get("password", "")
             if not (username and password):
                 raise KeyError()
-        log.info("Checking password for username {0}".format(username))
+        log.info(":{0}:Checking password".format(username))
         users = db["users"]
         user_data = users.find_one(username=username)
         if user_data:
@@ -180,7 +183,7 @@ def start_session():
             db_hash = user_data["password"]
             user_auth = bcrypt.checkpw(str(password), db_hash)
             if user_auth:
-                log.info("Authentication successful for user {0}".format(username))
+                log.info(":{0}:Authentication successful".format(username))
                 # Return the session id to the user
                 session_id = gen_session(username)
                 if session_id:
@@ -201,13 +204,14 @@ def start_session():
         session.update({"session_data": response})
         if response["type"] == "success":
             return redirect("/")
-        log.info("Rendering command template")
+        log.debug("Rendering command template")
         return render_template("command.html")
     else:
         return tools.return_json(response)
 
 @app.route('/api/check_session', methods=["GET", "POST"])
 def check_session():
+    log.info(":API:/api/check_session")
     response = {"type": None, "text": None, "data": {}}
     try:
         session_id = request.form["session_id"]
@@ -227,12 +231,13 @@ def check_session():
 @app.route('/api/end_session', methods=["GET", "POST"])
 def end_session():
     '''End the users session'''
+    log.info(":API:/api/end_session")
     response = {"type": None, "data": {}, "text": None}
     try:
         session_id = request.form["session_id"]
         # Check for the session id in the core.sessions dictionary
         if session_id in core.sessions.keys():
-            log.info("Ending session {0}".format(session_id))
+            log.info(":{0}:Ending session".format(session_id))
             del core.sessions[session_id]
             response["type"] = "success"
             response["text"] = "Ended session"
@@ -254,25 +259,26 @@ def update_loop(session_id, sid):
             break
         session_updates = session_data["updates"]
         while not session_updates.empty():
-            log.info("Serving updates")
             update = session_updates.get()
             log.debug("Pushing update {0}".format(update))
             socketio.emit('update', update, room=sid)
         time.sleep(1)
-    log.info("Ending updates for finished session {0}".format(session_id))
+    log.info(":{0}:Ending updates for finished session".format(session_id))
 
 @socketio.on('disconnect')
 def disconnect_session():
     '''End the webapp session and the update thread on disconnect'''
+    log.info(":SOCKET:disconnect")
     session_id = session["session_id"]
     if session_id in core.sessions.keys():
-        log.info("Ending session {0}".format(session_id))
+        log.info(":{0}:Ending session".format(session_id))
         del core.sessions[session_id]
     else:
-        log.debug("Session id {0} wasn't found in core.sessions".format(session_id))
+        log.debug(":{0}:Session id wasn't found in core.sessions".format(session_id))
 
 @app.route("/api/settings", methods=["POST"])
 def settings():
+    log.info(":API:/api/settings")
     response = {"type": None, "text": None, "data": {}}
     if "username" in request.form.keys() and "password" in request.form.keys():
         username = request.form["username"]
@@ -284,7 +290,7 @@ def settings():
                 #TODO: write a framework that allowc ahgning of notifications
                 immutable_settings = ["username", "admin", "id", "user_token", "notifications", "password"]
                 db.begin()
-                log.info("Changing settings for user {0}".format(username))
+                log.info(":{0}:Changing settings for user".format(username))
                 try:
                     for setting in request.form.keys():
                         if setting not in immutable_settings:
@@ -310,6 +316,7 @@ def settings():
 
 @app.route("/settings", methods=["GET"])
 def settings_page():
+    log.info(":WEB:/settings")
     if "username" in session.keys():
         if "logged-in" in session.keys():
             if session["logged-in"]:
@@ -321,16 +328,16 @@ def settings_page():
 @socketio.on("get_updates")
 def get_updates(data):
     '''Websocket thread for getting updates'''
-    log.info("Subscribing to updates")
+    log.info(":SOCKET:get_updates")
     session_id = data["session_id"]
     if session_id:
         if session_id in core.sessions.keys():
             #If the session id is valid
-            log.debug("Subscribing client {0} to updates for session_id {1}".format(
+            log.debug("{1}:Subscribing client {0} to updates for session_id".format(
                 request.environ["REMOTE_ADDR"], session_id
             ))
             #Keep running this loop while the session is active
-            log.info("Starting update loop")
+            log.info(":{0}:Starting update loop".format(session_id))
             update_thread = threading.Thread(target=update_loop, args=(session_id, request.sid))
             update_thread.start()
         else:
@@ -348,7 +355,7 @@ def login():
         user_table = db["users"].find_one(username=username)
         db_hash = user_table["password"]
         if bcrypt.checkpw(str(password), db_hash):
-            log.info("Logged in user {0}".format(username))
+            log.info(":{0}:Logged in user".format(username))
             #Generate user token
             session["logged-in"] = True
             session["username"] = username
@@ -365,20 +372,21 @@ def login():
         response["text"] = "Couldn't find username and password in request data"
     resp = make_response(redirect("/"))
     if response["type"] == "success":
-        log.info("Setting cookies for username and user token for user {0}".format(username))
+        log.info(":{0}:Setting cookies for username and user token".format(username))
         session["username"] = username
         session["user_token"] = response["data"]["user_token"]
     return resp
 
 @app.route("/", methods=["GET", "POST"])
 def main():
+    log.info(":WEB:/")
     if "username" in session.keys():
         username = session["username"]
     else:
         username = None
     if username:
-        log.info("Found username {0} in cookies".format(username))
-    log.info("Setting session data")
+        log.info(":{0}:Found username cookies".format(username))
+    log.debug("Setting session data")
     if "logged-in" not in session.keys():
         session["logged-in"] = False
     session["welcome-message"] = "Welcome to W.I.L.L"
@@ -387,7 +395,7 @@ def main():
         if "user_token" in user_table.keys() and "user_token" in session.keys():
             user_token = session["user_token"]
             if user_table["user_token"] == user_token:
-                log.info("User {0} authenticated via user_token in cookies".format(username))
+                log.info(":{0}:User authenticated via user_token in cookies".format(username))
                 new_token = tools.get_user_token(username)
                 db["users"].upsert({"username":username, "user_token": new_token}, ['username'])
                 session["logged-in"] = True
@@ -396,26 +404,27 @@ def main():
                 session_id = gen_session(username)
                 session["session_id"] = session_id
                 session["user_token"] = new_token
-                log.info("Generated session id {0} for user {1}".format(
+                log.info(":{0}:Generated session id for user {1}".format(
                     session_id, username
                 ))
                 resp = make_response(render_template('index.html'))
                 return resp
             else:
-                log.info("User tokens don't match.\n{0}\n{1}".format(request.cookies.get("user_token"),
+                log.debug("User tokens don't match.\n{0}\n{1}".format(request.cookies.get("user_token"),
                                                                      db["users"].find_one(username=username)["user_token"]))
                 session["logged-in"] = False
         else:
-            log.info("Couldn't find user token in cookies")
+            log.debug("Couldn't find user token in cookies")
             session["logged-in"] = False
     else:
-        log.info("Couldn't find username in cookies")
+        log.debug("Couldn't find username in cookies")
         session["logged-in"] = False
     #If the cookies aren't found
     return render_template('index.html')
 
 @app.route('/report', methods=["GET"])
 def report():
+    log.info(":WEB:/report")
     if "username" in session.keys() and "logged-in" in session.keys() and session["logged-in"]:
         user_table = db["users"].find_one(username=session["username"])
         if user_table:
@@ -439,31 +448,32 @@ def report():
 
 @app.route('/command', methods=["GET", "POST"])
 def command():
+    log.info(":WEB:command")
     username = request.form["username"]
     password = request.form["password"]
     user_table = db["users"].find_one(username=username)
     db_hash = user_table["password"]
     if bcrypt.checkpw(str(password), db_hash):
-        log.info("Starting session for user {0}".format(username))
+        log.info(":{0}:Starting session for user".format(username))
         session_data = json.loads(start_session())
         session_id = session_data["data"]["session_id"]
         session.update({"session_id":session_id})
-        log.info("Rendering template")
         return render_template("command.html")
     else:
         return "Invalid password"
 @app.route('/api/command', methods=["GET", "POST"])
 def process_command():
     '''Take command and add it to the processing queue'''
+    log.info(":API:/api/command")
     response = {"type": None, "data": {}, "text": None}
     try:
         command = request.form["command"]
         session_id = request.form["session_id"]
-        log.debug("Processing command {0} and session id {1}".format(command, session_id))
+        log.debug(":{1}:Processing command {0}".format(command, session_id))
         if session_id in core.sessions.keys():
             # Add the command to the core.sessions command queue
             session_data = core.sessions[session_id]
-            log.info("Adding command {0} to the command queue for session {1}".format(command, session_id))
+            log.info(":{1}:Adding command {0} to the command queue".format(command, session_id))
             command_id = tools.get_command_id(session_id)
             command_data = {
                 "id": command_id,
@@ -473,14 +483,14 @@ def process_command():
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
             session_data["commands"].put(command_data)
-            log.info("Returning command response {0}".format(tools.fold(str(command_response))))
+            log.info(":{0}:Returning command response {1}".format(session_id, tools.fold(str(command_response))))
             response = command_response
         else:
-            log.info("Couldn't find session id {0} in sessions".format(session_id))
+            log.info(":{0}:Couldn't find session id in sessions".format(session_id))
             response["type"] = "error"
             response["text"] = "Invalid session id"
     except KeyError:
-        log.info("Couldn't find session id and command in request data")
+        log.debug("Couldn't find session id and command in request data")
         response["type"] = "error"
         response["text"] = "Couldn't find session id and command in request data"
     return tools.return_json(response)
@@ -488,6 +498,7 @@ def process_command():
 @app.route('/api/get_sessions', methods=["GET", "POST"])
 def get_sessions():
     '''Return a list of open sessions for the user'''
+    log.info(":API:/api/get_sessions")
     response = {"type": None, "data": {}, "text": None}
     sessions = core.sessions
     try:
@@ -511,17 +522,17 @@ def get_sessions():
     return tools.return_json(response)
 
 def start():
-    log.info("Starting W.I.L.L")
-    log.info("Loaded configuration file and started logging")
-    log.info("Connecting to database")
-    log.info("Starting W.I.L.L core")
+    log.info(":SYS:Starting W.I.L.L")
+    log.info(":SYS:Loaded configuration file and started logging")
+    log.info(":SYS:Connecting to database")
+    log.info(":SYS:Starting W.I.L.L core")
     core.initialize(db)
-    log.info("Starting sessions parsing thread")
+    log.info(":SYS:Starting sessions parsing thread")
     core.sessions_monitor(db)
-    log.info("Connected to database, running server")
+    log.info(":SYS:Connected to database, running server")
 
 if __name__ == "__main__":
     start()
-    log.info("Running app")
+    log.info(":SYS:Running app")
     socketio.run(
         app, host=configuration_data["host"], port=configuration_data["port"], debug=configuration_data["debug"])
