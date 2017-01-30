@@ -18,7 +18,3 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-* :ref:`tests`
-* :ref:`will`
-* :ref:`tools`
-* :ref:`core`
