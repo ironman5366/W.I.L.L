@@ -58,6 +58,7 @@ def convert_seconds(ent):
     # How long in seconds. With different units this changes
     time_instances = 1
     time_in_seconds = 1
+    #TODO: parse time from string
     # Parse time out of the words
     for word in ent_words:
         try:

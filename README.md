@@ -81,6 +81,8 @@ API Methods:
    - Takes a `session_id` and returns all pending updates and notifications
 - `/api/get_sessions`
    - Takes a `username` and `password` and returns all active sessions
+- `/api/check_session`
+    - Takes a `session_id` and returns a boolean
 
 
 ###Events framework
