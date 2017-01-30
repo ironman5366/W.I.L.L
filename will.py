@@ -1,5 +1,5 @@
 # External imports
-from flask import Flask, session
+from flask import Flask, session, send_from_directory
 from flask import request
 from flask import render_template
 from flask_socketio import SocketIO
@@ -38,7 +38,7 @@ if os.path.isfile("will.conf"):
     json_data = json.loads(data_string)
     configuration_data = json_data
 else:
-    print "Couldn't find will.conf file, exiting"
+    print ("Couldn't find will.conf file, exiting")
     os._exit(1)
 logfile = configuration_data["logfile"]
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
