@@ -18,19 +18,27 @@ events = []
 
 processed_commands = 0
 
+error_num = 0
+
+success_num = 0
+
 class sessions_monitor():
     @staticmethod
     def command(command_data, session,  db, add_to_updates_queue=True):
         '''Control the processing of the command'''
         global processed_commands
-        global successfully_run
-        global errored
+        global error_num
+        global success_num
         processed_commands+=1
         # Call the parser
         command_data.update({"db": db})
         parse_data = parser.parse(command_data, session)
         log.info(":{0}:nlp parsing finished, adding data to event queue".format(session["id"]))
         response = plugin_handler.subscriptions().process_event(parse_data, db)
+        if response["type"] == "success":
+            success_num+=1
+        else:
+            error_num+=1
         log.debug("Got response {0} from plugin handler".format(response))
         command_id = command_data['id']
         log.info("{0}:Setting update for command with response {1}".format(

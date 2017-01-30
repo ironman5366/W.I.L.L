@@ -37,7 +37,7 @@ def search_google(query):
         article.nlp()
         article_summary = article.summary.decode('ascii', 'ignore')
         article_title = article.title.decode('ascii', 'ignore')
-        return "{0}\n{1} - ({2}".format(
+        return "{0}\n{1} - ({2})".format(
             article_summary, article_title, first_url
         )
 
