@@ -18,7 +18,7 @@ def main(event):
     db = event["db"]
     username = event["username"]
     user_table = db["users"].find_one(username=username)
-    if (user_table["city"] and user_table["country"]):
+    if ("city" in user_table.keys() and "country" in user_table.keys()):
         if user_table["state"]:
             fetch_str = "{0}, {1}".format(user_table["city"], user_table["state"])
         else:
@@ -28,9 +28,17 @@ def main(event):
         observation = owm.weather_at_place(fetch_str)
         w = observation.get_weather()
         status = w.get_detailed_status()
-        temperature = w.get_temperature('fahrenheit')
-        weather_str = "Weather for {0} is {1}, with a temperature of {2} F".format(
-            fetch_str, status, temperature["temp"])
+        temp_sym = "F"
+        if "temp_unit" in user_table.keys():
+            user_temp_unit = user_table["temp_unit"]
+            temperature = w.get_temperature(user_temp_unit)
+            if user_temp_unit == "celsius":
+                temp_sym = "C"
+        else:
+            temperature = w.get_temperature('fahrenheit')
+
+        weather_str = "Weather for {0} is {1}, with a temperature of {2} {3}".format(
+            fetch_str, status, temperature["temp"], temp_sym)
         response["text"] = weather_str
     else:
         # TODO: try to use ip data

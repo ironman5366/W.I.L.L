@@ -64,24 +64,23 @@
                                         <p>Email:</p>
                                         <input type="text" id = "email" name="email" value="{{ session["user"]["email"] }}">
                                         <br>
+                                        <p>Temperature Unit:</p>
+                                        <select id="temp_unit">
+                                          <option value="celsius">C</option>
+                                          <option value="fahrenheit">F</option>
+                                        </select>
+                                        <br>
                                         <p>News site:</p>
                                         <input type="text" id = "news_site" name="news_site" value="{{ session["user"]["news_site"] }}">
                                         <p>Please put in your password to submit the settings:</p>
                                         <input type="password" id="password" name="password" placeholder="Password">
                                         <input type="hidden" id="username" name="username" value="{{ session["username"] }}">
                                         <br>
-                                        <br>
-                                    <select name="country" class="countries" id="countryId">
-                                    <option value="">Select Country</option>
-                                    </select>
+                                    <input type="text" name="country" class="countries" id="countryId" value="{{ session["user"]["country"] }}">
                                  <br>
-                                 <select name="state" class="states" id="stateId">
-                                    <option value="">Select State</option>
-                                 </select>
+                                        <input type="text" class="states" id="stateId" value="{{ session["user"]["state"] }}">
                                     <br>
-                                    <select name="city" class="cities" id="cityId">
-                                    <option value="">Select City</option>
-                                    </select>
+                                        <input type="text" class="cities" id="cityId" value="{{ session["user"]["city"] }}">
                                         <input id="goButton" type="submit" onclick="submitSettings();">
                                     </form>
                                     <div id="loader">
@@ -117,13 +116,15 @@
                     email=document.getElementById("email").value;
                     username=document.getElementById("username").value;
                     password=document.getElementById("password").value;
-                     city = document.getElementById("cityId").value;
+                    city = document.getElementById("cityId").value;
                     country = document.getElementById("countryId").value;
                     state = document.getElementById("stateId").value;
+                    temp_unit = document.getElementById("temp_unit").value;
                     var http = new XMLHttpRequest();
                     var url = "/api/settings";
                     var params="first_name="+first_name+"&"+"last_name="+last_name+"&"+"email="+email+"&"+"username="+
-                        username+"&"+"password="+password+"&city="+city+"&country="+country+"&state="+state;
+                        username+"&"+"password="+password+"&city="+city+"&country="+country+"&state="+state+
+                        "&temp_unit="+temp_unit;
                     http.open("POST", url, true);
                     //Send the proper header information along with the request
                     http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");

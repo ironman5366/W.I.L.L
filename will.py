@@ -123,7 +123,8 @@ def new_user():
                     "news_site": "http://reuters.com",
                     "city": city,
                     "country": country,
-                    "state": state
+                    "state": state,
+                    "temp_unit": "fahrenheit"
                 })
                 db.commit()
                 response["type"] = "success"
