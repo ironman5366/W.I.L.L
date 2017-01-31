@@ -97,8 +97,7 @@ W.I.L.L has a customizable events framework that allows you to pass events and n
 pushed to the user.
 At the moment W.I.L.L offers three classes of events, two of which endure between reboots of the server
 * `notification`
-    * A pending notification to the user. Unlike the rest of the notifications, as well as being available from
-    `/api/get_updates`, a notification is also pushed to the user in various ways, including email, telegram, and text.
+    * A pending notification to the user. Unlike the rest of the notifications, as well as being available from `/api/get_updates`, a notification is also pushed to the user in various ways, including email, telegram, and text.
     Information about which of these the user has enabled is stored in a JSON array in the database
     * Endures between server updates
 * `url`
@@ -130,3 +129,33 @@ An event object is defined by 5 keys:
 * `uid`
     * A modified `uuid` object providing a unique identifier for the event
     * Generated with `tools.get_event_uid(type)` where `type` is the `type` key explained above
+
+============================================
+Code Example: Setting an event from a plugin
+============================================
+
+This example will set a notification event from a plugin::
+
+   import core
+   from core.plugin_handler import subscribe
+   import tools
+   import itme
+
+   def my_plugin_check(event):
+      #Check for a keyword in the spaCy object
+      return "plugin_word" in [i.orth_ for i in event["doc"]]
+
+   @subscribe({"name":"my_plugin", "check": my_plugin_check})
+   def my_plugin(event):
+      #Get a unique event id
+      event_id = tools.get_event_uid("notification")
+      #Get an event time a minute from now
+      event_time = time.time()+60
+      core.events.append({
+           "username": event["session"]["username"],
+           "time": event_time,
+           "value": "My plugin was activated!",
+           "type": "notification",
+           "uid": event_id
+       })
+

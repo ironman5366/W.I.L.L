@@ -189,10 +189,9 @@ At the moment W.I.L.L offers three classes of events, two of which endure betwee
 * <cite>notification</cite></p>
 <blockquote>
 <div><ul class="simple">
-<li>A pending notification to the user. Unlike the rest of the notifications, as well as being available from</li>
+<li>A pending notification to the user. Unlike the rest of the notifications, as well as being available from <cite>/api/get_updates</cite>, a notification is also pushed to the user in various ways, including email, telegram, and text.</li>
 </ul>
-<p><cite>/api/get_updates</cite>, a notification is also pushed to the user in various ways, including email, telegram, and text.
-Information about which of these the user has enabled is stored in a JSON array in the database
+<p>Information about which of these the user has enabled is stored in a JSON array in the database
 * Endures between server updates</p>
 </div></blockquote>
 <ul class="simple">
@@ -269,6 +268,34 @@ Information about which of these the user has enabled is stored in a JSON array 
 </li>
 </ul>
 </div>
+<div class="section" id="code-example-setting-an-event-from-a-plugin">
+<h2>Code Example: Setting an event from a plugin<a class="headerlink" href="#code-example-setting-an-event-from-a-plugin" title="Permalink to this headline">¶</a></h2>
+<p>This example will set a notification event from a plugin:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">core</span>
+<span class="kn">from</span> <span class="nn">core.plugin_handler</span> <span class="k">import</span> <span class="n">subscribe</span>
+<span class="kn">import</span> <span class="nn">tools</span>
+<span class="kn">import</span> <span class="nn">itme</span>
+
+<span class="k">def</span> <span class="nf">my_plugin_check</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+   <span class="c1">#Check for a keyword in the spaCy object</span>
+   <span class="k">return</span> <span class="s2">&quot;plugin_word&quot;</span> <span class="ow">in</span> <span class="p">[</span><span class="n">i</span><span class="o">.</span><span class="n">orth_</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;doc&quot;</span><span class="p">]]</span>
+
+<span class="nd">@subscribe</span><span class="p">({</span><span class="s2">&quot;name&quot;</span><span class="p">:</span><span class="s2">&quot;my_plugin&quot;</span><span class="p">,</span> <span class="s2">&quot;check&quot;</span><span class="p">:</span> <span class="n">my_plugin_check</span><span class="p">})</span>
+<span class="k">def</span> <span class="nf">my_plugin</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
+   <span class="c1">#Get a unique event id</span>
+   <span class="n">event_id</span> <span class="o">=</span> <span class="n">tools</span><span class="o">.</span><span class="n">get_event_uid</span><span class="p">(</span><span class="s2">&quot;notification&quot;</span><span class="p">)</span>
+   <span class="c1">#Get an event time a minute from now</span>
+   <span class="n">event_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span><span class="o">+</span><span class="mi">60</span>
+   <span class="n">core</span><span class="o">.</span><span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">({</span>
+        <span class="s2">&quot;username&quot;</span><span class="p">:</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;session&quot;</span><span class="p">][</span><span class="s2">&quot;username&quot;</span><span class="p">],</span>
+        <span class="s2">&quot;time&quot;</span><span class="p">:</span> <span class="n">event_time</span><span class="p">,</span>
+        <span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="s2">&quot;My plugin was activated!&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;notification&quot;</span><span class="p">,</span>
+        <span class="s2">&quot;uid&quot;</span><span class="p">:</span> <span class="n">event_id</span>
+    <span class="p">})</span>
+</pre></div>
+</div>
+</div>
 </div>
 
 
@@ -284,6 +311,7 @@ Information about which of these the user has enabled is stored in a JSON array 
 <li><a class="reference internal" href="#quickstart">Quickstart</a></li>
 <li><a class="reference internal" href="#api-docs">API Docs</a></li>
 <li><a class="reference internal" href="#events-framework">Events Framework</a></li>
+<li><a class="reference internal" href="#code-example-setting-an-event-from-a-plugin">Code Example: Setting an event from a plugin</a></li>
 </ul>
 </li>
 </ul>
