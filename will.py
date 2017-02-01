@@ -49,7 +49,6 @@ logfile = configuration_data["logfile"]
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     filemode='w', filename=logfile)
 
-log = logging.getLogger()
 try:
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
@@ -61,7 +60,7 @@ try:
 
     app.logger.setLevel(logging.DEBUG)
 except:
-    log.info("Errors encountered while loading log handlers")
+    print ("Errors encountered while loading log handlers")
 app.secret_key = configuration_data["secret_key"]
 log = app.logger
 db_url = configuration_data["db_url"]
