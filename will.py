@@ -17,7 +17,10 @@ import core
 import logging
 import sys
 import datetime
-import Queue
+try:
+    import Queue
+except ImportError:
+    import queue as Queue
 import os
 import json
 from logging.handlers import RotatingFileHandler
@@ -32,9 +35,11 @@ now = datetime.datetime.now()
 
 app = Flask(__name__)
 
-# Load the will.conf file
-if os.path.isfile("will.conf"):
-    data_string = open("will.conf").read()
+conf_file = "will.conf"
+if os.path.isfile("debug_will.conf"):
+    conf_file = "debug_will.conf"
+if os.path.isfile(conf_file):
+    data_string = open(conf_file).read()
     json_data = json.loads(data_string)
     configuration_data = json_data
 else:
@@ -67,6 +72,10 @@ start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftim
 
 @atexit.register
 def dump_events(*args):
+    '''
+    Dump events to db on exit
+    :return:
+    '''
     log.info(":SYS:Dumping events")
     for event in core.events:
         if event["type"] != "function":
@@ -78,7 +87,17 @@ signal.signal(signal.SIGTERM, dump_events)
 
 @app.route('/api/new_user', methods=["GET","POST"])
 def new_user():
-    '''Put a new user in the database'''
+    '''
+    Create new user in the database
+    :param: username
+    :param: password
+    :param: first_name
+    :param: email
+    :param: city
+    :param: country
+    :param: state
+    :return:
+    '''
     log.info(":API:/api/new_user")
     response = {"type": None, "data": {}, "text": None}
     try:
@@ -142,10 +161,18 @@ def new_user():
 
 @app.route("/signup")
 def signup():
-    log.info(":API:/api/signup")
+    """
+    Render signup template
+    :return:
+    """
+    log.info(":WEB:/signup")
     return render_template("signup.html")
 
 def gen_session(username):
+    """
+    :param username:
+    :return: session_id
+    """
     session_id = tools.get_session_id(db)
     # Start monitoring notifications
     # Register a session id
@@ -162,7 +189,13 @@ def gen_session(username):
 
 @app.route('/api/start_session', methods=["GET","POST"])
 def start_session():
-    '''Generate a session id and start a new session'''
+    '''
+    :param: username
+    :param: password
+    Generate a session id and start a new session
+
+    :return:
+    '''
     log.info(":API:/api/start_session")
     # Check the information that the user has submitted
     response = {"type": None, "data": {}, "text": None}
@@ -212,6 +245,11 @@ def start_session():
 
 @app.route('/api/check_session', methods=["GET", "POST"])
 def check_session():
+    """
+    Check if a session is valid
+    :param: session_id
+    :return:
+    """
     log.info(":API:/api/check_session")
     response = {"type": None, "text": None, "data": {}}
     try:
@@ -231,7 +269,11 @@ def check_session():
 
 @app.route('/api/end_session', methods=["GET", "POST"])
 def end_session():
-    '''End the users session'''
+    """
+    End a session
+    :param  session_idL
+    :return: End the session
+    """
     log.info(":API:/api/end_session")
     response = {"type": None, "data": {}, "text": None}
     try:
@@ -252,6 +294,13 @@ def end_session():
     return tools.return_json(response)
 
 def update_loop(session_id, sid):
+    """
+    :param session_id: W.I.L.L session id
+    :param sid: Flask session id
+    Update thread that will emit socket.io updates to the user while they're connected
+
+    :return:
+    """
     while session_id in core.sessions.keys():
         try:
             session_data = core.sessions[session_id]
@@ -268,7 +317,11 @@ def update_loop(session_id, sid):
 
 @socketio.on('disconnect')
 def disconnect_session():
-    '''End the webapp session and the update thread on disconnect'''
+    """
+    :param session_id:
+    End the webapp session and the update thread on the users disconnect from the page
+    :return:
+    """
     log.info(":SOCKET:disconnect")
     session_id = session["session_id"]
     if session_id in core.sessions.keys():
@@ -279,6 +332,14 @@ def disconnect_session():
 
 @app.route("/api/settings", methods=["POST"])
 def settings():
+    """
+    :param username:
+    :param password:
+    :param Optional - setting to be changed:
+    Change the users settings
+
+    :return:
+    """
     log.info(":API:/api/settings")
     response = {"type": None, "text": None, "data": {}}
     if "username" in request.form.keys() and "password" in request.form.keys():
@@ -317,6 +378,10 @@ def settings():
 
 @app.route("/settings", methods=["GET"])
 def settings_page():
+    """
+    Render the settings template
+    :return:
+    """
     log.info(":WEB:/settings")
     if "username" in session.keys():
         if "logged-in" in session.keys():
@@ -328,7 +393,11 @@ def settings_page():
 
 @socketio.on("get_updates")
 def get_updates(data):
-    '''Websocket thread for getting updates'''
+    """
+    :param data: socket.io data about the update thread:
+    Authenticate and start the update thread
+    :return:
+    """
     log.info(":SOCKET:get_updates")
     session_id = data["session_id"]
     if session_id:
@@ -349,6 +418,11 @@ def get_updates(data):
 
 @app.route("/login", methods=["POST"])
 def login():
+    """
+    :param username:
+    :param password:
+    :return Login data:
+    """
     response = {"type": None, "text": None, "data": {}}
     try:
         username = str(request.form["username"])
@@ -380,6 +454,10 @@ def login():
 
 @app.route("/", methods=["GET", "POST"])
 def main():
+    """
+    Render the webapp index.html template
+    :return index template:
+    """
     log.info(":WEB:/")
     if "username" in session.keys():
         username = session["username"]
@@ -425,6 +503,11 @@ def main():
 
 @app.route('/report', methods=["GET"])
 def report():
+    """
+    Render template for admin-only reporting page or bounce a non admin user back to /
+    :param session:
+    :return report template:
+    """
     log.info(":WEB:/report")
     if "username" in session.keys() and "logged-in" in session.keys() and session["logged-in"]:
         user_table = db["users"].find_one(username=session["username"])
@@ -452,6 +535,12 @@ def report():
 
 @app.route('/command', methods=["GET", "POST"])
 def command():
+    """
+    Deprecated non-styled page for commands
+    :param username:
+    :param password:
+    :return:
+    """
     log.info(":WEB:command")
     username = request.form["username"]
     password = request.form["password"]
@@ -467,7 +556,12 @@ def command():
         return "Invalid password"
 @app.route('/api/command', methods=["GET", "POST"])
 def process_command():
-    '''Take command and add it to the processing queue'''
+    """
+    Api path for processing a command
+    :param command:
+    :param session_id:
+    :return response object:
+    """
     log.info(":API:/api/command")
     response = {"type": None, "data": {}, "text": None}
     try:
@@ -501,7 +595,12 @@ def process_command():
 
 @app.route('/api/get_sessions', methods=["GET", "POST"])
 def get_sessions():
-    '''Return a list of open sessions for the user'''
+    """
+    Return list of active sessions for user
+    :param: username
+    :param: password
+    :return: list of sessions
+    """
     log.info(":API:/api/get_sessions")
     response = {"type": None, "data": {}, "text": None}
     sessions = core.sessions
@@ -526,6 +625,10 @@ def get_sessions():
     return tools.return_json(response)
 
 def start():
+    """
+    Initialize db and session monitor thread
+    :return:
+    """
     log.info(":SYS:Starting W.I.L.L")
     log.info(":SYS:Loaded configuration file and started logging")
     log.info(":SYS:Connecting to database")

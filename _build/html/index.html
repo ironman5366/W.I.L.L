@@ -27,6 +27,7 @@
     <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="will.py" href="will.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -45,6 +46,10 @@
   <div class="section" id="welcome-to-w-i-l-l-s-documentation">
 <h1>Welcome to W.I.L.L&#8217;s documentation!<a class="headerlink" href="#welcome-to-w-i-l-l-s-documentation" title="Permalink to this headline">¶</a></h1>
 <div class="toctree-wrapper compound">
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="will.html">will.py</a></li>
+</ul>
 </div>
 </div>
 <div class="section" id="indices-and-tables">
@@ -54,6 +59,14 @@
 <li><a class="reference internal" href="py-modindex.html"><span class="std std-ref">Module Index</span></a></li>
 <li><a class="reference internal" href="search.html"><span class="std std-ref">Search Page</span></a></li>
 </ul>
+<dl class="function">
+<dt id="some.module.name.foo">
+<code class="descclassname">some.module.name.</code><code class="descname">foo</code><span class="sig-paren">(</span><em>x</em><span class="sig-paren">)</span><a class="headerlink" href="#some.module.name.foo" title="Permalink to this definition">¶</a></dt>
+<dt>
+<code class="descclassname">some.module.name.</code><code class="descname">foo</code><span class="sig-paren">(</span><em>y</em>, <em>z</em><span class="sig-paren">)</span></dt>
+<dd><p>Return a line of text input from the user.</p>
+</dd></dl>
+
 <div class="section" id="quickstart">
 <h2>Quickstart<a class="headerlink" href="#quickstart" title="Permalink to this headline">¶</a></h2>
 <ul>
@@ -179,6 +192,15 @@
 </dd>
 </dl>
 </li>
+<li><dl class="first docutils">
+<dt><cite>/api/settings</cite></dt>
+<dd><ul class="first last simple">
+<li>Requires a <cite>username</cite> and <cite>password</cite>, any other settings submitted will be changed to the value submitted</li>
+<li>Ex: <cite>{&#8220;username&#8221;: &#8220;myusername&#8221;, &#8220;password&#8221;: &#8220;mypassword&#8221;, &#8220;news_site&#8221;: &#8220;http://my_new_news_site.com&#8221;}</cite> would change the users news site to <a class="reference external" href="http://my_news_site.com">http://my_news_site.com</a></li>
+</ul>
+</dd>
+</dl>
+</li>
 </ul>
 </div>
 <div class="section" id="events-framework">
@@ -274,7 +296,7 @@ At the moment W.I.L.L offers three classes of events, two of which endure betwee
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">core</span>
 <span class="kn">from</span> <span class="nn">core.plugin_handler</span> <span class="k">import</span> <span class="n">subscribe</span>
 <span class="kn">import</span> <span class="nn">tools</span>
-<span class="kn">import</span> <span class="nn">itme</span>
+<span class="kn">import</span> <span class="nn">time</span>
 
 <span class="k">def</span> <span class="nf">my_plugin_check</span><span class="p">(</span><span class="n">event</span><span class="p">):</span>
    <span class="c1">#Check for a keyword in the spaCy object</span>
@@ -319,6 +341,7 @@ At the moment W.I.L.L offers three classes of events, two of which endure betwee
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
+      <li>Next: <a href="will.html" title="next chapter">will.py</a></li>
   </ul></li>
 </ul>
 </div>

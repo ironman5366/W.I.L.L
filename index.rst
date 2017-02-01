@@ -10,7 +10,7 @@ Welcome to W.I.L.L's documentation!
    :maxdepth: 2
    :caption: Contents:
 
-
+   will.rst
 
 Indices and tables
 ==================
@@ -18,6 +18,14 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
+
+
+.. function:: foo(x)
+              foo(y, z)
+   :module: some.module.name
+
+   Return a line of text input from the user.
+
 
 ===========
 Quickstart
@@ -89,6 +97,9 @@ API Methods:
    * Takes a `username` and `password` and returns all active sessions
 * `/api/check_session`
     * Takes a `session_id` and returns a boolean
+* `/api/settings`
+   * Requires a `username` and `password`, any other settings submitted will be changed to the value submitted
+   * Ex: `{"username": "myusername", "password": "mypassword", "news_site": "http://my_new_news_site.com"}` would change the users news site to http://my_news_site.com
 
 ================
 Events Framework
@@ -139,7 +150,7 @@ This example will set a notification event from a plugin::
    import core
    from core.plugin_handler import subscribe
    import tools
-   import itme
+   import time
 
    def my_plugin_check(event):
       #Check for a keyword in the spaCy object
@@ -158,4 +169,3 @@ This example will set a notification event from a plugin::
            "type": "notification",
            "uid": event_id
        })
-

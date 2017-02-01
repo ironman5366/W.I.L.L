@@ -2,11 +2,18 @@
 import logging
 import threading
 import time
-import urllib2
+try:
+    import urllib2
+except ImportError:
+    import urllib as urllib2
 
 #Internal modules
-import plugin_handler
-import parser
+try:
+    import plugin_handler
+    import parser
+except ImportError:
+    import core.plugin_handler as plugin_handler
+    import core.parser as parser
 import core.notification as notification
 import tools
 
