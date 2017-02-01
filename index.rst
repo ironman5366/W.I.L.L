@@ -12,7 +12,10 @@ Welcome to W.I.L.L's documentation!
 
    will.rst
    core.rst
-   plugin_handler.rst
+   tools.rst
+   core/plugin_handler.rst
+   core/notification.rst
+   core/parser.rst
 
 Indices and tables
 ==================

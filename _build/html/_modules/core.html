@@ -1,0 +1,229 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>core &#8212; W.I.L.L 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for core</h1><div class="highlight"><pre>
+<span></span><span class="c1">#Builtin modules</span>
+<span class="kn">import</span> <span class="nn">logging</span>
+<span class="kn">import</span> <span class="nn">threading</span>
+<span class="kn">import</span> <span class="nn">time</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">urllib2</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">urllib</span> <span class="k">as</span> <span class="nn">urllib2</span>
+
+<span class="c1">#Internal modules</span>
+<span class="k">try</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">plugin_handler</span>
+    <span class="kn">import</span> <span class="nn">parser</span>
+<span class="k">except</span> <span class="ne">ImportError</span><span class="p">:</span>
+    <span class="kn">import</span> <span class="nn">core.plugin_handler</span> <span class="k">as</span> <span class="nn">plugin_handler</span>
+    <span class="kn">import</span> <span class="nn">core.parser</span> <span class="k">as</span> <span class="nn">parser</span>
+<span class="kn">import</span> <span class="nn">core.notification</span> <span class="k">as</span> <span class="nn">notification</span>
+<span class="kn">import</span> <span class="nn">tools</span>
+
+<span class="n">log</span> <span class="o">=</span> <span class="n">logging</span><span class="o">.</span><span class="n">getLogger</span><span class="p">()</span>
+
+<span class="n">sessions</span> <span class="o">=</span> <span class="p">{}</span>
+
+<span class="n">events</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="n">processed_commands</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">error_num</span> <span class="o">=</span> <span class="mi">0</span>
+
+<span class="n">success_num</span> <span class="o">=</span> <span class="mi">0</span>
+
+<div class="viewcode-block" id="sessions_monitor"><a class="viewcode-back" href="../core.html#core.sessions_monitor">[docs]</a><span class="k">class</span> <span class="nc">sessions_monitor</span><span class="p">():</span>
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="sessions_monitor.command"><a class="viewcode-back" href="../core.html#core.sessions_monitor.command">[docs]</a>    <span class="k">def</span> <span class="nf">command</span><span class="p">(</span><span class="n">command_data</span><span class="p">,</span> <span class="n">session</span><span class="p">,</span>  <span class="n">db</span><span class="p">,</span> <span class="n">add_to_updates_queue</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Main command parsing function</span>
+
+<span class="sd">        :param command_data:</span>
+<span class="sd">        :param session:</span>
+<span class="sd">        :param db:</span>
+<span class="sd">        :param add_to_updates_queue:</span>
+<span class="sd">        :return: response object</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">processed_commands</span>
+        <span class="k">global</span> <span class="n">error_num</span>
+        <span class="k">global</span> <span class="n">success_num</span>
+        <span class="n">processed_commands</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="c1"># Call the parser</span>
+        <span class="n">command_data</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s2">&quot;db&quot;</span><span class="p">:</span> <span class="n">db</span><span class="p">})</span>
+        <span class="n">parse_data</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">(</span><span class="n">command_data</span><span class="p">,</span> <span class="n">session</span><span class="p">)</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;:</span><span class="si">{0}</span><span class="s2">:nlp parsing finished, adding data to event queue&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">session</span><span class="p">[</span><span class="s2">&quot;id&quot;</span><span class="p">]))</span>
+        <span class="n">response</span> <span class="o">=</span> <span class="n">plugin_handler</span><span class="o">.</span><span class="n">subscriptions</span><span class="p">()</span><span class="o">.</span><span class="n">process_event</span><span class="p">(</span><span class="n">parse_data</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">response</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="s2">&quot;success&quot;</span><span class="p">:</span>
+            <span class="n">success_num</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">error_num</span><span class="o">+=</span><span class="mi">1</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Got response </span><span class="si">{0}</span><span class="s2"> from plugin handler&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">response</span><span class="p">))</span>
+        <span class="n">command_id</span> <span class="o">=</span> <span class="n">command_data</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">:Setting update for command with response </span><span class="si">{1}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">command_id</span><span class="p">,</span> <span class="n">response</span>
+        <span class="p">))</span>
+        <span class="n">session_id</span> <span class="o">=</span> <span class="n">session</span><span class="p">[</span><span class="s1">&#39;id&#39;</span><span class="p">]</span>
+        <span class="c1">#Add the response to the update queue</span>
+        <span class="k">global</span> <span class="n">sessions</span>
+        <span class="k">if</span> <span class="n">add_to_updates_queue</span><span class="p">:</span>
+            <span class="n">sessions</span><span class="p">[</span><span class="n">session_id</span><span class="p">][</span><span class="s2">&quot;updates&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">put</span><span class="p">({</span><span class="s2">&quot;command_id&quot;</span><span class="p">:</span> <span class="n">command_id</span><span class="p">,</span> <span class="s2">&quot;response&quot;</span><span class="p">:</span> <span class="n">response</span><span class="p">})</span>
+        <span class="c1">#TODO: make it so that plugin_handler can send an error</span>
+        <span class="c1">#TODO: accept a dict</span>
+        <span class="k">return</span> <span class="n">response</span></div>
+
+    <span class="nd">@staticmethod</span>
+<div class="viewcode-block" id="sessions_monitor.update_sessions"><a class="viewcode-back" href="../core.html#core.sessions_monitor.update_sessions">[docs]</a>    <span class="k">def</span> <span class="nf">update_sessions</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">update_data</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param username:</span>
+<span class="sd">        :param update_data:</span>
+
+<span class="sd">        Puts data into the update queue for the user so the client can serve it to them</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">active_sessions</span> <span class="o">=</span> <span class="p">[</span><span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">sessions</span> <span class="k">if</span> <span class="n">sessions</span><span class="p">[</span><span class="n">i</span><span class="p">][</span><span class="s2">&quot;username&quot;</span><span class="p">]</span> <span class="o">==</span> <span class="n">username</span><span class="p">]</span>
+        <span class="nb">map</span><span class="p">(</span><span class="k">lambda</span> <span class="n">s</span><span class="p">:</span> <span class="n">sessions</span><span class="p">[</span><span class="n">s</span><span class="p">][</span><span class="s2">&quot;updates&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">put</span><span class="p">(</span><span class="n">update_data</span><span class="p">),</span> <span class="n">active_sessions</span><span class="p">)</span></div>
+
+<div class="viewcode-block" id="sessions_monitor.monitor"><a class="viewcode-back" href="../core.html#core.sessions_monitor.monitor">[docs]</a>    <span class="k">def</span> <span class="nf">monitor</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        :param db:</span>
+
+<span class="sd">        Thread that continuously handles passive events, like event triggers</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">global</span> <span class="n">events</span>
+        <span class="k">while</span> <span class="kc">True</span><span class="p">:</span>
+            <span class="n">time</span><span class="o">.</span><span class="n">sleep</span><span class="p">(</span><span class="mf">0.1</span><span class="p">)</span>
+            <span class="k">if</span> <span class="n">events</span><span class="p">:</span>
+                <span class="k">for</span> <span class="n">event</span> <span class="ow">in</span> <span class="n">events</span><span class="p">:</span>
+                    <span class="n">current_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">()</span>
+                    <span class="k">if</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;time&quot;</span><span class="p">]</span> <span class="o">&lt;=</span> <span class="n">current_time</span><span class="p">:</span>
+                        <span class="n">log</span><span class="o">.</span><span class="n">debug</span><span class="p">(</span><span class="s2">&quot;Processing event </span><span class="si">{0}</span><span class="s2">&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">event</span><span class="p">))</span>
+                        <span class="n">event_type</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;type&quot;</span><span class="p">]</span>
+                        <span class="k">if</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s2">&quot;notification&quot;</span><span class="p">:</span>
+                            <span class="n">username</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span>
+                            <span class="c1">#Active sessions for the user</span>
+                            <span class="n">sessions_monitor</span><span class="o">.</span><span class="n">update_sessions</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">event</span><span class="p">)</span>
+                            <span class="n">update_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;notification&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">],</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">event</span><span class="p">}</span>
+                            <span class="n">sessions_monitor</span><span class="o">.</span><span class="n">update_sessions</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">update_data</span><span class="p">)</span>
+                            <span class="n">notification_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span>
+                                  <span class="n">target</span><span class="o">=</span><span class="n">notification</span><span class="o">.</span><span class="n">send_notification</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">db</span><span class="p">))</span>
+                            <span class="n">notification_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span>
+                        <span class="k">elif</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s2">&quot;url&quot;</span><span class="p">:</span>
+                            <span class="n">response</span> <span class="o">=</span> <span class="n">urllib2</span><span class="o">.</span><span class="n">urlopen</span><span class="p">(</span><span class="n">event</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">])</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+                            <span class="n">update_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;event&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">response</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">event</span><span class="p">}</span>
+                            <span class="n">username</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span>
+                            <span class="n">sessions_monitor</span><span class="o">.</span><span class="n">update_sessions</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">update_data</span><span class="p">)</span>
+                        <span class="k">elif</span> <span class="n">event_type</span> <span class="o">==</span> <span class="s2">&quot;function&quot;</span><span class="p">:</span>
+                            <span class="n">response</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;value&quot;</span><span class="p">]()</span>
+                            <span class="n">update_data</span> <span class="o">=</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;event&quot;</span><span class="p">,</span> <span class="s2">&quot;text&quot;</span><span class="p">:</span> <span class="n">response</span><span class="p">,</span> <span class="s2">&quot;data&quot;</span><span class="p">:</span> <span class="n">event</span><span class="p">}</span>
+                            <span class="n">username</span> <span class="o">=</span> <span class="n">event</span><span class="p">[</span><span class="s2">&quot;username&quot;</span><span class="p">]</span>
+                            <span class="n">sessions_monitor</span><span class="o">.</span><span class="n">update_sessions</span><span class="p">(</span><span class="n">username</span><span class="p">,</span> <span class="n">update_data</span><span class="p">)</span>
+                        <span class="n">events</span><span class="o">.</span><span class="n">remove</span><span class="p">(</span><span class="n">event</span><span class="p">)</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">db</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Start the passive thread</span>
+
+<span class="sd">        :param db:</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#Pull pending notifications</span>
+        <span class="n">db</span><span class="p">[</span><span class="s2">&quot;events&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">time</span> <span class="o">&lt;=</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="n">db</span><span class="p">[</span><span class="s1">&#39;events&#39;</span><span class="p">]</span><span class="o">.</span><span class="n">all</span><span class="p">():</span>
+            <span class="n">events</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">i</span><span class="p">)</span>
+        <span class="n">sessions_thread</span> <span class="o">=</span> <span class="n">threading</span><span class="o">.</span><span class="n">Thread</span><span class="p">(</span><span class="n">target</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">monitor</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">db</span><span class="p">,))</span>
+        <span class="n">sessions_thread</span><span class="o">.</span><span class="n">start</span><span class="p">()</span></div>
+
+<div class="viewcode-block" id="initialize"><a class="viewcode-back" href="../core.html#core.initialize">[docs]</a><span class="k">def</span> <span class="nf">initialize</span><span class="p">(</span><span class="n">db</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run the plugin loader</span>
+
+<span class="sd">    :param db:</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">log</span><span class="o">.</span><span class="n">info</span><span class="p">(</span><span class="s2">&quot;Loading plugins&quot;</span><span class="p">)</span>
+    <span class="n">plugin_handler</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="s2">&quot;core/plugins&quot;</span><span class="p">,</span> <span class="n">db</span><span class="p">)</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  <li><a href="index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Will Beddow.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

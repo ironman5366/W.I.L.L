@@ -16,6 +16,7 @@ class send_notification():
     def email(mailgun_key, mailgun_url, email, msg_summary, msg, first_name, last_name):
         """
         Send an email to the user
+
         :param mailgun_key:
         :param mailgun_url:
         :param email:

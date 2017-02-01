@@ -18,11 +18,20 @@ event_types = {
     }
 
 def get_event_uid(type):
-    '''Get a uid using the session_id and the uid_type'''
+    '''
+    Get an event uid using the event type
+    :param type:
+    :return: Event uid string
+    '''
     e_type = event_types[type]
     return "{0}:{1}".format(e_type, str(uuid.uuid1()))
 
 def dump_events(events, db):
+    """
+    Dump events
+    :param events:
+    :param db:
+    """
     #Delete all events from db that should be finished
     events_table = db['events']
     events_table.delete(time < time.time())
@@ -32,7 +41,14 @@ def dump_events(events, db):
             events_table.upsert(event, ['uid'])
 
 def load_key(key_type, db, load_url=False):
-    '''Load and cycle keys from the databse'''
+    """
+    Load a key from the database and implement the cycler
+
+    :param key_type:
+    :param db:
+    :param load_url:
+    :return api key:
+    """
     working_keys = db.query('SELECT * FROM `keys` WHERE type="{0}" and uses <= max_uses'.format(key_type))
     correct_key = sorted(working_keys, key=lambda x: x["num"])[0]
     key_uses = correct_key["uses"]
@@ -45,7 +61,11 @@ def load_key(key_type, db, load_url=False):
     return key_value
 
 def initialize_session_tracking(db):
-    '''Set the session increment using the db'''
+    """
+    Deprecated and out of use
+
+    :param db:
+    """
     vars = db["vars"]
     session_increment = vars.find_one(name="session_incremnet")
     log.debug("Found session increment {0} from server".format(session_increment))
@@ -53,7 +73,10 @@ def initialize_session_tracking(db):
     session_nums = session_increment
 
 def get_session_id(db):
-    '''Incrementing session ids'''
+    """
+    Incrementer for session ids
+    :param db:
+    """
     global session_nums
     session_nums+=1
     session_id = uuid.uuid1()
@@ -65,7 +88,12 @@ def get_session_id(db):
     return session_str
 
 def get_command_id(session_id):
-    '''Incrementing command ids based on the session_id'''
+    """
+    Incrementing command ids based on the session id
+
+    :param session_id:
+    :return command_id:
+    """
     global command_nums
     command_nums+=1
     command_id = "{0}_{1}".format(
@@ -74,23 +102,24 @@ def get_command_id(session_id):
     log.debug("Generated command id {0}".format(command_id))
     return command_id
 
-def load_configuration():
-    '''Load the will.conf file'''
-    if os.path.isfile("will.conf"):
-        data_string = open("will.conf").read()
-        json_data = json.loads(data_string)
-        log.info("Loaded will.conf")
-        return json_data
-    else:
-        log.error("Couldn't find will.conf")
-
 def get_user_token(username):
+    """
+    Get a customized user token to store encrypted in the cookies
+
+    :param username:
+    :return user_token:
+    """
     user_uid = uuid.uuid3(uuid.NAMESPACE_DNS, str(username))
     gen_uid = uuid.uuid1()
     return str(gen_uid)+":u:"+str(user_uid)
 
 def return_json(response):
-    '''Render response as json and return it'''
+    """
+    Render a response object as json, assert that it has all the correct keys, and return it
+
+    :param response:
+    :return json string:
+    """
     #Make sure the needed keys are in the response data
     try:
         assert type(response) == dict
@@ -112,13 +141,14 @@ def return_json(response):
 
 def fold(string, line_length=120, indent=0, indent_first_line=False, _runs=0):
     """Fold a string into multiple Lines.
-    Parameters:
-    string: The string you want to fold.
-    line_length: The desired max line length (int)
-    indent: if you want lines to be indented, you can specify the number of
-        spaces here
-    indent_first_line: if this is True, the first line won't be indented.
     Fold function by Max Ertl (https://github.com/Sirs0ri)
+
+    :param string: The string you want to fold.
+    :param line_length: The desired max line length (int)
+    :param indent: if you want lines to be indented, you can specify the number of
+        spaces here
+    :param indent_first_line: if this is True, the first line won't be indented.
+    :return formatted string:
     """
     if indent > line_length:
         log.debug("The indentation is higher than the desired line-length and will "
