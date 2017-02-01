@@ -12,6 +12,7 @@ Welcome to W.I.L.L's documentation!
 
    will.rst
    core.rst
+   plugin_handler.rst
 
 Indices and tables
 ==================
