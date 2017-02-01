@@ -35,55 +35,7 @@ now = datetime.datetime.now()
 
 app = Flask(__name__)
 
-conf_file = "will.conf"
-if os.path.isfile("debug_will.conf"):
-    conf_file = "debug_will.conf"
-if os.path.isfile(conf_file):
-    data_string = open(conf_file).read()
-    json_data = json.loads(data_string)
-    configuration_data = json_data
-else:
-    print ("Couldn't find will.conf file, exiting")
-    os._exit(1)
-
-log = logging.getLogger()
-db = None
-
 socketio = SocketIO(app)
-
-app.logger.setLevel(logging.DEBUG)
-app.logger.addHandler(logging.StreamHandler(sys.stdout))
-
-
-app.logger.setLevel(logging.DEBUG)
-
-app.secret_key = configuration_data["secret_key"]
-
-def load_data():
-    """
-    Load logging and flask data upon initialization
-    :return:
-    """
-    global log
-    global db
-    logfile = configuration_data["logfile"]
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        filemode='w', filename=logfile)
-
-    ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
-    handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
-    handler.setLevel(logging.DEBUG)
-    app.logger.addHandler(handler)
-    log = app.logger
-    db_url = configuration_data["db_url"]
-    db = dataset.connect(db_url)
-    core.db = db
-
-
-gmtime = time.gmtime()
-
-start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
 
 @atexit.register
 def dump_events(*args):
@@ -644,6 +596,7 @@ def start():
     Initialize db and session monitor thread
     :return:
     """
+
     log.info(":SYS:Starting W.I.L.L")
     log.info(":SYS:Loaded configuration file and started logging")
     log.info(":SYS:Connecting to database")
@@ -654,7 +607,48 @@ def start():
     log.info(":SYS:Connected to database, running server")
 
 if __name__ == "__main__":
-    load_data()
+    global log
+    global db
+    global start_time
+    now = datetime.datetime.now()
+    conf_file = "will.conf"
+    if os.path.isfile("debug_will.conf"):
+        conf_file = "debug_will.conf"
+    if os.path.isfile(conf_file):
+        data_string = open(conf_file).read()
+        json_data = json.loads(data_string)
+        configuration_data = json_data
+    else:
+        print ("Couldn't find will.conf file, exiting")
+        os._exit(1)
+
+    logging.basicConfig()
+    log = logging.getLogger()
+    db = None
+
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.addHandler(logging.StreamHandler(sys.stdout))
+
+    app.logger.setLevel(logging.DEBUG)
+
+    app.secret_key = configuration_data["secret_key"]
+
+
+    logfile = configuration_data["logfile"]
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        filemode='w', filename=logfile)
+
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.INFO)
+    handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
+    handler.setLevel(logging.DEBUG)
+    app.logger.addHandler(handler)
+    log = app.logger
+    db_url = configuration_data["db_url"]
+    db = dataset.connect(db_url)
+    core.db = db
+    gmtime = time.gmtime()
+    start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
     start()
     log.info(":SYS:Running app")
     socketio.run(
