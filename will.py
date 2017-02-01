@@ -83,7 +83,7 @@ def new_user():
         city = request.form["city"]
         country = request.form["country"]
         state = request.form["state"]
-        log.debug("Attempting to create new user with username {0} and email {1}".format(username, password))
+        log.debug("Attempting to create new user with username {0} and email {1}".format(username, email))
         # Check to see if the username exists
         users = db["users"]
         if users.find_one(username=username):
