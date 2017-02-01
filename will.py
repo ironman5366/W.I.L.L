@@ -48,16 +48,20 @@ else:
 logfile = configuration_data["logfile"]
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     filemode='w', filename=logfile)
-ch = logging.StreamHandler(sys.stdout)
-ch.setLevel(logging.INFO)
-#log = logging.getLogger()
-handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
-handler.setLevel(logging.DEBUG)
-app.logger.setLevel(logging.DEBUG)
-app.logger.addHandler(logging.StreamHandler(sys.stdout))
-app.logger.addHandler(handler)
 
-app.logger.setLevel(logging.DEBUG)
+log = logging.getLogger()
+try:
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(logging.INFO)
+    handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
+    handler.setLevel(logging.DEBUG)
+    app.logger.setLevel(logging.DEBUG)
+    app.logger.addHandler(logging.StreamHandler(sys.stdout))
+    app.logger.addHandler(handler)
+
+    app.logger.setLevel(logging.DEBUG)
+except:
+    log.info("Errors encountered while loading log handlers")
 app.secret_key = configuration_data["secret_key"]
 log = app.logger
 db_url = configuration_data["db_url"]
