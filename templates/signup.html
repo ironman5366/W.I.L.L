@@ -39,13 +39,13 @@
                 answer = JSON.parse(http.responseText);
                 answer_type = answer["type"]
             if (answer_type == "success"){
-                answerDiv = document.getElementById("answer");
-                answerDiv.textContent = answer["text"];
-            }
-            else{
-                answerDiv = document.getElementById("answer");
-                answerDiv.textContent = "Error: "+answer["text"];
-            }
+                    alert(answer["text"]);
+                    window.location.href= "/";
+                }
+                else{
+                    answer_message = answer["text"];
+                    alert(answer_message);
+                }
             }
                 }
                 http.send(params);
