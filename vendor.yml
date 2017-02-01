@@ -335,4 +335,4 @@
 # Jenkins Pipeline
 - ^Jenkinsfile$
 
-- (^|/)static/
+- ^static/
