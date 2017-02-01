@@ -45,29 +45,41 @@ if os.path.isfile(conf_file):
 else:
     print ("Couldn't find will.conf file, exiting")
     os._exit(1)
-logfile = configuration_data["logfile"]
-logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                    filemode='w', filename=logfile)
 
-try:
+log = logging.getLogger()
+db = None
+
+socketio = SocketIO(app)
+
+app.logger.setLevel(logging.DEBUG)
+app.logger.addHandler(logging.StreamHandler(sys.stdout))
+
+
+app.logger.setLevel(logging.DEBUG)
+
+app.secret_key = configuration_data["secret_key"]
+
+def load_data():
+    """
+    Load logging and flask data upon initialization
+    :return:
+    """
+    global log
+    global db
+    logfile = configuration_data["logfile"]
+    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                        filemode='w', filename=logfile)
+
     ch = logging.StreamHandler(sys.stdout)
     ch.setLevel(logging.INFO)
     handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
     handler.setLevel(logging.DEBUG)
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.addHandler(logging.StreamHandler(sys.stdout))
     app.logger.addHandler(handler)
+    log = app.logger
+    db_url = configuration_data["db_url"]
+    db = dataset.connect(db_url)
+    core.db = db
 
-    app.logger.setLevel(logging.DEBUG)
-except:
-    print ("Errors encountered while loading log handlers")
-app.secret_key = configuration_data["secret_key"]
-log = app.logger
-db_url = configuration_data["db_url"]
-db = dataset.connect(db_url)
-core.db = db
-
-socketio = SocketIO(app)
 
 gmtime = time.gmtime()
 
@@ -642,6 +654,7 @@ def start():
     log.info(":SYS:Connected to database, running server")
 
 if __name__ == "__main__":
+    load_data()
     start()
     log.info(":SYS:Running app")
     socketio.run(
