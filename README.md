@@ -5,6 +5,7 @@ W.I.L.L is an open source personal assistant that aims to be free, easy to use, 
 It runs on a python based plugin framework accessible by a JSON API that let's you access it from a variety of different platforms.
 We've provided some platforms for you, but if you don't like any of those, you can easily create your own, or, if you want to change W.I.L.L, setup your own version
 
+Docs: http://will.readthedocs.io/en/latest/
 
 ##Quickstart
 
