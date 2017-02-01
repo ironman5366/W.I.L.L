@@ -20,9 +20,17 @@ default_plugin_data = None
 
 
 class subscriptions():
-    '''Manage plugin subscriptions and events'''
+    '''
+    Manage plugin subscriptions and events
+    '''
     def call_plugin(self, plugin_function, event):
-        '''Call the plugin'''
+        """
+        Call a plugin
+
+        :param plugin_function:
+        :param event:
+        :return: a response object
+        """
         log.debug("Calling function {0} with event data {1}".format(
             plugin_function, event
         ))
@@ -50,7 +58,13 @@ class subscriptions():
         return response
 
     def process_event(self, event, db):
-        '''The seperate thread that monitors the events queue'''
+        """
+        Select the right plugin for a command event and run it
+
+        :param event:
+        :param db:
+        :return a response object:
+        """
         log.info("In subscriptions thread, starting loop")
         log.info("db tables are {0}".format(db.tables))
         user_data = db["users"]
@@ -121,7 +135,11 @@ class subscriptions():
                 return error_message
 
 def process_plugins(path):
-    '''Process and import the plugins'''
+    """
+    Process and import the plugins
+
+    :param path:
+    """
     log.info("Processing plugin {0}".format(path))
     python_loader = PythonLoader(path)
     try:
@@ -130,7 +148,11 @@ def process_plugins(path):
         return
 
 def subscribe(subscription_data):
-    '''Wrapper for adding plugins to my event system'''
+    """
+    Provides a decorator for subscribing plugin to commands
+
+    :param subscription_data: A dict containing the name and check function
+    """
     assert(type(subscription_data) == dict)
     def wrap(f):
         #Subscrbe the plugin, and while processing them pluck out the default plugin
@@ -146,7 +168,12 @@ def subscribe(subscription_data):
     return wrap
 
 def load(dir_path, DB):
-    '''Loads plugins'''
+    """
+    Run the plugin loader on processed plugins
+
+    :param dir_path:
+    :param DB:
+    """
     log.info("Finding plugins in directory {0}".format(dir_path))
     plugins = lambda: (os.path.join(dir_path, module_path)
                        for module_path in os.listdir(dir_path))
@@ -164,12 +191,22 @@ class PythonLoader:
         self.file_path = file_path
 
     def load(self):
+        """
+        Use importlib to import the plugin file
+
+        """
         if self.is_plugin():
             log.info("Loading plugin: {0}".format(self.file_path))
             self.update_path()
             importlib.import_module(self.import_name())
 
     def is_plugin(self, fs_tools=os.path):
+        """
+        Determine whether a file in the plugin directory is a plugin
+
+        :param fs_tools:
+        :return boolean:
+        """
         if fs_tools.exists(self.file_path):
             if fs_tools.isfile(self.file_path) and \
                     self.file_path.endswith('.py'):
@@ -181,17 +218,31 @@ class PythonLoader:
         return False
 
     def import_name(self):
+        """
+        Properly format a plugin name for import
+
+        :return a file path:
+        """
         if self.file_path.endswith('.py'):
             return os.path.basename(self.file_path).split('.')[0]
         else:
             return os.path.basename(self.file_path)
 
     def update_path(self):
+        """
+        Append data to sys.path
+
+        """
         lib_path = self._lib_path()
         if lib_path not in sys.path:
             sys.path.append(lib_path)
 
     def _lib_path(self):
+        """
+        Manipulates the file path
+
+        :return updated file path:
+        """
         return os.path.normpath(
             os.sep.join(os.path.normpath(self.file_path).split(os.sep)[:-1])
         )

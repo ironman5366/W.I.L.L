@@ -11,6 +11,7 @@ Welcome to W.I.L.L's documentation!
    :caption: Contents:
 
    will.rst
+   core.rst
 
 Indices and tables
 ==================
@@ -18,7 +19,6 @@ Indices and tables
 * :ref:`genindex`
 * :ref:`modindex`
 * :ref:`search`
-* :ref:`will`
 
 
 ===========

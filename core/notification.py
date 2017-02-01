@@ -9,9 +9,21 @@ import tools
 log = logging.getLogger()
 
 class send_notification():
-    '''Send all necessary notifications given notification object'''
+    """
+    Send all necessary notifications
+    """
     @staticmethod
     def email(mailgun_key, mailgun_url, email, msg_summary, msg, first_name, last_name):
+        """
+        Send an email to the user
+        :param mailgun_key:
+        :param mailgun_url:
+        :param email:
+        :param msg_summary:
+        :param msg:
+        :param first_name:
+        :param last_name:
+        """
         return requests.post(
             mailgun_url,
             auth=("api", mailgun_key),
@@ -20,7 +32,12 @@ class send_notification():
                   "subject": msg_summary,
                   "text": msg})
     def __init__(self, notification, db):
-        '''Determine what notifiications to send and send them'''
+        """
+        Determine what notifications to send and send them
+
+        :param notification:
+        :param db:
+        """
         username = notification['username']
         user_table = db['users'].find_one(username=username)
         user_handlers_json = user_table['notifications']

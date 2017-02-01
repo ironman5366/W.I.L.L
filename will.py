@@ -43,11 +43,17 @@ def dump_events(*args):
     Dump events to db on exit
     :return:
     '''
-    log.info(":SYS:Dumping events")
+    try:
+        log.info(":SYS:Dumping events")
+    except:
+        print (":SYS: Error with logging while dumping events")
     for event in core.events:
         if event["type"] != "function":
-            log.debug(":SYS:Dumping event {0}".format(event))
-            db["events"].upsert(event, ['uid'])
+            try:
+                log.debug(":SYS:Dumping event {0}".format(event))
+                db["events"].upsert(event, ['uid'])
+            except:
+                print (":SYS:Error encountered while dumping events")
 
 signal.signal(signal.SIGTERM, dump_events)
 

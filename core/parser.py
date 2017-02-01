@@ -18,7 +18,12 @@ try:
 except RuntimeError:
     log.warn("IMPORTANT! spaCy English model is not installed. To functionally use W.I.L.L it needs to be installed with python -m spacy.en.download")
 def parse(command_data, session):
-    '''Function that calls parsing'''
+    """
+    Call the parser
+
+    :param command_data:
+    :param session:
+    """
     command = command_data["command"]
     username = session["username"]
     log.info(

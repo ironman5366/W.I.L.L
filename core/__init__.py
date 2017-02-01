@@ -32,7 +32,15 @@ success_num = 0
 class sessions_monitor():
     @staticmethod
     def command(command_data, session,  db, add_to_updates_queue=True):
-        '''Control the processing of the command'''
+        """
+        Main command parsing function
+
+        :param command_data:
+        :param session:
+        :param db:
+        :param add_to_updates_queue:
+        :return: response object
+        """
         global processed_commands
         global error_num
         global success_num
@@ -62,11 +70,23 @@ class sessions_monitor():
 
     @staticmethod
     def update_sessions(username, update_data):
+        """
+        :param username:
+        :param update_data:
+
+        Puts data into the update queue for the user so the client can serve it to them
+
+        """
         active_sessions = [i for i in sessions if sessions[i]["username"] == username]
         map(lambda s: sessions[s]["updates"].put(update_data), active_sessions)
 
     def monitor(self, db):
-        '''Thread that handles the passive command sessions'''
+        """
+        :param db:
+
+        Thread that continuously handles passive events, like event triggers
+
+        """
         global events
         while True:
             time.sleep(0.1)
@@ -99,6 +119,11 @@ class sessions_monitor():
 
 
     def __init__(self, db):
+        """
+        Start the passive thread
+
+        :param db:
+        """
         #Pull pending notifications
         db["events"].delete(time <= time.time())
         for i in db['events'].all():
@@ -107,6 +132,10 @@ class sessions_monitor():
         sessions_thread.start()
 
 def initialize(db):
-    '''Intialize the core modules of W.I.L.L'''
+    """
+    Run the plugin loader
+
+    :param db:
+    """
     log.info("Loading plugins")
     plugin_handler.load("core/plugins", db)
