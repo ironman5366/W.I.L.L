@@ -1,4 +1,4 @@
-#W.I.L.L
+#W.I.L.L 3.1
 
 ##Welcome to W.I.L.L
 W.I.L.L is an open source personal assistant that aims to be free, easy to use, and expandable by the user.
