@@ -83,46 +83,54 @@ def new_user():
         city = request.form["city"]
         country = request.form["country"]
         state = request.form["state"]
-        log.debug("Attempting to create new user with username {0} and email {1}".format(username, email))
-        # Check to see if the username exists
-        users = db["users"]
-        if users.find_one(username=username):
-            # If that username is already taken
-            taken_message = "Username {0} is already taken".format(username)
-            log.debug(taken_message)
-            response["type"] = "error"
-            response["text"] = taken_message
+        check_list = [username, password, first_name, last_name, email, city, country, state]
+        evaluations = [tools.check_string(x) for x in check_list]
+        passed = all(evaluations)
+        if passed:
+            log.debug("Attempting to create new user with username {0} and email {1}".format(username, email))
+            # Check to see if the username exists
+            users = db["users"]
+            if users.find_one(username=username):
+                # If that username is already taken
+                taken_message = "Username {0} is already taken".format(username)
+                log.debug(taken_message)
+                response["type"] = "error"
+                response["text"] = taken_message
+            else:
+                # Add the new user to the database
+                log.info(":{0}:Adding a new user to the database".format(username))
+                db.begin()
+                # Hash the password
+                log.debug("Hashing password")
+                hashed = bcrypt.hashpw(str(password), bcrypt.gensalt())
+                log.debug("Hashed password is {0}".format(hashed))
+                is_admin = username in configuration_data["admins"]
+                try:
+                    db['users'].insert({
+                        "username": username,
+                        "first_name": first_name,
+                        "last_name": last_name,
+                        "email": email,
+                        "password": hashed,
+                        "admin": is_admin,
+                        "default_plugin": "search",
+                        "notifications": json.dumps(["email"]),
+                        "ip": request.environ["REMOTE_ADDR"],
+                        "news_site": "http://reuters.com",
+                        "city": city,
+                        "country": country,
+                        "state": state,
+                        "temp_unit": "fahrenheit"
+                    })
+                    db.commit()
+                    response["type"] = "success"
+                    response["text"] = "Thank you {0}, you are now registered for W.I.L.L".format(first_name)
+                except:
+                    db.rollback()
         else:
-            # Add the new user to the database
-            log.info(":{0}:Adding a new user to the database".format(username))
-            db.begin()
-            # Hash the password
-            log.debug("Hashing password")
-            hashed = bcrypt.hashpw(str(password), bcrypt.gensalt())
-            log.debug("Hashed password is {0}".format(hashed))
-            is_admin = username in configuration_data["admins"]
-            try:
-                db['users'].insert({
-                    "username": username,
-                    "first_name": first_name,
-                    "last_name": last_name,
-                    "email": email,
-                    "password": hashed,
-                    "admin": is_admin,
-                    "default_plugin": "search",
-                    "notifications": json.dumps(["email"]),
-                    "ip": request.environ["REMOTE_ADDR"],
-                    "news_site": "http://reuters.com",
-                    "city": city,
-                    "country": country,
-                    "state": state,
-                    "temp_unit": "fahrenheit"
-                })
-                db.commit()
-                response["type"] = "success"
-                response["text"] = "Thank you {0}, you are now registered for W.I.L.L".format(first_name)
-            except:
-                db.rollback()
+            log.warn(":{0}:Failed SQL evaluation".format(username))
+            response["type"] = "error"
+            response["text"] = "Invalid input"
 
     except KeyError:
         log.error("Needed data not found in new user request")
@@ -181,28 +189,32 @@ def start_session():
             password = request.args.get("password", "")
             if not (username and password):
                 raise KeyError()
-        log.info(":{0}:Checking password".format(username))
-        users = db["users"]
-        user_data = users.find_one(username=username)
-        if user_data:
-            user_data = db["users"].find_one(username=username)
-            # Check the password
-            db_hash = user_data["password"]
-            user_auth = bcrypt.checkpw(str(password), db_hash)
-            if user_auth:
-                log.info(":{0}:Authentication successful".format(username))
-                # Return the session id to the user
-                session_id = gen_session(username)
-                if session_id:
-                    response["type"] = "success"
-                    response["text"] = "Authentication successful"
-                    response["data"].update({"session_id": session_id})
-                else:
-                    response["type"] = "error"
-                    response["text"] = "Invalud username/password"
+        if all([tools.check_string(x) for x in [username, password]]):
+            log.info(":{0}:Checking password".format(username))
+            users = db["users"]
+            user_data = users.find_one(username=username)
+            if user_data:
+                user_data = db["users"].find_one(username=username)
+                # Check the password
+                db_hash = user_data["password"]
+                user_auth = bcrypt.checkpw(str(password), db_hash)
+                if user_auth:
+                    log.info(":{0}:Authentication successful".format(username))
+                    # Return the session id to the user
+                    session_id = gen_session(username)
+                    if session_id:
+                        response["type"] = "success"
+                        response["text"] = "Authentication successful"
+                        response["data"].update({"session_id": session_id})
+                    else:
+                        response["type"] = "error"
+                        response["text"] = "Invalud username/password"
+            else:
+                response["type"] = "error"
+                response["text"] = "Couldn't find user with username {0}".format(username)
         else:
             response["type"] = "error"
-            response["text"] = "Couldn't find user with username {0}".format(username)
+            response["text"] = "Invalid input"
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request data"
@@ -230,10 +242,14 @@ def check_session():
         session_valid = (session_id in core.sessions.keys())
         response["data"].update({"valid": session_valid})
         response["type"] = "success"
-        if session_valid:
-            response["text"] = "Session id {0} is valid".format(session_id)
+        if tools.check_string(session_id):
+            if session_valid:
+                response["text"] = "Session id {0} is valid".format(session_id)
+            else:
+                response["text"] = "Session id {0} is invalid".format(session_id)
         else:
-            response["text"] = "Session id {0} is invalid".format(session_id)
+            response["type"] = "error"
+            response["text"] = "Invalid input"
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find session_id in request data"
@@ -319,32 +335,36 @@ def settings():
     if "username" in request.form.keys() and "password" in request.form.keys():
         username = request.form["username"]
         password = request.form["password"]
-        user_table = db["users"].find_one(username=username)
-        if user_table:
-            db_hash = user_table["password"]
-            if bcrypt.checkpw(str(password), db_hash):
-                #TODO: write a framework that allowc ahgning of notifications
-                immutable_settings = ["username", "admin", "id", "user_token", "notifications", "password"]
-                db.begin()
-                log.info(":{0}:Changing settings for user".format(username))
-                try:
-                    for setting in request.form.keys():
-                        if setting not in immutable_settings:
-                            db["users"].upsert({"username": username, setting: request.form[setting]}, ['username'])
-                    db.commit()
-                    response["type"] = "success"
-                    response["text"] = "Updated settings"
-                except Exception as db_error:
-                    log.debug("Exception {0}, {1} occurred while trying to commit changes to the database".format(
-                        db_error.message, db_error.args
-                    ))
-                    response["type"] = "error"
-                    response["text"] = "Error encountered while trying to update db, changes not committed"
-                    db.rollback()
-
+        if all([tools.check_string(x) for x in [username, password]]):
+            user_table = db["users"].find_one(username=username)
+            if user_table:
+                db_hash = user_table["password"]
+                if bcrypt.checkpw(str(password), db_hash):
+                    #TODO: write a framework that allowc ahgning of notifications
+                    immutable_settings = ["username", "admin", "id", "user_token", "notifications", "password"]
+                    db.begin()
+                    log.info(":{0}:Changing settings for user".format(username))
+                    try:
+                        for setting in request.form.keys():
+                            if setting not in immutable_settings:
+                                db["users"].upsert({"username": username, setting: request.form[setting]}, ['username'])
+                        db.commit()
+                        response["type"] = "success"
+                        response["text"] = "Updated settings"
+                    except Exception as db_error:
+                        log.debug("Exception {0}, {1} occurred while trying to commit changes to the database".format(
+                            db_error.message, db_error.args
+                        ))
+                        response["type"] = "error"
+                        response["text"] = "Error encountered while trying to update db, changes not committed"
+                        db.rollback()
+            else:
+                response["type"] = "error"
+                response["text"] = "User {0} doesn't exist".format(username)
         else:
             response["type"] = "error"
-            response["text"] = "User {0} doesn't exist".format(username)
+            response["text"] = "Invalid input"
+
     else:
         response["type"] = "error"
         response["text"] = "Couldn't find username or password in request data"
@@ -401,21 +421,25 @@ def login():
     try:
         username = str(request.form["username"])
         password = request.form["password"]
-        user_table = db["users"].find_one(username=username)
-        db_hash = user_table["password"]
-        if bcrypt.checkpw(str(password), db_hash):
-            log.info(":{0}:Logged in user".format(username))
-            #Generate user token
-            session["logged-in"] = True
-            session["username"] = username
-            user_token = tools.get_user_token(username)
-            db['users'].upsert({"username":username, "user_token":user_token}, ['username'])
-            response["type"] = "success"
-            response["text"] = "Authentication successful"
-            response["data"].update({"user_token":user_token})
+        if "username" in request.form.keys() and "password" in request.form.keys():
+            user_table = db["users"].find_one(username=username)
+            db_hash = user_table["password"]
+            if bcrypt.checkpw(str(password), db_hash):
+                log.info(":{0}:Logged in user".format(username))
+                #Generate user token
+                session["logged-in"] = True
+                session["username"] = username
+                user_token = tools.get_user_token(username)
+                db['users'].upsert({"username":username, "user_token":user_token}, ['username'])
+                response["type"] = "success"
+                response["text"] = "Authentication successful"
+                response["data"].update({"user_token":user_token})
+            else:
+                response["type"] = "error"
+                response["text"] = "Invalid username/password"
         else:
             response["type"] = "error"
-            response["text"] = "Invalid username/password"
+            response["text"] = "Invalid input"
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request data"

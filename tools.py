@@ -187,3 +187,16 @@ def fold(string, line_length=120, indent=0, indent_first_line=False, _runs=0):
         return "{}\n{}{}".format(s, " " * indent,
                                  fold(string, line_length, indent,
                                       indent_first_line, _runs + 1))
+
+def check_string(in_str):
+    """
+    Sanatize data
+
+    :return boolean:
+    """
+    filters = (
+        in_str.strip() and
+        ";" not in in_str and
+        "'" not in in_str
+    )
+    return filters
