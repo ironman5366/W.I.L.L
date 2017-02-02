@@ -13,7 +13,7 @@ Docs: http://will.readthedocs.io
 
 ####Signup
 Before you can use W.I.L.L, you need to sign up.
-You can sign up for free at http://willbeddow.com/signup
+You can sign up for free at https://willbeddow.com/signup
 
 ####Android
 W.I.L.L is now available as an android app, complete with voice commands and app hookins for services like spotify and netflix! Download it now from https://play.google.com/store/apps/details?id=com.willbeddow.will
@@ -22,7 +22,7 @@ W.I.L.L is now available as an android app, complete with voice commands and app
 All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
 
 ###Use the json api
-The main W.I.L.L server, as well as the web app, is at http://willbeddow.com
+The main W.I.L.L server, as well as the web app, is at https://willbeddow.com
 It runs on a flask server that provides a JSON API
 
 ###Quickstart
@@ -31,7 +31,7 @@ It runs on a flask server that provides a JSON API
 import requests
 import json
 #Assume that the user has already signed up
-server_url = "http://willbeddow.com"
+server_url = "https://willbeddow.com"
 payload = dict(username="myusername", password="mypassword")
 #Start the session and generate a session token. This session token will endure until you go to /end_session or the server reboots
 response = requests.post(url="{0}/api/start_session".format(server_url), data=payload).json()

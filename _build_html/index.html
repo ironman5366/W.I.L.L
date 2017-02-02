@@ -61,7 +61,7 @@
 <div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">requests</span>
 <span class="kn">import</span> <span class="nn">json</span>
 <span class="c1">#Assume that the user has already signed up</span>
-<span class="n">server_url</span> <span class="o">=</span> <span class="s2">&quot;http://willbeddow.com&quot;</span>
+<span class="n">server_url</span> <span class="o">=</span> <span class="s2">&quot;https://willbeddow.com&quot;</span>
 <span class="n">payload</span> <span class="o">=</span> <span class="nb">dict</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s2">&quot;myusername&quot;</span><span class="p">,</span> <span class="n">password</span><span class="o">=</span><span class="s2">&quot;mypassword&quot;</span><span class="p">)</span>
 <span class="c1">#Start the session and generate a session token. This session token will endure until you go to /end_session or the server reboots</span>
 <span class="n">response</span> <span class="o">=</span> <span class="n">requests</span><span class="o">.</span><span class="n">post</span><span class="p">(</span><span class="n">url</span><span class="o">=</span><span class="s2">&quot;</span><span class="si">{0}</span><span class="s2">/api/start_session&quot;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">server_url</span><span class="p">),</span> <span class="n">data</span><span class="o">=</span><span class="n">payload</span><span class="p">)</span><span class="o">.</span><span class="n">json</span><span class="p">()</span>

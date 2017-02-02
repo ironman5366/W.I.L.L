@@ -44,5 +44,5 @@ def main(event):
         # TODO: try to use ip data
         response["type"] = "error"
         response["text"] = "Can't find location data for user. If you haven't added your location yet, do so now at " \
-                           "http://willbeddow.com/settings"
+                           "https://willbeddow.com/settings"
     return response

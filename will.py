@@ -62,6 +62,7 @@ signal.signal(signal.SIGTERM, dump_events)
 def new_user():
     '''
     Create new user in the database
+
     :param: username
     :param: password
     :param: first_name
@@ -69,7 +70,6 @@ def new_user():
     :param: city
     :param: country
     :param: state
-    :return:
     '''
     log.info(":API:/api/new_user")
     response = {"type": None, "data": {}, "text": None}
@@ -244,8 +244,9 @@ def check_session():
 def end_session():
     """
     End a session
-    :param  session_idL
-    :return: End the session
+
+    :param  session_id:
+    :return End the session:
     """
     log.info(":API:/api/end_session")
     response = {"type": None, "data": {}, "text": None}
