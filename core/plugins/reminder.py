@@ -59,12 +59,13 @@ def main(event):
             event_time = " ".join(lefts + [chunk.text] + rights)
     if not time_message:
         time_message == "Reminder: {0}".format(event_command)
-    #if times:
-    #    event_time = times[0]
-    #elif dates:
-    #    event_time = dates[0]
-    #else:
-    #    event_time = "1 minute"
+    if not event_time:
+        if times:
+            event_time = times[0]
+        elif dates:
+            event_time = dates[0]
+        else:
+            event_time = "1 minute"
     time_in_seconds = (parse("in {0}".format(event_time)) - datetime.datetime.now()).total_seconds()
     log.info("Alert text is {0}".format(time_message))
     #Set the reminder using the events framework

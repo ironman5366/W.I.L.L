@@ -9,12 +9,12 @@ import logging
 
 logging.basicConfig(filename="unittests.log", level=logging.DEBUG)
 
-if os.path.isfile("will.conf"):
-    data_string = open("will.conf").read()
+if os.path.isfile("debug_will.conf"):
+    data_string = open("debug_will.conf").read()
     json_data = json.loads(data_string)
     configuration_data = json_data
 else:
-    print "Couldn't find will.conf file, exiting"
+    print ("Couldn't find will.conf file, exiting")
     os._exit(1)
 
 if "debug_db" in configuration_data.keys():
@@ -31,7 +31,7 @@ class plugin_tests(unittest.TestCase):
     def test_subscriptions(self):
         plugin_handler.load('core/plugins', db)
         plugin_num = 5
-        print plugin_handler.plugin_subscriptions
+        print (plugin_handler.plugin_subscriptions)
         self.assertEqual(len(plugin_handler.plugin_subscriptions), plugin_num)
     def test_search(self):
         call_function = None
@@ -60,7 +60,7 @@ class plugin_tests(unittest.TestCase):
         for i in plugin_handler.plugin_subscriptions:
             if i['name'] == "news":
                 call_function = i["function"]
-        print call_function({"command": "Read me the news", "username": "willbeddow", "db": db})
+        print (call_function({"command": "Read me the news", "username": "willbeddow", "db": db}))
     def test_weather(self):
         call_function = None
         plugin_handler.load('core/plugins', db)
@@ -69,7 +69,7 @@ class plugin_tests(unittest.TestCase):
                 call_function = i["function"]
         response = call_function({"command": "Tell me the weather", "username": "willbeddow", "db": db})
         logging.info("Weather response is {0}".format(response))
-        print response
+        print (response)
     # def test_spotify(self):
     #     call_function = None
     #     plugin_handler.load('core/plugins', db)

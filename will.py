@@ -622,12 +622,20 @@ def get_sessions():
         response["text"] = "Couldn't find username and password in request"
     return tools.return_json(response)
 
+@app.before_first_request
 def start():
     """
     Initialize db and session monitor thread
-    :return:
-    """
 
+    """
+    global db
+    global start_time
+    db_url = configuration_data["db_url"]
+    db = dataset.connect(db_url)
+    core.db = db
+    gmtime = time.gmtime()
+    start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
+    log.info(":SYS:Running app")
     log.info(":SYS:Starting W.I.L.L")
     log.info(":SYS:Loaded configuration file and started logging")
     log.info(":SYS:Connecting to database")
@@ -639,8 +647,6 @@ def start():
 
 if __name__ == "__main__":
     global log
-    global db
-    global start_time
     now = datetime.datetime.now()
     conf_file = "will.conf"
     if os.path.isfile("debug_will.conf"):
@@ -660,27 +666,27 @@ if __name__ == "__main__":
     app.logger.setLevel(logging.DEBUG)
     app.logger.addHandler(logging.StreamHandler(sys.stdout))
 
-    app.logger.setLevel(logging.DEBUG)
-
     app.secret_key = configuration_data["secret_key"]
-
 
     logfile = configuration_data["logfile"]
     logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                         filemode='w', filename=logfile)
 
     ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(logging.INFO)
+    if configuration_data["debug"]:
+        ch.setLevel(logging.DEBUG)
+    else:
+        ch.setLevel(logging.INFO)
     handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
     handler.setLevel(logging.DEBUG)
     app.logger.addHandler(handler)
     log = app.logger
-    db_url = configuration_data["db_url"]
-    db = dataset.connect(db_url)
-    core.db = db
-    gmtime = time.gmtime()
-    start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
-    start()
-    log.info(":SYS:Running app")
+    # db_url = configuration_data["db_url"]
+    # db = dataset.connect(db_url)
+    # core.db = db
+    # gmtime = time.gmtime()
+    # start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
+    # start()
+    # log.info(":SYS:Running app")
     socketio.run(
         app, host=configuration_data["host"], port=configuration_data["port"], debug=configuration_data["debug"])
