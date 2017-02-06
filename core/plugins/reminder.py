@@ -47,13 +47,14 @@ def main(event):
     #Find the alert text
     event_doc = event["doc"]
     time_message = None
+    event_time = None
     for chunk in event_doc:
         # Use dependency parsing to dermine the object of the command
-        if chunk.dep_ == "xcomp":
+        if chunk.dep_ == "xcomp" or chunk.dep_ == "advcl":
             lefts = [left.orth_ for left in chunk.lefts]
             rights = [right.orth_ for right in chunk.rights]
             time_message = " ".join(lefts+[chunk.text]+rights)
-        elif chunk.dep_ == "pobj":
+        elif chunk.dep_ == "pobj" or chunk.dep_ == "npadvmod":
             lefts = [left.orth_ for left in chunk.lefts]
             rights = [right.orth_ for right in chunk.rights]
             event_time = " ".join(lefts + [chunk.text] + rights)
@@ -66,7 +67,12 @@ def main(event):
             event_time = dates[0]
         else:
             event_time = "1 minute"
-    time_in_seconds = (parse("in {0}".format(event_time)) - datetime.datetime.now()).total_seconds()
+    try:
+        time_in_seconds = (parse("in {0}".format(event_time)) - datetime.datetime.now()).total_seconds()
+    except:
+        response["text"] = "Couldn't parse a time from {0}".format(event_time)
+        response["type"] = "error"
+        return response
     log.info("Alert text is {0}".format(time_message))
     #Set the reminder using the events framework
     alert_time = time.time()+time_in_seconds

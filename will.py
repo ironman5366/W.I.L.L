@@ -33,7 +33,39 @@ import signal
 
 now = datetime.datetime.now()
 
+now = datetime.datetime.now()
+
 app = Flask(__name__)
+
+conf_file = "will.conf"
+if os.path.isfile("debug_will.conf"):
+    conf_file = "debug_will.conf"
+if os.path.isfile(conf_file):
+    data_string = open(conf_file).read()
+    json_data = json.loads(data_string)
+    configuration_data = json_data
+else:
+    print ("Couldn't find will.conf file, exiting")
+    os._exit(1)
+
+db = None
+app.logger.setLevel(logging.DEBUG)
+app.logger.addHandler(logging.StreamHandler(sys.stdout))
+app.secret_key = configuration_data["secret_key"]
+logfile = configuration_data["logfile"]
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+                    filemode='w', filename=logfile)
+ch = logging.StreamHandler(sys.stdout)
+if configuration_data["debug"]:
+    ch.setLevel(logging.DEBUG)
+else:
+    ch.setLevel(logging.INFO)
+handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
+handler.setLevel(logging.DEBUG)
+app.logger.addHandler(handler)
+log = app.logger
+
+
 
 socketio = SocketIO(app)
 
@@ -622,7 +654,6 @@ def get_sessions():
         response["text"] = "Couldn't find username and password in request"
     return tools.return_json(response)
 
-@app.before_first_request
 def start():
     """
     Initialize db and session monitor thread
@@ -646,41 +677,8 @@ def start():
     log.info(":SYS:Connected to database, running server")
 
 if __name__ == "__main__":
-    global log
-    now = datetime.datetime.now()
-    conf_file = "will.conf"
-    if os.path.isfile("debug_will.conf"):
-        conf_file = "debug_will.conf"
-    if os.path.isfile(conf_file):
-        data_string = open(conf_file).read()
-        json_data = json.loads(data_string)
-        configuration_data = json_data
-    else:
-        print ("Couldn't find will.conf file, exiting")
-        os._exit(1)
 
-    logging.basicConfig()
-    log = logging.getLogger()
-    db = None
-
-    app.logger.setLevel(logging.DEBUG)
-    app.logger.addHandler(logging.StreamHandler(sys.stdout))
-
-    app.secret_key = configuration_data["secret_key"]
-
-    logfile = configuration_data["logfile"]
-    logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-                        filemode='w', filename=logfile)
-
-    ch = logging.StreamHandler(sys.stdout)
-    if configuration_data["debug"]:
-        ch.setLevel(logging.DEBUG)
-    else:
-        ch.setLevel(logging.INFO)
-    handler = RotatingFileHandler(logfile, maxBytes=10000000, backupCount=5)
-    handler.setLevel(logging.DEBUG)
-    app.logger.addHandler(handler)
-    log = app.logger
+    start()
     # db_url = configuration_data["db_url"]
     # db = dataset.connect(db_url)
     # core.db = db
