@@ -4,6 +4,8 @@ from flask import request
 from flask import render_template
 from flask_socketio import SocketIO
 from flask_socketio import join_room, leave_room
+import requests
+from flask import Response, stream_with_context
 from flask import redirect
 from flask import make_response
 import dataset
@@ -348,8 +350,8 @@ def disconnect_session():
     log.info(":SOCKET:disconnect")
     session_id = session["session_id"]
     if session_id in core.sessions.keys():
-        log.info(":{0}:Ending session".format(session_id))
-        del core.sessions[session_id]
+        log.info(":{0}:Session disconnected".format(session_id))
+        #del core.sessions[session_id]
     else:
         log.debug(":{0}:Session id wasn't found in core.sessions".format(session_id))
 
@@ -532,14 +534,14 @@ def main():
     #If the cookies aren't found
     return render_template('index.html')
 
-@app.route('/report', methods=["GET"])
-def report():
+@app.route('/admin/<path>', methods=["GET"])
+def report(path):
     """
     Render template for admin-only reporting page or bounce a non admin user back to /
     :param session:
     :return report template:
     """
-    log.info(":WEB:/report")
+    log.info(":WEB:/admin/{0}".format(path))
     if "username" in session.keys() and "logged-in" in session.keys() and session["logged-in"]:
         user_table = db["users"].find_one(username=session["username"])
         if user_table:
@@ -561,7 +563,21 @@ def report():
                 session["errors"] = core.error_num
                 session["success"] = core.success_num
                 session["users-list"] = users_processed
-                return render_template('report.html')
+                if path == "report":
+                    return render_template('report.html')
+                elif path == "logging":
+                    if "log_proxy" in configuration_data.keys():
+                        req = requests.get(configuration_data["log_proxy"], stream=True)
+                        return Response(stream_with_context(req.iter_content()), content_type=req.headers['content-type'])
+                    else:
+                        return redirect("/")
+                elif path == "db":
+                    if "db_proxy" in configuration_data.keys():
+                        req = requests.get(configuration_data["db_proxy"], stream=True)
+                        return Response(stream_with_context(req.iter_content()),
+                                        content_type=req.headers['content-type'])
+                else:
+                    return redirect("/")
     return redirect("/")
 
 @app.route('/command', methods=["GET", "POST"])
@@ -665,8 +681,7 @@ def start():
     db_url = configuration_data["db_url"]
     db = dataset.connect(db_url)
     core.db = db
-    current_time = datetime.datetime.now()
-    start_time = now.strftime("%m/%d/%Y", current_time)
+    start_time = now.strftime("%I:%M %p %A %m/%d/%Y")
     log.info(":SYS:Running app")
     log.info(":SYS:Starting W.I.L.L")
     log.info(":SYS:Loaded configuration file and started logging")
@@ -681,4 +696,5 @@ if __name__ == "__main__":
 
     start()
     socketio.run(
-        app, host=configuration_data["host"], port=configuration_data["port"], debug=configuration_data["debug"])
+        app, host=configuration_data["host"], port=configuration_data["port"], debug=configuration_data["debug"]
+    , use_reloader=False)
