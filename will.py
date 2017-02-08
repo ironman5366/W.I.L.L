@@ -24,14 +24,11 @@ except ImportError:
 import os
 import json
 from logging.handlers import RotatingFileHandler
-import time
 import threading
 import time
 import datetime
 import atexit
 import signal
-
-now = datetime.datetime.now()
 
 now = datetime.datetime.now()
 
@@ -181,9 +178,10 @@ def signup():
     log.info(":WEB:/signup")
     return render_template("signup.html")
 
-def gen_session(username):
+def gen_session(username, client_type):
     """
     :param username:
+    :param client:
     :return: session_id
     """
     session_id = tools.get_session_id(db)
@@ -195,7 +193,8 @@ def gen_session(username):
             "commands": Queue.Queue(),
             "created": datetime.datetime.now(),
             "updates": Queue.Queue(),
-            "id": session_id
+            "id": session_id,
+            "client": client_type
         }
     })
     return session_id
@@ -216,9 +215,11 @@ def start_session():
         if request.method == "POST":
             username = request.form["username"]
             password = request.form["password"]
+            client = "API-POST"
         elif request.method == "GET":
             username = request.args.get("username", "")
             password = request.args.get("password", "")
+            client = "API-GET"
             if not (username and password):
                 raise KeyError()
         if all([tools.check_string(x) for x in [username, password]]):
@@ -233,7 +234,7 @@ def start_session():
                 if user_auth:
                     log.info(":{0}:Authentication successful".format(username))
                     # Return the session id to the user
-                    session_id = gen_session(username)
+                    session_id = gen_session(username, client)
                     if session_id:
                         response["type"] = "success"
                         response["text"] = "Authentication successful"
@@ -510,7 +511,7 @@ def main():
                 session["logged-in"] = True
                 user_first_name = user_table["first_name"]
                 session["welcome-message"] = "Welcome back {0}".format(user_first_name)
-                session_id = gen_session(username)
+                session_id = gen_session(username, "WEB")
                 session["session_id"] = session_id
                 session["user_token"] = new_token
                 log.info(":{0}:Generated session id for user {1}".format(
@@ -664,8 +665,8 @@ def start():
     db_url = configuration_data["db_url"]
     db = dataset.connect(db_url)
     core.db = db
-    gmtime = time.gmtime()
-    start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
+    current_time = datetime.datetime.now()
+    start_time = now.strftime("%m/%d/%Y", current_time)
     log.info(":SYS:Running app")
     log.info(":SYS:Starting W.I.L.L")
     log.info(":SYS:Loaded configuration file and started logging")
@@ -679,12 +680,5 @@ def start():
 if __name__ == "__main__":
 
     start()
-    # db_url = configuration_data["db_url"]
-    # db = dataset.connect(db_url)
-    # core.db = db
-    # gmtime = time.gmtime()
-    # start_time = "{0}:{1} UTC {2}".format(gmtime.tm_hour, gmtime.tm_min, now.strftime("%m/%d/%Y"))
-    # start()
-    # log.info(":SYS:Running app")
     socketio.run(
         app, host=configuration_data["host"], port=configuration_data["port"], debug=configuration_data["debug"])
