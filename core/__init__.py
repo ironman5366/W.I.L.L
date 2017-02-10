@@ -2,18 +2,15 @@
 import logging
 import threading
 import time
-try:
-    import urllib2
-except ImportError:
-    import urllib as urllib2
+import requests
 
 #Internal modules
 try:
-    import plugin_handler
-    import parser
-except ImportError:
     import core.plugin_handler as plugin_handler
     import core.parser as parser
+except ImportError:
+    import plugin_handler
+    import parser
 import core.notification as notification
 import tools
 
@@ -50,6 +47,7 @@ class sessions_monitor():
         parse_data = parser.parse(command_data, session)
         log.info(":{0}:nlp parsing finished, adding data to event queue".format(session["id"]))
         response = plugin_handler.subscriptions().process_event(parse_data, db)
+        log.info("Got response {0} with type {1}".format(response, type(response)))
         if response["type"] == "success":
             success_num+=1
         else:
@@ -106,7 +104,7 @@ class sessions_monitor():
                                   target=notification.send_notification, args=(event, db))
                             notification_thread.start()
                         elif event_type == "url":
-                            response = urllib2.urlopen(event["value"]).read()
+                            response = requests.get(event["value"]).text
                             update_data = {"type": "event", "text": response, "data": event}
                             username = event["username"]
                             sessions_monitor.update_sessions(username, update_data)
@@ -125,7 +123,7 @@ class sessions_monitor():
         :param db:
         """
         #Pull pending notifications
-        db["events"].delete(time <= time.time())
+        db.query('delete from `events` where time <= {0}'.format(time.time()))
         for i in db['events'].all():
             events.append(i)
         sessions_thread = threading.Thread(target=self.monitor, args=(db,))

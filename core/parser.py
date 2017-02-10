@@ -33,7 +33,7 @@ def parse(command_data, session):
      )
     #Parse the command in spacy
     log.info("Running command through nlp")
-    doc = nlp(unicode(command))
+    doc = nlp(command)
     verbs = set()
     log.info("Parsing through dependencies")
     for token in doc:

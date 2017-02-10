@@ -95,7 +95,7 @@ class subscriptions():
                 if plugin["name"] != default_plugin_name:
                     found_plugins.append(plugin)
         #Map the subscribed plugins to the function that runs their check functions
-        map(plugin_check, plugin_subscriptions)
+        list(map(plugin_check, plugin_subscriptions))
         #How many plugins match the command data
         plugin_len = len(found_plugins)
         if plugin_len == 1:
@@ -132,7 +132,7 @@ class subscriptions():
                 )
                 #Send the error message to the user
                 log.error(error_message)
-                return error_message
+                return {"type": "error", "text":error_message, "data": {}}
 
 def process_plugins(path):
     """
@@ -140,6 +140,7 @@ def process_plugins(path):
 
     :param path:
     """
+    log.info("In process plugins")
     log.info("Processing plugin {0}".format(path))
     python_loader = PythonLoader(path)
     try:
@@ -175,14 +176,12 @@ def load(dir_path, DB):
     :param DB:
     """
     log.info("Finding plugins in directory {0}".format(dir_path))
-    plugins = lambda: (os.path.join(dir_path, module_path)
-                       for module_path in os.listdir(dir_path))
-    map_plugins(plugins())
+    plugins = [os.path.join(dir_path, module_path)
+                       for module_path in os.listdir(dir_path)]
+    log.info("Found {0} plugins".format(len(plugins)))
+    [process_plugins(path) for path in plugins]
+    map(process_plugins, plugins)
     log.info("Finished parsing and loading plugins, processing subscriptions")
-
-def map_plugins(plugin_paths):
-    log.info("Mapping plugins to processing function")
-    map(process_plugins, plugin_paths)
 
 class PythonLoader:
     '''The class that loads the plugins'''

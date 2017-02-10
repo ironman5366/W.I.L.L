@@ -8,10 +8,10 @@ import wikipedia
 import google
 from bs4 import BeautifulSoup
 from newspaper import Article
+import requests
 
 # Builtin imports
 import logging
-import urllib2
 
 log = logging.getLogger()
 
@@ -35,8 +35,8 @@ def search_google(query):
         article.download()
         article.parse()
         article.nlp()
-        article_summary = article.summary.decode('ascii', 'ignore')
-        article_title = article.title.decode('ascii', 'ignore')
+        article_summary = article.summary
+        article_title = article.title
         return "{0}\n{1} - ({2})".format(
             article_summary, article_title, first_url
         )
@@ -46,7 +46,7 @@ def search_google(query):
             log.debug("Got error {0}, {1} while using newspaper, switching to bs4".format(
             article_exception.message,article_exception.args
             ))
-            html = urllib2.urlopen(first_url).read()
+            html = requests.get(first_url).text
             #Parse the html using bs4
             soup = BeautifulSoup(html, "html.parser")
             [s.extract() for s in soup(['style', 'script', '[document]', 'head', 'title'])]
@@ -68,15 +68,13 @@ def search_wolfram(query, api_key):
     '''Search wolframalpha'''
     client = wolframalpha.Client(api_key)
     # Santize query
-    query = str(query).decode('ascii', 'ignore')
     res = client.query(query)
     try:
         next_result = next(res.results).text
         if next_result:
             # Sanitze result
-            result = next_result.encode('ascii', 'ignore')
-            log.debug("Sanitized wolfram result is {0}".format(result))
-            return result
+            log.debug("Sanitized wolfram result is {0}".format(next_result))
+            return next_result
         else:
             return False
     except StopIteration:

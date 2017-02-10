@@ -1,10 +1,17 @@
 #Builtin imports
 import logging
 import json
-import os
+import core
 import uuid
 import time
+try:
+    import queue as Queue
+except ImportError:
+    import Queue
+import datetime
+import string
 
+valid_chars = set(string.ascii_letters+string.digits)
 log = logging.getLogger()
 
 session_nums = 0
@@ -16,6 +23,30 @@ event_types = {
         "url": "URL",
         "function": "FUN"
     }
+
+def gen_session(username, client_type, db):
+    """
+    :param username:
+    :param client:
+    :return: session_id
+    """
+    session_id = get_session_id(db)
+    # Start monitoring notifications
+    # Register a session id
+    core.sessions.update({
+        session_id: {
+            "username": username,
+            "commands": Queue.Queue(),
+            "created": datetime.datetime.now(),
+            "updates": Queue.Queue(),
+            "id": session_id,
+            "client": client_type
+        }
+    })
+    return session_id
+
+
+
 
 def get_event_uid(type):
     '''
@@ -196,7 +227,6 @@ def check_string(in_str):
     """
     filters = (
         in_str.strip() and
-        ";" not in in_str and
-        "'" not in in_str
+        all([x in valid_chars for x in in_str])
     )
     return filters

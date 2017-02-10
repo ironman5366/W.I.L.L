@@ -1,9 +1,14 @@
 # Internal imports
 from core.plugin_handler import subscribe
 import tools
+
+#Builtin imports
+import logging
+
 # External imports
 import pyowm
 
+log = logging.getLogger()
 
 def is_weather(event):
     '''Determine whether to read the news'''

@@ -24,7 +24,7 @@ def news_reader(event):
     user_table = db['users'].find_one(username=event_user)
     user_news_site = user_table["news_site"]
     news_table = db["news"]
-    cached_sites = [site.values()[0] for site in db.query("SELECT site from `news`")]
+    cached_sites = [list(site.values())[0] for site in db.query("SELECT site from `news`")]
     log.debug("Cached sites are {0}".format(cached_sites))
     if user_news_site in cached_sites:
         site_row = news_table.find_one(site=user_news_site)
