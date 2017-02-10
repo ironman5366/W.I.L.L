@@ -53,7 +53,8 @@ def parse(command_data, session):
         "command_data": command_data,
         "verbs": verbs,
         "ents": ents,
-        "doc": doc
+        "doc": doc,
+        "parse": lambda x: nlp(x)
     }
     log.info("Finished parsing event_data, sending it into events queue")
     log.debug("Event_data is {0}".format(event_data))
