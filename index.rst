@@ -11,6 +11,8 @@ Welcome to W.I.L.L's documentation!
    :caption: Contents:
 
    will.rst
+   api.rst
+   web.rst
    core.rst
    tools.rst
    core/plugin_handler.rst
