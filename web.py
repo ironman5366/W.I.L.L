@@ -132,7 +132,7 @@ def login():
                 response["text"] = "Invalid username/password"
         else:
             response["type"] = "error"
-            response["text"] = "Invalid input"
+            response["text"] = "Invalid input, allowed characters are {0}".format(tools.valid_chars)
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request data"

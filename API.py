@@ -32,15 +32,15 @@ def new_user():
     log.info(":API:/api/new_user")
     response = {"type": None, "data": {}, "text": None}
     try:
-        username = request.form["username"]
+        username = str(request.form["username"])
         log.debug("Username is {0}".format(username))
-        password = request.form["password"]
-        first_name = request.form["first_name"]
-        last_name = request.form["last_name"]
-        email = request.form["email"]
-        city = request.form["city"]
-        country = request.form["country"]
-        state = request.form["state"]
+        password = str(request.form["password"])
+        first_name = str(request.form["first_name"])
+        last_name = str(request.form["last_name"])
+        email = str(request.form["email"])
+        city = str(request.form["city"])
+        country = str(request.form["country"])
+        state = str(request.form["state"])
         check_list = [username, password, first_name, last_name, email, city, country, state]
         evaluations = [tools.check_string(x) for x in check_list]
         passed = all(evaluations)
@@ -60,7 +60,7 @@ def new_user():
                 db.begin()
                 # Hash the password
                 log.debug("Hashing password")
-                hashed = bcrypt.hashpw(str(password), bcrypt.gensalt())
+                hashed = bcrypt.hashpw(password.encode('utf8'), bcrypt.gensalt())
                 log.debug("Hashed password is {0}".format(hashed))
                 is_admin = username in configuration_data["admins"]
                 try:
@@ -86,7 +86,7 @@ def new_user():
                 except:
                     db.rollback()
         else:
-            log.warn(":{0}:Failed SQL evaluation".format(username))
+            log.warning(":{0}:Failed SQL evaluation".format(username))
             response["type"] = "error"
             response["text"] = "Invalid input"
 
@@ -212,13 +212,11 @@ def start_session():
                 user_data = db["users"].find_one(username=username)
                 # Check the password
                 db_hash = user_data["password"]
-                user_auth = bcrypt.checkpw(str(password), db_hash)
+                user_auth = bcrypt.checkpw(password.encode('utf8'), db_hash.encode('utf8'))
                 if user_auth:
                     log.info(":{0}:Authentication successful".format(username))
                     # Return the session id to the user
-                    session_obj = tools.gen_session(username, client, db)
-                    session_id = session_obj["id"]
-                    core.sessions.update(session_obj)
+                    session_id = tools.gen_session(username, client, db)
                     if session_id:
                         response["type"] = "success"
                         response["text"] = "Authentication successful"
