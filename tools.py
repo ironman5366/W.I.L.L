@@ -12,7 +12,10 @@ import datetime
 import string
 
 valid_chars = set(string.ascii_letters+string.digits)
+
 log = logging.getLogger()
+
+log.debug("Valid SQL characters are {0}".format(valid_chars))
 
 session_nums = 0
 

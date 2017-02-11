@@ -118,7 +118,7 @@ def settings():
             user_table = db["users"].find_one(username=username)
             if user_table:
                 db_hash = user_table["password"]
-                if bcrypt.checkpw(password, db_hash):
+                if bcrypt.checkpw(password.encode('utf8'), db_hash.encode('utf8')):
                     #TODO: write a framework that allowc ahgning of notifications
                     immutable_settings = ["username", "admin", "id", "user_token", "notifications", "password"]
                     db.begin()
@@ -164,7 +164,7 @@ def get_sessions():
         username = request.form["username"]
         password = request.form["password"]
         db_hash = db['users'].find_one(username=username)["password"]
-        user_auth = bcrypt.checkpw(str(password), db_hash)
+        user_auth = bcrypt.checkpw(password.encode('utf8'), db_hash.encode('utf8'))
         if user_auth:
             response["data"].update({"sessions":[]})
             for session in sessions:

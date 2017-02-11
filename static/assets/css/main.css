@@ -7,8 +7,13 @@
 	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 */
 
+.message-container{
+	height: 200px;
+	display: inherit;
+}
+
 .message-space{
-	height:auto;
+	height: 200px;
 	border: 3px solid #e89980;
 	margin: auto;
 	width: 50%;
@@ -19,7 +24,7 @@
 	background-color: whitesmoke;
 	font: inherit;
 	vertical-align: baseline;
-	overflow: auto;
+	overflow: scroll;
 }
 
 .bubbleone
@@ -33,6 +38,7 @@ background: blue;
 -webkit-border-radius: 10px;
 -moz-border-radius: 10px;
 border-radius: 10px;
+left: 50%;
 }
 
 .bubbleone:after
@@ -45,8 +51,8 @@ border-color: transparent blue;
 display: block;
 width: 0;
 z-index: 1;
-right: -15px;
-top: 65px;
+right: -14px;
+top: 9px;
 }/*
 .bubbleone
 {
@@ -84,6 +90,7 @@ background: white;
 -webkit-border-radius: 10px;
 -moz-border-radius: 10px;
 border-radius: 10px;
+left: 0%;
 }
 
 .bubbletwo:after

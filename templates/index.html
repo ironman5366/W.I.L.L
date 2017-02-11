@@ -87,7 +87,7 @@
 			<!-- Banner -->
 				<section id="banner">
 					<h2>{{ session["welcome-message"] }}</h2>
-                    <div id="message-container">
+                    <div class="message-container" id="message-container">
                         <div class="message-space" id="message-space"></div>
                             <form id="textCommandForm" class="textForm" method="POST" onsubmit="return false;">
                                     <input type="text" placeholder="Read the news for me" id="textCommand" name="textCommand">
@@ -117,6 +117,10 @@
                     {% endif %}
 				</section>
                 <script>
+                function scrollToBottom(id){
+                   var div = document.getElementById(id);
+                   div.scrollTop = div.scrollHeight - div.clientHeight;
+                }
                 first_command = true;
                 {% if session["logged-in"] %}
                     document.getElementById("answer").style.visibility = 'hidden';
@@ -191,6 +195,7 @@
                             $("#message-space").animateCss('zoomInUp');
                             first_command = false;
                             $("#message-space").append('<p class="bubbleone">'+command+'</p>');
+                            scrollToBottom("message-space");
                         }
                             document.getElementById("commandForm").style.visibility = 'hidden';
                             document.getElementById("commandForm").style.display = 'none';
@@ -199,6 +204,8 @@
                             document.getElementById("message-container").style.visibility = 'visible';
                             console.log("Adding html to message-space");
                             $("#message-space").append('<p class="bubbletwo">'+answer["text"]+'</p>');
+                            scrollToBottom("message-space");
+                            document.getElementById("textCommand").textContent = '';
                             answer_data = answer["data"];
                             answer_keys = Object.keys(answer_data);
                             console.log("Answer keys are " + answer_keys);
@@ -230,7 +237,8 @@
                         };
                         if (first_command == false) {
                             console.log("Adding command " + command + " to html");
-                            $("#message-space").append('<p style="display:inline" class="bubbleone">' + command + '</sp>');
+                            $("#message-space").append('<p class="bubbleone">' + command + '</sp>');
+                            scrollToBottom("message-space");
                         }
                         else{
                             document.getElementById("goButton").style.visibility = 'visible';
