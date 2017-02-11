@@ -21,7 +21,7 @@ def search_google(query):
     #Determine if a wikipedia url is in the first 5 searches
     urls = []
     for i in range(0, 4):
-        url = search_object.next()
+        url = search_object.__next__()
         urls.append(url)
         if "wikipedia.org/wiki" in url:
             wikipedia_search = wikipedia.search(query)[0]

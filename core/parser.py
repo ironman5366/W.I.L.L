@@ -16,7 +16,7 @@ try:
     matcher = Matcher(nlp.vocab)
     log.debug("Loaded matcher")
 except RuntimeError:
-    log.warn("IMPORTANT! spaCy English model is not installed. To functionally use W.I.L.L it needs to be installed with python -m spacy.en.download")
+    log.warning("IMPORTANT! spaCy English model is not installed. To functionally use W.I.L.L it needs to be installed with python -m spacy.en.download")
 def parse(command_data, session):
     """
     Call the parser

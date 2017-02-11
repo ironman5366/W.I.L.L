@@ -162,6 +162,7 @@ def main():
     session["welcome-message"] = "Welcome to W.I.L.L"
     if configuration_data["debug"]:
         session["debug_http"] = True
+    session["first-command"] = True
     if username:
         user_table = db["users"].find_one(username=username)
         if "user_token" in user_table.keys() and "user_token" in session.keys():
@@ -173,8 +174,18 @@ def main():
                 session["logged-in"] = True
                 user_first_name = user_table["first_name"]
                 session["welcome-message"] = "Welcome back {0}".format(user_first_name)
-                session_id = tools.gen_session(username, "WEB", db)
-                session["session_id"] = session_id
+                if "session_id" in session.keys() and session["session_id"] in core.sessions.keys():
+                    session_id = session["session_id"]
+                    if session_id in core.commands.keys():
+                        session_commands = core.commands[session_id]
+                        log.debug(":{1}:Session already logged in, setting session_commands to {0}".format(
+                            session_commands, session_id
+                        ))
+                        session["commands"] = session_commands
+                else:
+                    session["first-command"] = True
+                    session_id = tools.gen_session(username, "WEB", db)
+                    session["session_id"] = session_id
                 session["user_token"] = new_token
                 log.info(":{0}:Generated session id for user {1}".format(
                     session_id, username

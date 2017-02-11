@@ -7,6 +7,104 @@
 	Free for personal and commercial use under the CCA 3.0 license (html5up.net/license)
 */
 
+.message-space{
+	height:auto;
+	border: 3px solid #e89980;
+	margin: auto;
+	width: 50%;
+	padding: 0;
+	border-radius: 25px;
+	color: black;
+	font-size: 100%;
+	background-color: whitesmoke;
+	font: inherit;
+	vertical-align: baseline;
+	overflow: auto;
+}
+
+.bubbleone
+{
+position: relative;
+width: 40%;
+height: auto;
+padding: 10px;
+margin: 5%;
+background: blue;
+-webkit-border-radius: 10px;
+-moz-border-radius: 10px;
+border-radius: 10px;
+}
+
+.bubbleone:after
+{
+content: '';
+position: absolute;
+border-style: solid;
+border-width: 15px 0 15px 15px;
+border-color: transparent blue;
+display: block;
+width: 0;
+z-index: 1;
+right: -15px;
+top: 65px;
+}/*
+.bubbleone
+{
+position: relative;
+width: 40%;
+height: auto;
+background: blue;
+margin: auto;
+-webkit-border-radius: 10px;
+-moz-border-radius: 10px;
+border-radius: 10px;
+}
+
+.bubbleone:after
+{
+content: '';
+position: absolute;
+border-style: solid;
+border-width: 15px 0 15px 15px;
+border-color: transparent blue;
+display: block;
+width: 0;
+z-index: 1;
+right: -15px;
+top: 45px;
+}*/
+.bubbletwo
+{
+position: relative;
+width: 40%;
+height: auto;
+padding: 10px;
+margin: 5%;
+background: white;
+-webkit-border-radius: 10px;
+-moz-border-radius: 10px;
+border-radius: 10px;
+}
+
+.bubbletwo:after
+{
+content: '';
+position: absolute;
+border-style: solid;
+border-width: 15px 15px 15px 0;
+border-color: transparent white;
+display: block;
+width: 0;
+z-index: 1;
+left: -15px;
+top: 16px;
+}
+
+.textForm{
+	position: relative;
+	bottom: 0;
+}
+
 /* Reset */
 	form{
 		margin: auto;

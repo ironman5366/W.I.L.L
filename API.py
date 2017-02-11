@@ -273,7 +273,7 @@ def end_session():
     # Render the response as json
     return tools.return_json(response)
 
-@api.route('/api/check_session', methods=["GET", "POST"])
+@api.route('/check_session', methods=["GET", "POST"])
 def check_session():
     """
     Check if a session is valid

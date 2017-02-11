@@ -26,6 +26,8 @@ error_num = 0
 
 success_num = 0
 
+commands = {}
+
 class sessions_monitor():
     @staticmethod
     def command(command_data, session,  db, add_to_updates_queue=True):
@@ -62,8 +64,11 @@ class sessions_monitor():
         global sessions
         if add_to_updates_queue:
             sessions[session_id]["updates"].put({"command_id": command_id, "response": response})
-        #TODO: make it so that plugin_handler can send an error
-        #TODO: accept a dict
+        if session_id in commands.keys():
+            commands[session_id].append([command_data["command"], response["text"]])
+        else:
+            commands.update({session_id:
+                             [[command_data["command"], response["text"]]]})
         return response
 
     @staticmethod

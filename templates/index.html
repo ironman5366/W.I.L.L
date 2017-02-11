@@ -13,6 +13,8 @@
 		<link rel="stylesheet" href="{{ url_for("static", filename="assets/css/main.css") }}" />
         <link rel="shortcut icon" href="{{ url_for("static", filename="favicon.ico") }}" type="image/x-icon">
 		<!--[if lte IE 8]><link rel="stylesheet" href="{{ url_for("static", filename="assets/css/ie8.css") }}" /><![endif]-->
+         <link rel="stylesheet" href="{{ url_for("static", filename="assets/css/animate.css") }}"/>
+
 	</head>
     <script>
         // request permission on page load
@@ -82,21 +84,27 @@
 						</ul>
 					</nav>
 				</header>
-
 			<!-- Banner -->
 				<section id="banner">
 					<h2>{{ session["welcome-message"] }}</h2>
-                    {% if session["logged-in"]%}
-                        <form id="commandForm" method="POST" onsumbit="return false;">
-                            <input type="text"  placeholder="Read the news for me" id="command" name="command">
-                            <br>
-                            <input id="goButton" type="submit" value="Go" onclick="sendCommand(this.form.command.value); return false;">
-                        </form>
-                        <blockquote id="answer"></blockquote>
-                        <div id="loader"></div>
+                    <div id="message-container">
+                        <div class="message-space" id="message-space"></div>
+                            <form id="textCommandForm" class="textForm" method="POST" onsubmit="return false;">
+                                    <input type="text" placeholder="Read the news for me" id="textCommand" name="textCommand">
+                                    <input id="textGoButton" type="submit" value="Go" onclick="sendCommand(this.form.textCommand.value); return false;">
+                                </form>
+                    </div>
+                    {% if session["logged-in"] %}
+                            <form id="commandForm" method="POST" onsubmit="return false;">
+                                <input type="text"  placeholder="Read the news for me" id="command" name="command">
+                                <br>
+                                <input id="goButton" type="submit" value="Go" onclick="sendCommand(this.form.command.value); return false;">
+                            </form>
+                            <blockquote id="answer"></blockquote>
+                         <div id="loader"></div>
                     {% else %}
                         <h2>Login</h2>
-                        <form method="POST", action="/login">
+                        <form method="POST" action="/login">
                             <h4>Username:</h4>
                             <br>
                             <input type="text", name="username">
@@ -107,10 +115,14 @@
                             <input type="submit" value="Login">
                         </form>
                     {% endif %}
-
-
 				</section>
                 <script>
+                first_command = true;
+                {% if session["logged-in"] %}
+                    document.getElementById("answer").style.visibility = 'hidden';
+                {% endif %}
+                document.getElementById("message-container").style.visibility = 'hidden';
+                document.getElementById("message-container").style.display = 'none';
                 var opts = {
                   lines: 13 // The number of lines to draw
                 , length: 28 // The length of each line
@@ -132,13 +144,30 @@
                 , shadow: false // Whether to render a shadow
                 , hwaccel: false // Whether to use hardware acceleration
                 , position: 'absolute' // Element positioning
-                }
+                };
                 var target = document.getElementById('loader');
                 var spinner = new Spinner(opts);
                 function sendCommand(command){
-                    command = document.getElementById("command").value;
+                    jQuery(document).ready(function ($) {
+                    console.log("jQuery ready");
+                    $.fn.extend({
+                        animateCss: function (animationName) {
+                            var animationEnd = 'webkitAnimationEnd mozAnimationEnd MSAnimationEnd oanimationend animationend';
+                            this.addClass('animated ' + animationName).one(animationEnd, function () {
+                                $(this).removeClass('animated ' + animationName);
+                            });
+                        }
+                        });
+                    });
+                    console.log("Getting command value, first command check is "+first_command);
+                    if (first_command) {
+                        command = document.getElementById("command").value;
+                    }
+                    else{
+                        command = document.getElementById("textCommand").value;
+                    }
+
                     session_id = "{{ session["session_id"] }}";
-                    console.log("Sending command");
                     console.log("Submitting command "+command+" with session_id "+session_id);
                     var http = new XMLHttpRequest();
                     var url = "/api/command";
@@ -147,40 +176,64 @@
                     //Send the proper header information along with the request
                     http.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
                     http.onreadystatechange = function() {//Call a function when the state changes.
-                    document.getElementById("goButton").style.visibility = 'visible';
                     spinner.stop();
                     if(http.readyState == 4 && http.status == 200) {
                         console.log("Got response json "+http.responseText);
                         answer = JSON.parse(http.responseText);
                         answer_type = answer["type"];
                     if (answer_type == "success") {
-                        answerDiv = document.getElementById("answer");
-                        answerDiv.textContent = answer["text"];
-                        answer_data = answer["data"]
-                        answer_keys = Object.keys(answer_data);
-                        console.log("Answer keys are " + answer_keys);
-                        for (key_num in answer_keys) {
-                            key = answer_keys[key_num];
-                            console.log("Processing data key " + key);
-                            if (key == "url") {
-                                console.log("Found url object");
-                                var win = window.open(answer_data["url"], '_blank');
-                                if (win) {
-                                    //Browser has allowed it to be opened
-                                    win.focus();
-                                } else {
-                                    //Browser has blocked it
-                                    alert('Please allow popups for this website');
+                            answerDiv = document.getElementById("answer");
+                        if (first_command) {
+                            //answerDiv.textContent = answer["text"];
+                            $('#answer').animateCss('bounce');
+                            document.getElementById("message-container").style.visibility = 'visible';
+                            document.getElementById("message-container").style.display = 'block';
+                            $("#message-space").animateCss('zoomInUp');
+                            first_command = false;
+                            $("#message-space").append('<p class="bubbleone">'+command+'</p>');
+                        }
+                            document.getElementById("commandForm").style.visibility = 'hidden';
+                            document.getElementById("commandForm").style.display = 'none';
+                            document.getElementById("answer").style.visibility = 'hidden';
+                            document.getElementById("answer").style.display = 'none';
+                            document.getElementById("message-container").style.visibility = 'visible';
+                            console.log("Adding html to message-space");
+                            $("#message-space").append('<p class="bubbletwo">'+answer["text"]+'</p>');
+                            answer_data = answer["data"];
+                            answer_keys = Object.keys(answer_data);
+                            console.log("Answer keys are " + answer_keys);
+                            for (key_num in answer_keys) {
+                                key = answer_keys[key_num];
+                                console.log("Processing data key " + key);
+                                if (key == "url") {
+                                    console.log("Found url object");
+                                    var win = window.open(answer_data["url"], '_blank');
+                                    if (win) {
+                                        //Browser has allowed it to be opened
+                                        win.focus();
+                                    } else {
+                                        //Browser has blocked it
+                                        alert('Please allow popups for this website');
+                                    }
                                 }
                             }
-                        }
                     }
                     else{
+                        document.getElementById("goButton").style.visibility = 'visible';
                         answerDiv = document.getElementById("answer");
                         answerDiv.textContent = "Error: "+answer["text"];
-                    }
-                    }
-                    document.getElementById("answer").style.visibility = 'visible';
+                        }
+                     }
+                        if (first_command){
+                            document.getElementById("answer").style.visibility = 'visible';
+                        }
+                        };
+                        if (first_command == false) {
+                            console.log("Adding command " + command + " to html");
+                            $("#message-space").append('<p style="display:inline" class="bubbleone">' + command + '</sp>');
+                        }
+                        else{
+                            document.getElementById("goButton").style.visibility = 'visible';
                         }
                         spinner.spin(target);
                         //target.appendChild(spinner.el);
