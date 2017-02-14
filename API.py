@@ -4,6 +4,8 @@ import tools
 import logging
 import bcrypt
 import json
+import traceback
+import sys
 try:
     import queue as Queue
 except ImportError:
@@ -32,18 +34,21 @@ def new_user():
     log.info(":API:/api/new_user")
     response = {"type": None, "data": {}, "text": None}
     try:
-        username = str(request.form["username"])
+        if request.is_json:
+            request_data = request.get_json()
+        else:
+            request_data = request.form
+        username = str(request_data["username"])
         log.debug("Username is {0}".format(username))
-        password = str(request.form["password"])
-        first_name = str(request.form["first_name"])
-        last_name = str(request.form["last_name"])
-        email = str(request.form["email"])
-        city = str(request.form["city"])
-        country = str(request.form["country"])
-        state = str(request.form["state"])
+        password = str(request_data["password"])
+        first_name = str(request_data["first_name"])
+        last_name = str(request_data["last_name"])
+        email = str(request_data["email"])
+        city = str(request_data["city"])
+        country = str(request_data["country"])
+        state = str(request_data["state"])
         check_list = [username, password, first_name, last_name, email, city, country, state]
-        evaluations = [tools.check_string(x) for x in check_list]
-        passed = all(evaluations)
+        passed = tools.check_string(check_list)
         if passed:
             log.debug("Attempting to create new user with username {0} and email {1}".format(username, email))
             # Check to see if the username exists
@@ -111,20 +116,24 @@ def settings():
     """
     log.info(":API:/api/settings")
     response = {"type": None, "text": None, "data": {}}
-    if "username" in request.form.keys() and "password" in request.form.keys():
-        username = request.form["username"]
-        password = request.form["password"]
-        if all([tools.check_string(x) for x in [username, password]]):
+    if request.is_json:
+        request_data = request.get_json()
+    else:
+        request_data = request.form
+    if "username" in request_data.keys() and "password" in request_data.keys():
+        username = request_data["username"]
+        password = request_data["password"]
+        if tools.check_string(request_data.values()):
             user_table = db["users"].find_one(username=username)
             if user_table:
                 db_hash = user_table["password"]
                 if bcrypt.checkpw(password.encode('utf8'), db_hash.encode('utf8')):
-                    #TODO: write a framework that allowc ahgning of notifications
+                    #TODO: write a framework that allows changing of notifications
                     immutable_settings = ["username", "admin", "id", "user_token", "notifications", "password"]
                     db.begin()
                     log.info(":{0}:Changing settings for user".format(username))
                     try:
-                        for setting in request.form.keys():
+                        for setting in request_data.keys():
                             if setting not in immutable_settings:
                                 db["users"].upsert({"username": username, setting: request.form[setting]}, ['username'])
                         db.commit()
@@ -160,21 +169,30 @@ def get_sessions():
     log.info(":API:/api/get_sessions")
     response = {"type": None, "data": {}, "text": None}
     sessions = core.sessions
+    if request.is_json:
+        request_data = request.get_json()
+    else:
+        request_data = request.form
     try:
-        username = request.form["username"]
-        password = request.form["password"]
-        db_hash = db['users'].find_one(username=username)["password"]
-        user_auth = bcrypt.checkpw(password.encode('utf8'), db_hash.encode('utf8'))
-        if user_auth:
-            response["data"].update({"sessions":[]})
-            for session in sessions:
-                if sessions[session]["username"] == username:
-                    response["data"]["sessions"].append(session)
-            response["type"] = "success"
-            response["text"] = "Fetched active sessions"
+        username = request_data["username"]
+        password = request_data["password"]
+        if tools.check_string(request_data.values()):
+            db_hash = db['users'].find_one(username=username)["password"]
+            user_auth = bcrypt.checkpw(password.encode('utf8'), db_hash.encode('utf8'))
+            if user_auth:
+                response["data"].update({"sessions":[]})
+                for user_session in sessions:
+                    if sessions[user_session]["username"] == username:
+                        response["data"]["sessions"].append(session)
+                response["type"] = "success"
+                response["text"] = "Fetched active sessions"
+            else:
+                response["type"] = "error"
+                response["text"] = "Invalid username/password combination"
         else:
             response["type"] = "error"
-            response["text"] = "Invalid username/password combination"
+            response["text"] = "One of the submitted parameters contained an invalid character. " \
+                               "Valid characters are {0}".format(tools.valid_chars)
     except KeyError:
         response["type"] = "error"
         response["text"] = "Couldn't find username and password in request"
@@ -193,10 +211,14 @@ def start_session():
     log.info(":API:/api/start_session")
     # Check the information that the user has submitted
     response = {"type": None, "data": {}, "text": None}
+    if request.is_json:
+        request_data = request.get_json()
+    else:
+        request_data = request.form
     try:
         if request.method == "POST":
-            username = request.form["username"]
-            password = request.form["password"]
+            username = request_data["username"]
+            password = request_data["password"]
             client = "API-POST"
         elif request.method == "GET":
             username = request.args.get("username", "")
@@ -204,7 +226,7 @@ def start_session():
             client = "API-GET"
             if not (username and password):
                 raise KeyError()
-        if all([tools.check_string(x) for x in [username, password]]):
+        if tools.check_string([username, password]):
             log.info(":{0}:Checking password".format(username))
             users = db["users"]
             user_data = users.find_one(username=username)
@@ -223,7 +245,7 @@ def start_session():
                         response["data"].update({"session_id": session_id})
                     else:
                         response["type"] = "error"
-                        response["text"] = "Invalud username/password"
+                        response["text"] = "Invalid username/password"
             else:
                 response["type"] = "error"
                 response["text"] = "Couldn't find user with username {0}".format(username)
@@ -254,8 +276,12 @@ def end_session():
     """
     log.info(":API:/api/end_session")
     response = {"type": None, "data": {}, "text": None}
+    if request.is_json:
+        request_data = request.get_json()
+    else:
+        request_data = request.form
     try:
-        session_id = request.form["session_id"]
+        session_id = request_data["session_id"]
         # Check for the session id in the core.sessions dictionary
         if session_id in core.sessions.keys():
             log.info(":{0}:Ending session".format(session_id))
@@ -280,8 +306,12 @@ def check_session():
     """
     log.info(":API:/api/check_session")
     response = {"type": None, "text": None, "data": {}}
+    if request.is_json:
+        request_data = request.get_json()
+    else:
+        request_data = request.form
     try:
-        session_id = request.form["session_id"]
+        session_id = request_data["session_id"]
         session_valid = (session_id in core.sessions.keys())
         response["data"].update({"valid": session_valid})
         response["type"] = "success"
@@ -299,6 +329,92 @@ def check_session():
         response["data"].update({"valid": False})
     return tools.return_json(response)
 
+@api.route('/respond', methods=["GET", "POST"])
+def command_response():
+    """
+    Api path for responding to a command question
+    :param session_id:
+    :param command_id:
+    :return:
+    """
+    log.info(":API:/api/respond")
+    response = {"type": None, "text": None, "data": {}}
+    if request.is_json:
+        request_data = request.get_json()
+        try:
+            log.debug(request_data.keys())
+            command_id = request_data["command_id"]
+            session_id = request_data["session_id"]
+            response_value = request_data["value"]
+            #Validate the JSON response object
+            if tools.check_string([command_id, session_id]):
+                if session_id in core.sessions.keys():
+                    session_data = core.sessions[session_id]
+                    session_commands = session_data["commands"]
+                    response_command = None
+                    for command_obj in session_commands:
+                        if command_obj["id"] == command_id:
+                            response_command = command_obj
+                    if response_command:
+                        if "function" in command_obj.keys() and "event" in command_obj.keys():
+                            response_function = command_obj["function"]
+                            log.info(":{0}: Executing response function {1} with response {2}".format(
+                                command_id, response_function, response_value
+                            ))
+                            #Execute the response
+                            try:
+                                response_result = response_function(response_value, command_obj)
+                                log.info(":{0}:Successfully executed response, returning {1}".format(
+                                    session_id, tools.fold(response_result)
+                                ))
+                                response = response_result
+                            except Exception:
+                                exc_type, exc_value, exc_traceback = sys.exc_info()
+                                error_string = repr(traceback.format_exception(exc_type, exc_value,
+                                                  exc_traceback))
+                                log.error(error_string)
+                                username = session_data["username"]
+                                user_table = tools.find_one(username=username)
+                                if user_table:
+                                    response["type"] = "error"
+                                    if user_table["admin"]:
+                                        response["text"] = error_string
+                                    else:
+                                        response["text"] = "An error has occurred while trying to fetch a response." \
+                                                           "Please contact will@willbeddow.com to report the error and " \
+                                                           "get more information"
+
+                                else:
+                                    log.error("USER {0} NOT FOUND IN DATABASE. WARNING.".format(username))
+                                    response["type"] = "error"
+                                    response["text"] = "A database error has occurred. Please contact will@willbeddow.com" \
+                                                       "to report the error, along with the circumstances under which it" \
+                                                       "occurred."
+                        else:
+                            response["type"] = "error"
+                            response["text"] = "Command {0} didn't register for a response or didn't" \
+                                               " register the required data for a response.".format(command_id)
+                    else:
+                        response["type"] = "error"
+                        response["text"] = "Couldn't find a command object in session {0} with command id {1}".format(
+                            session_id, command_id
+                        )
+                else:
+                    response["type"] = "error"
+                    response["text"] = "Invalid session id {0}".format(session_id)
+            else:
+                response["type"] = "error"
+                response["text"] = "Submitted response data {0} failed string validation. Valid characters are {0}".format(
+                    tools.valid_chars
+                )
+        except KeyError:
+            response["type"] = "error"
+            response["text"] = "command_id, session_id, and JSON response object required"
+    else:
+        response["type"] = "error"
+        response["text"] = "/api/respond requires a JSON request"
+    return tools.return_json(response)
+
 @api.route('/command', methods=["GET", "POST"])
 def process_command():
     """
@@ -309,23 +425,28 @@ def process_command():
     """
     log.info(":API:/api/command")
     response = {"type": None, "data": {}, "text": None}
+    if request.is_json:
+        request_data = request.get_json()
+    else:
+        request_data = request.form
     try:
-        command = request.form["command"]
-        session_id = request.form["session_id"]
+        command = request_data["command"]
+        session_id = request_data["session_id"]
         log.debug(":{1}:Processing command {0}".format(command, session_id))
         if session_id in core.sessions.keys():
             # Add the command to the core.sessions command queue
             session_data = core.sessions[session_id]
             log.info(":{1}:Adding command {0} to the command queue".format(command, session_id))
-            command_id = tools.get_command_id(session_id)
-            command_data = {
-                "id": command_id,
-                "command": command
-            }
+            command_data = tools.create_command_obj(session_id, command)
             command_response = core.sessions_monitor.command(
                 command_data, core.sessions[session_id], db, add_to_updates_queue=False
             )
-            session_data["commands"].put(command_data)
+            if session_id in core.commands.keys():
+                core.commands[session_id].append(command_data)
+            else:
+                core.commands.update({session_id: [command_data]})
+            session_data["commands"].append(command_data)
+            core.commands.update(command_data)
             log.info(":{0}:Returning command response {1}".format(session_id, tools.fold(str(command_response))))
             response = command_response
         else:

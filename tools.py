@@ -4,6 +4,7 @@ import json
 import core
 import uuid
 import time
+import base64
 try:
     import queue as Queue
 except ImportError:
@@ -11,7 +12,7 @@ except ImportError:
 import datetime
 import string
 
-valid_chars = set(string.ascii_letters+string.digits+"!#$%()+,-.@")
+valid_chars = set(string.ascii_letters+string.digits+'{}|~^<>!#$%()+,-.@_[]')
 
 log = logging.getLogger()
 
@@ -19,7 +20,7 @@ log.debug("Valid SQL characters are {0}".format(valid_chars))
 
 session_nums = 0
 
-command_nums = 0
+command_nums = {}
 
 event_types = {
         "notification": "NOT",
@@ -39,7 +40,7 @@ def gen_session(username, client_type, db):
     core.sessions.update({
         session_id: {
             "username": username,
-            "commands": Queue.Queue(),
+            "commands": [],
             "created": datetime.datetime.now(),
             "updates": Queue.Queue(),
             "id": session_id,
@@ -49,7 +50,31 @@ def gen_session(username, client_type, db):
     return session_id
 
 
+def gen_command_uid():
+    """
+    Generate a 16 character url safe base64 string
 
+    :return urlsafe base64 string:
+    """
+    return base64.urlsafe_b64encode(uuid.uuid1().bytes).decode("utf-8").rstrip('=\n').replace('/', '_')
+
+def create_command_obj(session_id, command):
+    '''
+    Generate a properly formatted command object
+
+    :param session_id:
+    :param command:
+    :return command object:
+    '''
+    command_uid = "{0}_{1}".format(session_id,gen_command_uid())
+    log.debug(":{0}:Generating a new command object with command id {1}".format(session_id, command_uid))
+    command_object = {
+        "command": command,
+        "id": command_uid
+    }
+    #Add the command to the session
+    core.sessions[session_id]["commands"].append(command_object)
+    return command_object
 
 def get_event_uid(type):
     '''
@@ -131,7 +156,7 @@ def get_command_id(session_id):
     global command_nums
     command_nums+=1
     command_id = "{0}_{1}".format(
-        session_id, command_nums
+        session_id, gen_command_uid()
     )
     log.debug("Generated command id {0}".format(command_id))
     return command_id
@@ -225,11 +250,14 @@ def fold(string, line_length=120, indent=0, indent_first_line=False, _runs=0):
 def check_string(in_str):
     """
     Sanatize data
-
+    :param in_str: List or string of strings to be validated
     :return boolean:
     """
-    filters = (
-        in_str.strip() and
-        all([x in valid_chars for x in in_str])
-    )
-    return filters
+    if type(in_str) == list:
+        return all([check_string(x) for x in in_str])
+    else:
+        filters = (
+            in_str.strip() and
+            all([x in valid_chars for x in in_str])
+        )
+        return filters

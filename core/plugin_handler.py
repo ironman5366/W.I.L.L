@@ -65,10 +65,9 @@ class subscriptions():
         :param db:
         :return a response object:
         """
-        log.info("In subscriptions thread, starting loop")
-        log.info("db tables are {0}".format(db.tables))
         user_data = db["users"]
         time.sleep(0.1)
+        log.debug("Processing event {0}".format(event))
         #If the queue is empty, pass
         assert type(event) == dict
         event.update(dict(db=db))

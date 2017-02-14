@@ -47,7 +47,9 @@ class sessions_monitor():
         # Call the parser
         command_data.update({"db": db})
         parse_data = parser.parse(command_data, session)
-        log.info(":{0}:nlp parsing finished, adding data to event queue".format(session["id"]))
+        command_id = command_data['id']
+        parse_data.update({"command_id": command_data['id']})
+        log.info(":{0}:Finished parsing".format(command_id))
         response = plugin_handler.subscriptions().process_event(parse_data, db)
         log.info("Got response {0} with type {1}".format(response, type(response)))
         if response["type"] == "success":
@@ -55,7 +57,6 @@ class sessions_monitor():
         else:
             error_num+=1
         log.debug("Got response {0} from plugin handler".format(response))
-        command_id = command_data['id']
         log.info("{0}:Setting update for command with response {1}".format(
             command_id, response
         ))
