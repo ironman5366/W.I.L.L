@@ -90,13 +90,13 @@
                     <div class="message-container" id="message-container">
                         <div class="message-space" id="message-space"></div>
                             <form id="textCommandForm" class="textForm" method="POST" onsubmit="return false;">
-                                    <input type="text" placeholder="Read the news for me" id="textCommand" name="textCommand">
+                                    <input type="text" placeholder="Read the news for me" id="textCommand" name="textCommand" autocomplete="off">
                                     <input id="textGoButton" type="submit" value="Go" onclick="sendCommand(this.form.textCommand.value); return false;">
                                 </form>
                     </div>
                     {% if session["logged-in"] %}
                             <form id="commandForm" method="POST" onsubmit="return false;">
-                                <input type="text"  placeholder="Read the news for me" id="command" name="command">
+                                <input type="text"  placeholder="Read the news for me" id="command" name="command" autocomplete="off">
                                 <br>
                                 <input id="goButton" type="submit" value="Go" onclick="sendCommand(this.form.command.value); return false;">
                             </form>
