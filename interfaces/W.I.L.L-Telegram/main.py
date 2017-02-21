@@ -7,7 +7,7 @@ import threading
 
 #External imports
 import telegram
-from socketIO_client import SocketIO, LoggingNamespace, BaseNamespace
+#from socketIO_client import SocketIO, LoggingNamespace, BaseNamespace
 from telegram.ext import (
 Updater, CommandHandler, MessageHandler, Filters
 )
@@ -21,7 +21,10 @@ if os.path.isfile('will-telegram.conf'):
     SERVER_URL = configuration_data["server_url"]
     TOKEN = configuration_data["bot_token"]
     LOGFILE = configuration_data["logfile"]
-    DB_URL = configuration_data["db_url"]
+    if configuration_data["debug"]:
+        DB_URL = configuration_data["debug_db_url"]
+    else:
+        DB_URL = configuration_data["db_url"]
 
 
 logging.basicConfig(level=logging.DEBUG,
@@ -35,7 +38,7 @@ log = logging.getLogger()
 db = dataset.connect(DB_URL)
 
 help_str = '''
-Welcome to W.I.L.L! If you don't have an account yet, please sign up at http://67.205.186.54/static/signup_page.html.
+Welcome to W.I.L.L! If you don't have an account yet, please sign up at https://willbeddow.com/static/signup_page.html.
 There are only two commands that you need to learn about for this bot:
 /login <username> <password>: login to W.I.L.L and generate a session token.
 /help: Print this message
@@ -45,14 +48,14 @@ def help(bot, update):
     '''Echo the help string'''
     bot.sendMessage(update.message.chat_id, help_str)
 
-def socket_io_thread(bot,session_id, chat_id ):
-    socketIO = SocketIO(SERVER_URL, 80)
-    log.info("In socket_io thread")
-    socketIO.on('connect', lambda: socketIO.emit("get_updates", session_id))
-    socketIO.on('update', lambda x: bot.sendMessage(chat_id, (x["value"])))
-    socketIO.on('disconnect', lambda x: bot.sendMessage(chat_id, "Update server has disconnected"))
-    socketIO.on('debug', lambda x: log.info("Got debug message {0} from socketIO".format(x["value"])))
-    socketIO.wait()
+#def socket_io_thread(bot,session_id, chat_id ):
+#    socketIO = SocketIO(SERVER_URL, 80)
+#    log.info("In socket_io thread")
+#    socketIO.on('connect', lambda: socketIO.emit("get_updates", session_id))
+#    socketIO.on('update', lambda x: bot.sendMessage(chat_id, (x["value"])))
+#    socketIO.on('disconnect', lambda x: bot.sendMessage(chat_id, "Update server has disconnected"))
+#    socketIO.on('debug', lambda x: log.info("Got debug message {0} from socketIO".format(x["value"])))
+#    socketIO.wait()
 
 def login(bot, update):
     '''Login to W.I.L.L and store the session id in the db'''
@@ -71,8 +74,8 @@ def login(bot, update):
             username=username, chat_id=update.message.chat_id, session_id=response["data"]["session_id"])
             , ['username']
         )
-        socket_thread = threading.Thread(target=socket_io_thread, args=(
-            bot, response["data"]["session_id"],update.message.chat_id))
+        #socket_thread = threading.Thread(target=socket_io_thread, args=(
+        #   bot, response["data"]["session_id"],update.message.chat_id))
         #TODO: fix this later
         #socket_thread.start()
     else:
