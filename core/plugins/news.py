@@ -34,9 +34,10 @@ def news_reader(event):
             news_str = site_row["news_str"]
             response["text"] = news_str
     log.info("Parsing news site {0} for user {1}".format(user_news_site, event_user))
-    site_object = newspaper.build(user_news_site)
+    site_object = newspaper.build(user_news_site, memoize_articles=False)
     log.debug("Finished building newspaper object")
     top_articles = site_object.articles[0:4]
+    log.debug("Top articles are {0}".format(list(top_articles)))
     output_strs = []
     #Use multithreading to build the objects for the articles
     def build_article_object(article_url):
@@ -53,10 +54,9 @@ def news_reader(event):
             article.title.encode('ascii', 'ignore'), article_url, article.summary)
         output_strs.append(article_str)
     article_threads = []
-    map(
-        lambda article: article_threads.append(threading.Thread(target=build_article_object, args=(article.url,))),
-        top_articles
-    )
+    for article in top_articles:
+        article_thread = threading.Thread(target=build_article_object, args=(article.url, ))
+        article_threads.append(article_thread)
     [thread.start() for thread in article_threads]
     log.debug("Started news parsing threads, waiting for parsing to finish")
     [thread.join() for thread in article_threads]
