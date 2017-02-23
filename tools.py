@@ -12,7 +12,7 @@ except ImportError:
 import datetime
 import string
 
-valid_chars = set(string.ascii_letters+string.digits+'{}|~^<>!#$%()+,-.@_[]')
+valid_chars = set(string.ascii_letters+string.digits+'{}|~^<>!#$%()+,-.@_[] ')
 
 log = logging.getLogger()
 

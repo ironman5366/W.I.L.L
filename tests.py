@@ -30,7 +30,7 @@ class KeySort(unittest.TestCase):
 class plugin_tests(unittest.TestCase):
     def test_subscriptions(self):
         plugin_handler.load('core/plugins', db)
-        plugin_num = 5
+        plugin_num = 8
         print (plugin_handler.plugin_subscriptions)
         self.assertEqual(len(plugin_handler.plugin_subscriptions), plugin_num)
     def test_search(self):

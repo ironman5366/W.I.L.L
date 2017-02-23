@@ -93,7 +93,7 @@ def new_user():
         else:
             log.warning(":{0}:Failed SQL evaluation".format(username))
             response["type"] = "error"
-            response["text"] = "Invalid input"
+            response["text"] = "Invalid input, valid chars are {0}".format(tools.valid_chars)
 
     except KeyError:
         log.error("Needed data not found in new user request")
