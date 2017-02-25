@@ -16,7 +16,7 @@ easter_eggs = {
 
 def egg_hunt(event):
     scores = [event["doc"].similarity(event["parse"](x)) for x in easter_eggs]
-    return max(scores) >= 0.97
+    return max(scores) >= 0.96
 
 @subscribe({"name": "easter_eggs", "check": egg_hunt})
 def egg(event):
