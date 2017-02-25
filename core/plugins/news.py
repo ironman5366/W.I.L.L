@@ -47,12 +47,15 @@ def news_reader(event):
         log.debug("Downloading article {0}".format(article_url))
         article.download()
         log.debug("Finished downloading article {0}, parsing".format(article_url))
-        article.parse()
-        log.debug("Finished debugging {0}, running nlp".format(article_url))
-        article.nlp()
-        article_str = "{0} ({1})\n{2}\n".format(
-            article.title.encode('ascii', 'ignore'), article_url, article.summary)
-        output_strs.append(article_str)
+        try:
+            article.parse()
+            log.debug("Finished debugging {0}, running nlp".format(article_url))
+            article.nlp()
+            article_str = "{0} ({1})\n{2}\n".format(
+                str(article.title).encode('ascii', 'ignore'), article_url, str(article.summary))
+            output_strs.append(str(article_str))
+        except newspaper.article.ArticleException:
+            log.info(":{0}:Article exception with url {1}".format(event["session"]["id"], article_url))
     article_threads = []
     for article in top_articles:
         article_thread = threading.Thread(target=build_article_object, args=(article.url, ))
