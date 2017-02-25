@@ -6,6 +6,7 @@ import bcrypt
 import json
 import traceback
 import sys
+from whenareyou import whenareyou
 try:
     import queue as Queue
 except ImportError:
@@ -78,18 +79,21 @@ def new_user():
                         "admin": is_admin,
                         "default_plugin": "search",
                         "notifications": json.dumps(["email"]),
-                        "ip": request.environ["REMOTE_ADDR"],
+                        "ip": request.environ.get('HTTP_X_REAL_IP', request.remote_addr),
                         "news_site": "http://reuters.com",
                         "city": city,
                         "country": country,
                         "state": state,
-                        "temp_unit": "fahrenheit"
+                        "temp_unit": "fahrenheit",
+                        "timezone": whenareyou(city)
                     })
                     db.commit()
                     response["type"] = "success"
                     response["text"] = "Thank you {0}, you are now registered for W.I.L.L".format(first_name)
                 except:
                     db.rollback()
+                    response["type"] = "error"
+                    response["text"] = "There was an error in signing you up for W.I.L.L. Please check the information you entered"
         else:
             log.warning(":{0}:Failed SQL evaluation".format(username))
             response["type"] = "error"
