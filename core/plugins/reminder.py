@@ -1,12 +1,18 @@
 # Builtin imports
 import logging
 import time
+
 # Internal imports
 import core
 from core.plugin_handler import subscribe
 import tools
-from dateparser import parse
 import datetime
+import traceback
+import sys
+
+#External imports
+from dateparser import parse
+from pytz import timezone
 
 log = logging.getLogger()
 
@@ -68,8 +74,44 @@ def main(event):
         else:
             event_time = "1 minute"
     try:
-        time_in_seconds = (parse("in {0}".format(event_time)) - datetime.datetime.now()).total_seconds()
+        user_timezone = event["user_table"]["timezone"]
+        log.debug("User timezone is {0}".format(user_timezone))
     except:
+        response["text"] = "Error: wasn't able to parse a timezone for the user"
+        response["type"] = "error"
+        return response
+    tz = timezone(user_timezone)
+    datetime_tz = datetime.datetime.now(tz)
+    tzname = datetime_tz.tzinfo._tzname
+    time_word = "in"
+    for word in event["doc"]:
+        if word.tag_ == "IN":
+            time_word = word.orth_
+            log.debug("using time word {0}".format(time_word))
+    try:
+        #If the event time looks like a numerical time (ex: 1:00), and it's in 12 hour format w/o AM or PM, check whether noon or midnight is closer
+        if ":" in event_time and len(event_time)<5:
+            col_split = event_time.split(":")
+            col_split_pre = col_split[0]
+            #If it's a number
+            log.debug("Checking for 12 hour time")
+            if col_split_pre.isdigit():
+                hour_num = int(col_split_pre)
+                log.debug("Checking hour {0}".format(hour_num))
+                if hour_num < 12:
+                    event_time+=" PM"
+        parse_time_str = "{0} {1} {2}".format(time_word, event_time, tzname)
+        log.debug("Parse time str is {0}".format(parse_time_str))
+        time_in_seconds = (
+            parse(
+                parse_time_str,
+                settings={
+                    "RETURN_AS_TIMEZONE_AWARE": True
+                }
+            )
+            - datetime_tz).total_seconds()
+    except:
+        traceback.print_exc(sys.stdout)
         response["text"] = "Couldn't parse a time from {0}".format(event_time)
         response["type"] = "error"
         return response
@@ -85,5 +127,5 @@ def main(event):
         "type": "notification",
         "uid": event_id
     })
-    response["text"] = "Got it. I'll send you the following reminder: {0}".format(time_message)
+    response["text"] = "Got it. I'll send you the following reminder: {0} {1} {2}".format(time_message, time_word,  event_time)
     return response

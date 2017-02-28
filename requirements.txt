@@ -16,3 +16,4 @@ spotipy >= 2.4.4
 dateparser >= 0.5.1
 pyowm >= 2.6.1
 whenareyou >= 0.1.0
+pytz >= 2016.10
