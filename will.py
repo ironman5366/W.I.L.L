@@ -102,7 +102,7 @@ def start():
     global db
     global start_time
     db_url = configuration_data["db_url"]
-    db = dataset.connect(db_url)
+    db = dataset.connect(db_url, engine_kwargs={"pool_recycle": 1})
     core.db = db
     API.db = db
     web.db = db
