@@ -27,7 +27,6 @@ def is_reminder(event):
     else:
         return False
 
-
 @subscribe({"name": "reminder", "check": is_reminder})
 def main(event):
     '''Set a reminder using the interface scheduler'''
@@ -64,6 +63,9 @@ def main(event):
             lefts = [left.orth_ for left in chunk.lefts]
             rights = [right.orth_ for right in chunk.rights]
             event_time = " ".join(lefts + [chunk.text] + rights)
+            #Break out of the loop so the event time is the first matching word
+            if time_message:
+                break
     if not time_message:
         time_message == "Reminder: {0}".format(event_command)
     if not event_time:
