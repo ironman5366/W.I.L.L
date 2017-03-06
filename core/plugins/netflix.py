@@ -20,7 +20,7 @@ def main(event):
     work = None
     for chunk in event_doc.noun_chunks:
         #Use dependency parsing to dermine the object of the command
-        if chunk.root.dep_ == "dobj":
+        if chunk.root.dep_ == "dobj" or chunk.root.dep_ == "pobj":
             work = chunk.text
     if not work:
         return {

@@ -113,6 +113,7 @@ class subscriptions():
             log.info("Checking which plugin the user wants to run, found plugins {0}".format(
                 plugin_names
             ))
+            #TODO: integrate the response framework
             interface.check_plugins(plugin_names,event)
         else:
             default_plugin = user_table["default_plugin"]
@@ -155,7 +156,7 @@ def subscribe(subscription_data):
     """
     assert(type(subscription_data) == dict)
     def wrap(f):
-        #Subscrbe the plugin, and while processing them pluck out the default plugin
+        #Subscribe the plugin, and while processing them pluck out the default plugin
         #So it doesn't have to be searched for later
         log.info("Subscribing function {0} to data {1}".format(
             f, subscription_data
@@ -165,6 +166,7 @@ def subscribe(subscription_data):
         })
         log.info("Appending subscription data {0} to plugin subscriptions".format(subscription_data))
         plugin_subscriptions.append(subscription_data)
+        return f
     return wrap
 
 def load(dir_path, DB):

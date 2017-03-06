@@ -184,6 +184,10 @@
                                 var json = JSON.parse(xhr.responseText);
                                 $("#message-space").append('<p class="bubbletwo">' + json.text + '</p>');
                                 scrollToBottom("message-space");
+                                if (json.data.response){
+                                    waiting_response = true;
+                                    answer_data["response"] = json.data.response;
+                                }
                             }
                         }
                         $("#message-space").append('<p class="bubbleone">' + command + '</p>');

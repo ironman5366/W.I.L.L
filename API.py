@@ -360,14 +360,14 @@ def command_response():
                         if command_obj["id"] == command_id:
                             response_command = command_obj
                     if response_command:
-                        if "function" in command_obj.keys() and "event" in command_obj.keys():
-                            response_function = command_obj["function"]
+                        if "function" in response_command.keys() and "event" in response_command.keys():
+                            response_function = response_command["function"]
                             log.info(":{0}: Executing response function {1} with response {2}".format(
                                 command_id, response_function, response_value
                             ))
                             #Execute the response
                             try:
-                                response_result = response_function(response_value, command_obj)
+                                response_result = response_function(response_value, response_command["event"])
                                 log.info(":{0}:Successfully executed response, returning {1}".format(
                                     session_id, tools.fold(response_result)
                                 ))
@@ -378,7 +378,7 @@ def command_response():
                                                   exc_traceback))
                                 log.error(error_string)
                                 username = session_data["username"]
-                                user_table = tools.find_one(username=username)
+                                user_table = db["users"].find_one(username=username)
                                 if user_table:
                                     response["type"] = "error"
                                     if user_table["admin"]:
