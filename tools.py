@@ -28,6 +28,26 @@ event_types = {
         "function": "FUN"
     }
 
+def set_response(session_id, command_id, event, response_function):
+    """
+    Set a response listener in the session object
+
+    :param session_id:
+    :param command_id:
+    :param event:
+    :param response_function:
+    """
+    session_container = core.sessions[session_id]
+    commands_container = session_container["commands"]
+    for command in commands_container:
+        if command["id"] == command_id:
+            command_data = command
+    command_data.update({
+        "event": event,
+        "function": response_function
+    })
+
+
 def gen_session(username, client_type, db):
     """
     :param username:

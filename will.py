@@ -101,22 +101,20 @@ def start():
     """
     global db
     global start_time
+    log.info(":SYS:Starting W.I.L.L")
     db_url = configuration_data["db_url"]
+    log.info(":SYS:Connected to database")
     db = dataset.connect(db_url, engine_kwargs={"pool_recycle": 1})
     core.db = db
     API.db = db
     web.db = db
     start_time = now.strftime("%I:%M %p %A %m/%d/%Y")
     web.start_time = start_time
-    log.info(":SYS:Running app")
-    log.info(":SYS:Starting W.I.L.L")
-    log.info(":SYS:Loaded configuration file and started logging")
-    log.info(":SYS:Connecting to database")
     log.info(":SYS:Starting W.I.L.L core")
     core.initialize(db)
     log.info(":SYS:Starting sessions parsing thread")
     core.sessions_monitor(db)
-    log.info(":SYS:Connected to database, running server")
+    log.info(":SYS:W.I.L.L started")
 
 if __name__ == "__main__":
     start()
