@@ -1,0 +1,10 @@
+{
+"db": {
+    "host": "localhost",
+    "port": 7687,
+    "user": "neo4j",
+    "password": "neo4j"
+},
+"db_host": "localhost:7687",
+"debug": true
+}
