@@ -1,0 +1,20 @@
+<!--An ugly signup page that uses the api-->
+<h1>Sign up for W.I.L.L</h1>
+<form method="POST", action="/api/new_user">
+    <p>First name:</p>
+    <input type="text", name="first_name">
+    <p>Last name:</p>
+    <input type="text", name="last_name">
+    <p>Username:</p>
+    <input type="text", name="username">
+    <p>Password:</p>
+    <input type="password", name="password">
+    <p>Default plugin:</p>
+    <input type="text" value="search" name="default_plugin">
+    <p>Email:</p>
+    <input type="text" name="email">
+    <br></br>
+    <p>Please put in your favorite news site. W.I.L.L can automatically read you the news</p>
+    <input type="text" name="news" placeholder="http://abcnews.go.com/">
+    <input type="submit" value="Sign up">
+</form>

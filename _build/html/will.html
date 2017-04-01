@@ -1,0 +1,314 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>will.py &#8212; W.I.L.L 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="core" href="core.html" />
+    <link rel="prev" title="Welcome to W.I.L.L’s documentation!" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-will">
+<span id="will-py"></span><h1>will.py<a class="headerlink" href="#module-will" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="will.check_session">
+<code class="descclassname">will.</code><code class="descname">check_session</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#check_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.check_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>Check if a session is valid
+:param: session_id
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.command">
+<code class="descclassname">will.</code><code class="descname">command</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Deprecated non-styled page for commands
+:param username:
+:param password:
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.dump_events">
+<code class="descclassname">will.</code><code class="descname">dump_events</code><span class="sig-paren">(</span><em>*args</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#dump_events"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.dump_events" title="Permalink to this definition">¶</a></dt>
+<dd><p>Dump events to db on exit
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.end_session">
+<code class="descclassname">will.</code><code class="descname">end_session</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#end_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.end_session" title="Permalink to this definition">¶</a></dt>
+<dd><p>End a session
+:param  session_idL
+:return: End the session</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.gen_session">
+<code class="descclassname">will.</code><code class="descname">gen_session</code><span class="sig-paren">(</span><em>username</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#gen_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.gen_session" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>username</strong> &#8211; </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body">session_id</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.get_sessions">
+<code class="descclassname">will.</code><code class="descname">get_sessions</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#get_sessions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.get_sessions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return list of active sessions for user
+:param: username
+:param: password
+:return: list of sessions</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.login">
+<code class="descclassname">will.</code><code class="descname">login</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#login"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.login" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>username</strong> &#8211; </li>
+<li><strong>password</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return Login data:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.main">
+<code class="descclassname">will.</code><code class="descname">main</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#main"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.main" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render the webapp index.html template
+:return index template:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.new_user">
+<code class="descclassname">will.</code><code class="descname">new_user</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#new_user"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.new_user" title="Permalink to this definition">¶</a></dt>
+<dd><p>Create new user in the database
+:param: username
+:param: password
+:param: first_name
+:param: email
+:param: city
+:param: country
+:param: state
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.process_command">
+<code class="descclassname">will.</code><code class="descname">process_command</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#process_command"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.process_command" title="Permalink to this definition">¶</a></dt>
+<dd><p>Api path for processing a command
+:param command:
+:param session_id:
+:return response object:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.report">
+<code class="descclassname">will.</code><code class="descname">report</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#report"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.report" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render template for admin-only reporting page or bounce a non admin user back to /
+:param session:
+:return report template:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.settings">
+<code class="descclassname">will.</code><code class="descname">settings</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#settings"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.settings" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>username</strong> &#8211; </li>
+<li><strong>password</strong> &#8211; </li>
+<li><strong>- setting to be changed</strong> (<em>Optional</em>) &#8211; </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Change the users settings</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.settings_page">
+<code class="descclassname">will.</code><code class="descname">settings_page</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#settings_page"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.settings_page" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render the settings template
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.signup">
+<code class="descclassname">will.</code><code class="descname">signup</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#signup"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.signup" title="Permalink to this definition">¶</a></dt>
+<dd><p>Render signup template
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.start">
+<code class="descclassname">will.</code><code class="descname">start</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#start"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.start" title="Permalink to this definition">¶</a></dt>
+<dd><p>Initialize db and session monitor thread
+:return:</p>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.start_session">
+<code class="descclassname">will.</code><code class="descname">start_session</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#start_session"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.start_session" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Param:</th><td class="field-body">username</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Param:</th><td class="field-body">password</td>
+</tr>
+</tbody>
+</table>
+<p>Generate a session id and start a new session</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="will.update_loop">
+<code class="descclassname">will.</code><code class="descname">update_loop</code><span class="sig-paren">(</span><em>session_id</em>, <em>sid</em><span class="sig-paren">)</span><a class="reference internal" href="_modules/will.html#update_loop"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#will.update_loop" title="Permalink to this definition">¶</a></dt>
+<dd><table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>session_id</strong> &#8211; W.I.L.L session id</li>
+<li><strong>sid</strong> &#8211; Flask session id</li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+<p>Update thread that will emit socket.io updates to the user while they&#8217;re connected</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Returns:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">Welcome to W.I.L.L&#8217;s documentation!</a></li>
+      <li>Next: <a href="core.html" title="next chapter">core</a></li>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="_sources/will.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Will Beddow.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="_sources/will.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

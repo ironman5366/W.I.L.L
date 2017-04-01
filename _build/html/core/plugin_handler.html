@@ -1,0 +1,338 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>plugin_handler &#8212; W.I.L.L 3.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '3.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+   
+  <link rel="stylesheet" href="../_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body role="document">
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="module-core.plugin_handler">
+<span id="plugin-handler"></span><h1>plugin_handler<a class="headerlink" href="#module-core.plugin_handler" title="Permalink to this headline">¶</a></h1>
+<dl class="class">
+<dt id="core.plugin_handler.subscriptions">
+<em class="property">class </em><code class="descclassname">core.plugin_handler.</code><code class="descname">subscriptions</code><a class="reference internal" href="../_modules/core/plugin_handler.html#subscriptions"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.subscriptions" title="Permalink to this definition">¶</a></dt>
+<dd><p>Manage plugin subscriptions and events</p>
+<dl class="method">
+<dt id="core.plugin_handler.subscriptions.call_plugin">
+<code class="descname">call_plugin</code><span class="sig-paren">(</span><em>plugin_function</em>, <em>event</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#subscriptions.call_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.subscriptions.call_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Call a plugin</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>plugin_function</strong> &#8211; </li>
+<li><strong>event</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a response object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="core.plugin_handler.subscriptions.process_event">
+<code class="descname">process_event</code><span class="sig-paren">(</span><em>event</em>, <em>db</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#subscriptions.process_event"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.subscriptions.process_event" title="Permalink to this definition">¶</a></dt>
+<dd><p>Select the right plugin for a command event and run it</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>event</strong> &#8211; </li>
+<li><strong>db</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return a response object:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt id="core.plugin_handler.PythonLoader">
+<em class="property">class </em><code class="descclassname">core.plugin_handler.</code><code class="descname">PythonLoader</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.PythonLoader" title="Permalink to this definition">¶</a></dt>
+<dd><p>The class that loads the plugins</p>
+<dl class="method">
+<dt id="core.plugin_handler.PythonLoader.import_name">
+<code class="descname">import_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.import_name"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.PythonLoader.import_name" title="Permalink to this definition">¶</a></dt>
+<dd><p>Properly format a plugin name for import</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return a file path:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="core.plugin_handler.PythonLoader.is_plugin">
+<code class="descname">is_plugin</code><span class="sig-paren">(</span><em>fs_tools=&lt;module 'ntpath' from 'c:\\users\\willb\\appdata\\local\\programs\\python\\python36\\lib\\ntpath.py'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.is_plugin"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.PythonLoader.is_plugin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determine whether a file in the plugin directory is a plugin</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fs_tools</strong> &#8211; </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return boolean:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt id="core.plugin_handler.PythonLoader.load">
+<code class="descname">load</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.PythonLoader.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Use importlib to import the plugin file</p>
+</dd></dl>
+
+<dl class="method">
+<dt id="core.plugin_handler.PythonLoader.update_path">
+<code class="descname">update_path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.update_path"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.PythonLoader.update_path" title="Permalink to this definition">¶</a></dt>
+<dd><p>Append data to sys.path</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">core.plugin_handler.</code><code class="descname">PythonLoader</code><span class="sig-paren">(</span><em>file_path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>The class that loads the plugins</p>
+<dl class="method">
+<dt>
+<code class="descname">import_name</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.import_name"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Properly format a plugin name for import</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name" colspan="2">Return a file path:</th></tr>
+<tr class="field-odd field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">is_plugin</code><span class="sig-paren">(</span><em>fs_tools=&lt;module 'ntpath' from 'c:\\users\\willb\\appdata\\local\\programs\\python\\python36\\lib\\ntpath.py'&gt;</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.is_plugin"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Determine whether a file in the plugin directory is a plugin</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>fs_tools</strong> &#8211; </td>
+</tr>
+<tr class="field-even field"><th class="field-name">Return boolean:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">load</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.load"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Use importlib to import the plugin file</p>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">update_path</code><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#PythonLoader.update_path"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Append data to sys.path</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="function">
+<dt id="core.plugin_handler.load">
+<code class="descclassname">core.plugin_handler.</code><code class="descname">load</code><span class="sig-paren">(</span><em>dir_path</em>, <em>DB</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#load"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.load" title="Permalink to this definition">¶</a></dt>
+<dd><p>Run the plugin loader on processed plugins</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first last simple">
+<li><strong>dir_path</strong> &#8211; </li>
+<li><strong>DB</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="core.plugin_handler.process_plugins">
+<code class="descclassname">core.plugin_handler.</code><code class="descname">process_plugins</code><span class="sig-paren">(</span><em>path</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#process_plugins"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.process_plugins" title="Permalink to this definition">¶</a></dt>
+<dd><p>Process and import the plugins</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>path</strong> &#8211; </td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="function">
+<dt id="core.plugin_handler.subscribe">
+<code class="descclassname">core.plugin_handler.</code><code class="descname">subscribe</code><span class="sig-paren">(</span><em>subscription_data</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#subscribe"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#core.plugin_handler.subscribe" title="Permalink to this definition">¶</a></dt>
+<dd><p>Provides a decorator for subscribing plugin to commands</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><strong>subscription_data</strong> &#8211; A dict containing the name and check function</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="class">
+<dt>
+<em class="property">class </em><code class="descclassname">core.plugin_handler.</code><code class="descname">subscriptions</code><a class="reference internal" href="../_modules/core/plugin_handler.html#subscriptions"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Manage plugin subscriptions and events</p>
+<dl class="method">
+<dt>
+<code class="descname">call_plugin</code><span class="sig-paren">(</span><em>plugin_function</em>, <em>event</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#subscriptions.call_plugin"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Call a plugin</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>plugin_function</strong> &#8211; </li>
+<li><strong>event</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name">Returns:</th><td class="field-body"><p class="first last">a response object</p>
+</td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+<dl class="method">
+<dt>
+<code class="descname">process_event</code><span class="sig-paren">(</span><em>event</em>, <em>db</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/core/plugin_handler.html#subscriptions.process_event"><span class="viewcode-link">[source]</span></a></dt>
+<dd><p>Select the right plugin for a command event and run it</p>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">Parameters:</th><td class="field-body"><ul class="first simple">
+<li><strong>event</strong> &#8211; </li>
+<li><strong>db</strong> &#8211; </li>
+</ul>
+</td>
+</tr>
+<tr class="field-even field"><th class="field-name" colspan="2">Return a response object:</th></tr>
+<tr class="field-even field"><td>&nbsp;</td><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+</dd></dl>
+
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper"><div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/core/plugin_handler.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, Will Beddow.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.5.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.9</a>
+      
+      |
+      <a href="../_sources/core/plugin_handler.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>
