@@ -11,7 +11,7 @@ def gen_response(response_value, event):
 def check_echo(event):
     return event["command"].lower() == "echo"
 
-@subscribe({"name": "echo", "check": check_echo})
+@subscribe(name="echo", check=check_echo)
 def main(event):
     command_id = event["command_id"]
     log.debug("In echo with command id {0}".format(command_id))

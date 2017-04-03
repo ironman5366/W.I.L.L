@@ -15,7 +15,7 @@ def is_spotify(event):
     event_doc = event["doc"]
     return "spotify" in [word.orth_.lower() for word in event_doc]
 
-@subscribe({"name": "spotify", "check":  is_spotify})
+@subscribe(name="spotify", check=is_spotify)
 def main(event):
     event_doc = event["doc"]
     work = None

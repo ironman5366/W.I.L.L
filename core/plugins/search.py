@@ -107,7 +107,7 @@ def is_search(event):
     return False
 
 
-@subscribe({"name": "search", "check": is_search})
+@subscribe(name="search", check=is_search)
 def main(data):
     '''Start the search'''
     response = {"text": None, "data":{}, "type": "success"}

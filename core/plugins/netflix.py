@@ -14,7 +14,7 @@ def is_netflix(event):
     event_doc = event["doc"]
     return "netflix" in [word.orth_.lower() for word in event_doc]
 
-@subscribe({"name": "netflix", "check":  is_netflix})
+@subscribe(name="netflix", check=is_netflix)
 def main(event):
     event_doc = event["doc"]
     work = None

@@ -15,7 +15,7 @@ def is_news(event):
     event_words = [token.orth_.lower() for token in event["doc"]]
     return "news" in event_words
 
-@subscribe({"name": "news", "check": is_news})
+@subscribe(name="news", check=is_news)
 def news_reader(event):
     '''Use the excellent newspaper module to fetch the news from the readers favorite site'''
     response = {"type": "success", "text": None, "data": {}}

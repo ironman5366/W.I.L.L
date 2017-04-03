@@ -102,7 +102,7 @@ def ask_country(response_value, event):
         response["text"] = "City {0} failed string validation".format(response_value)
     return response
 
-@subscribe({"name": "weather", "check": is_weather})
+@subscribe(name="weather", check=is_weather)
 def weather_main(event):
     '''Get the users weather from the infromation in the users database'''
     log.info("This function is {0}".format(weather_main))

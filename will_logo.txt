@@ -1,3 +1,4 @@
+
  ____      ____  _____     _____        _____
 |_  _|    |_  _||_   _|   |_   _|      |_   _|
   \ \  /\  / /    | |       | |          | |
@@ -10,6 +11,3 @@ Welcome to W.I.L.L version {version_number}
 W.I.L.L is developed and provided for free by Will Beddow.
 
 You can contact Will at will@willbeddow.com.
-
-
-

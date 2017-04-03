@@ -5,6 +5,11 @@
     "user": "neo4j",
     "password": "neo4j"
 },
-"db_host": "localhost:7687",
+"cache": {
+    "threads": 1
+},
+"plugins": {
+    "dir": "core/plugins"
+},
 "debug": true
 }

@@ -27,7 +27,7 @@ def is_reminder(event):
     else:
         return False
 
-@subscribe({"name": "reminder", "check": is_reminder})
+@subscribe(name="reminder",check=is_reminder)
 def main(event):
     '''Set a reminder using the interface scheduler'''
     response = {"type": "success", "text": None, "data": {}}

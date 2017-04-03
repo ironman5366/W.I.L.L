@@ -8,10 +8,11 @@ import datetime
 
 #Internal imports
 from userspace import userspace
+from core import core
 from API import API
 from exceptions import *
 
-version = "4.0-alpha+01"
+version = "4.0-alpha+02"
 author = "Will Beddow"
 
 class will:
@@ -62,9 +63,14 @@ class will:
         log = logging.getLogger()
         log.addHandler(ch)
         log.addHandler(fh)
+        # Silence noisy loggers from external libraries
+        logging.getLogger('neo4j').setLevel(logging.CRITICAL)
+        logging.getLogger('neo4j.bolt').setLevel(logging.CRITICAL)
 
     def load_modules(self):
-        log.info("Loading UserSpace...")
+        log.info("Loading core...")
+        self.core = core(configuration_data=self.configuration_data)
+        log.info("Loading userspace...")
         self.userspace = userspace(configuration_data=self.configuration_data)
         log.info("Loading API...")
         self.API = API(configuration_data=self.configuration_data)
@@ -72,9 +78,9 @@ class will:
     def __init__(self, conf_file="will.conf", intro_file="will_logo.txt"):
         self.start_time = datetime.datetime.now()
         if os.path.isfile(conf_file):
-            conf_data = open(conf_file).read()
+            conf_data = open(conf_file)
             try:
-                configuration_data = json.loads(conf_data)
+                configuration_data = json.load(conf_data)
                 #Validation of configuration_data
                 required_attrs = {
                     "db": dict,
@@ -112,8 +118,8 @@ class will:
                 else:
                     raise ConfigurationError("Configuration data isn't a dictionary. Please check your configuration.")
             except json.JSONDecodeError:
-                raise ConfigurationError("Couldn't decode configuration data. Please make sure that your configuration file is in JSON "
-                       "format")
+                raise ConfigurationError("Couldn't decode configuration data. Please make sure that your configuration "
+                                         "file is in JSON format")
         else:
             raise ConfigurationError("Couldn't find configuration file {0}.".format(conf_file))
 

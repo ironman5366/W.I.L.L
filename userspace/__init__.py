@@ -3,31 +3,32 @@ import logging
 import threading
 import time
 #External imports
-from py2neo import Graph, Path
+from neo4j.v1 import GraphDatabase, basic_auth
+import neo4j.exceptions
 #Internal imports
 from exceptions import *
 from userspace import cache_utils
 
 log = logging.getLogger()
 
-class userspace():
+class userspace:
 
     def event_loop(self):
+        session = self.graph.session()
         while self.running:
             # List of user dicts
-            users = self.graph.run("match (u:User) return (u)").data()
+            users = session.run("match (u:User) return (u)").data()
             for user in users:
                 # If the user is online, make sure that everything they need is cached
                 # Properties that need to be cached will be of the type DataStore
                 if user["online"]:
-                    datastores = self.graph.run("match (u)-[r]->(d:DataStore) return (d)")
+                    datastores = session.run("match (u)-[r]->(d:DataStore) return (d)")
                     for datastore in datastores:
                         last_cached = datastore["last_cached"]
                         # If it hasn't been cached in the past 5 minutes, start a new thread to cache it
                         if time.time()-last_cached >= 300:
                             cache_thread = threading.Thread(target=self.cache_manager.cache_one(datastore))
                             cache_thread.start()
-                            self.cache_threads.append(cache_thread)
             time.sleep(self.loop_wait)
 
     def configure_loop(self):
@@ -69,25 +70,39 @@ class userspace():
             error_string = "Database configuration is invalid. Please check the {0} field".format(error_cause)
             log.error(error_string)
             raise CredentialsError(error_string)
-        graph = Graph(
+        graph = GraphDatabase.driver("bolt://{host}:{port}".format(
             host=db_configuration["host"],
-            port=db_configuration["port"],
-            user=db_configuration["user"],
-            password=db_configuration["password"])
+            port=db_configuration["port"]),
+            auth = basic_auth(
+                db_configuration["user"],
+                db_configuration["password"]
+            )
+        )
         self.graph = graph
         log.debug("Successfully connected to database at {0}:{1} with username {2}".format(
             db_configuration["host"],
             db_configuration["port"],
             db_configuration["user"]
         ))
-        log.debug("Checking for custom user loop preferences and running the event loop and monitor")
-        # Configure the loop settings
-        self.configure_loop()
+        log.debug("Loading cache configuration")
+        cache_configuration = self.configuration_data["cache"]
+        error_cause = None
+        try:
+            error_cause = "threads"
+            assert type(cache_configuration["threads"]) == int
+        except (KeyError, AssertionError):
+            error_string = "Cache configuration is invalid. Please check the {0} field".format(error_cause)
+            log.error(error_string)
+            raise ConfigurationError(error_string)
+
+        # TODO: load the caching functions and core plugins
+        self.cache_manager = cache_utils.cache(graph, cache_configuration["threads"])
+        # Load caches for all datastores, public and private
+        datastores = self.graph.session().run("MATCH (d:DataStore) return (d)")
+        self.cache_manager.cache_multi(datastores)
         # Shutdown switch
         self.running = True
         event_thread = threading.Thread(target=self.event_loop)
         self.event_thread = event_thread
         event_thread.start()
-        self.cache_manager = cache_utils.cache(graph)
-        self.cache_threads = []
         log.debug("Started event loop thread")
