@@ -12,41 +12,26 @@ except ImportError:
 import datetime
 import string
 
+#External imports
+import spacy
+
 valid_chars = set(string.ascii_letters+string.digits+'{}|~^<>!#$%()+,-.@_[] ')
 
 log = logging.getLogger()
 
 log.debug("Valid SQL characters are {0}".format(valid_chars))
 
-session_nums = 0
-
 command_nums = {}
 
-event_types = {
-        "notification": "NOT",
-        "url": "URL",
-        "function": "FUN"
-    }
+parser = None
 
-def set_response(session_id, command_id, event, response_function):
-    """
-    Set a response listener in the session object
+def load_spacy(lang="en"):
+    global parser
+    parser = spacy.load('en')
 
-    :param session_id:
-    :param command_id:
-    :param event:
-    :param response_function:
-    """
-    session_container = core.sessions[session_id]
-    commands_container = session_container["commands"]
-    for command in commands_container:
-        if command["id"] == command_id:
-            command_data = command
-    command_data.update({
-        "event": event,
-        "function": response_function
-    })
-
+def load():
+    log.debug("Loading spacy")
+    load_spacy()
 
 def gen_session(username, client_type, db):
     """
@@ -78,46 +63,6 @@ def gen_command_uid():
     """
     return base64.urlsafe_b64encode(uuid.uuid1().bytes).decode("utf-8").rstrip('=\n').replace('/', '_')
 
-def create_command_obj(session_id, command):
-    '''
-    Generate a properly formatted command object
-
-    :param session_id:
-    :param command:
-    :return command object:
-    '''
-    command_uid = "{0}_{1}".format(session_id,gen_command_uid())
-    log.debug(":{0}:Generating a new command object with command id {1}".format(session_id, command_uid))
-    command_object = {
-        "command": command,
-        "id": command_uid
-    }
-    #Add the command to the session
-    core.sessions[session_id]["commands"].append(command_object)
-    return command_object
-
-def get_event_uid(type):
-    '''
-    Get an event uid using the event type
-    :param type:
-    :return: Event uid string
-    '''
-    e_type = event_types[type]
-    return "{0}:{1}".format(e_type, str(uuid.uuid1()))
-
-def dump_events(events, db):
-    """
-    Dump events
-    :param events:
-    :param db:
-    """
-    #Delete all events from db that should be finished
-    events_table = db['events']
-    events_table.delete(time < time.time())
-    for event in events:
-        #Remove one time events that had functions in them
-        if event["type"] != "function":
-            events_table.upsert(event, ['uid'])
 
 def load_key(key_type, db, load_url=False):
     """

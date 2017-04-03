@@ -2,7 +2,6 @@
 import logging
 import logging.handlers
 import json
-import sys
 import os
 import datetime
 
@@ -11,6 +10,7 @@ from userspace import userspace
 from core import core
 from API import API
 from exceptions import *
+import tools
 
 version = "4.0-alpha+02"
 author = "Will Beddow"
@@ -68,6 +68,8 @@ class will:
         logging.getLogger('neo4j.bolt').setLevel(logging.CRITICAL)
 
     def load_modules(self):
+        log.info("Loading global tools...")
+        tools.load()
         log.info("Loading core...")
         self.core = core(configuration_data=self.configuration_data)
         log.info("Loading userspace...")
