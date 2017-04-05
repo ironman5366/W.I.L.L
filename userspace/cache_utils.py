@@ -9,7 +9,9 @@ from neo4j.v1.direct import DirectDriver
 log = logging.getLogger()
 
 class cache:
-
+    def build_cache(self, user, datastore):
+        # Utilities to build caches for various types of
+        pass
     def cache_one(self, datastore, cache_interval=1800):
         """
         Reload the cache for any given datastore. By default only reload it if the time since it has been cached is 
@@ -45,6 +47,7 @@ class cache:
                 # TODO: allow the relationship to specify properties from other connected nodes
                 if user_rel:
                     pass
+
     def cache_buffer(self, chunk):
         """
         Feed a chunk of datastores into self.cache_one
@@ -90,7 +93,7 @@ class cache:
         [c.join() for c in self.cache_threads]
         self.cache_threads = []
 
-    def __init__(self, graph, threads):
+    def __init__(self, plugins, graph, threads):
         """
         Validate that graph and threads are of the correct type, and set them in the class
         :param graph: 
@@ -102,4 +105,6 @@ class cache:
         assert type(graph) == DirectDriver
         self.graph = graph
         self.session = graph.session()
+        assert type(plugins) == dict
+        self.plugins = plugins
         self.cache_threads = []

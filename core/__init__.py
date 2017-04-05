@@ -28,3 +28,4 @@ class core:
             log.error(error_string)
             raise ConfigurationError(error_string)
         self.plugins = plugin_handler.load(plugin_configuration["dir"])
+

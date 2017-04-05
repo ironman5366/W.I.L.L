@@ -3,7 +3,6 @@ import logging
 import json
 import core
 import uuid
-import time
 import base64
 try:
     import queue as Queue

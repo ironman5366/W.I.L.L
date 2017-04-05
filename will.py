@@ -12,7 +12,7 @@ from API import API
 from exceptions import *
 import tools
 
-version = "4.0-alpha+02"
+version = "4.0-alpha+03"
 author = "Will Beddow"
 
 class will:
@@ -72,8 +72,9 @@ class will:
         tools.load()
         log.info("Loading core...")
         self.core = core(configuration_data=self.configuration_data)
+        plugins = self.core.plugins
         log.info("Loading userspace...")
-        self.userspace = userspace(configuration_data=self.configuration_data)
+        self.userspace = userspace(configuration_data=self.configuration_data, plugins=plugins)
         log.info("Loading API...")
         self.API = API(configuration_data=self.configuration_data)
 

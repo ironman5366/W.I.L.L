@@ -18,6 +18,7 @@ class userspace:
         while self.running:
             # List of user dicts
             users = session.run("match (u:User) return (u)").data()
+            log.info("Session type is {0}".format(type(users)))
             for user in users:
                 # If the user is online, make sure that everything they need is cached
                 # Properties that need to be cached will be of the type DataStore
@@ -52,7 +53,8 @@ class userspace:
                 log.error(error_str)
                 raise ConfigurationError(error_str)
         self.loop_wait = loop_wait
-    def __init__(self, configuration_data):
+
+    def __init__(self, configuration_data, plugins):
         self.configuration_data = configuration_data
         log.debug("Loading user database")
         db_configuration = self.configuration_data["db"]
@@ -95,7 +97,6 @@ class userspace:
             log.error(error_string)
             raise ConfigurationError(error_string)
 
-        # TODO: load the caching functions and core plugins
         self.cache_manager = cache_utils.cache(graph, cache_configuration["threads"])
         # Load caches for all datastores, public and private
         datastores = self.graph.session().run("MATCH (d:DataStore) return (d)")

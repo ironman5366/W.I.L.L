@@ -1,5 +1,6 @@
 # Internal imports
 from core.plugin_handler import subscribe
+import core.arguments as arguments
 import tools
 
 #Builtin imports
