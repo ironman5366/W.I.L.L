@@ -5,6 +5,7 @@ import json
 #Internal imports
 from exceptions import *
 import userspace
+from API import sessions
 
 #External  imports
 import falcon
@@ -96,3 +97,14 @@ class JSONTranslator(object):
 
         resp.body = json.dumps(req.context['result'])
 
+def start():
+    global session_monitor
+    # Start the session monitor
+    session_monitor = sessions.Monitor()
+
+def kill():
+    """
+    Kill the API and all sessions
+    
+    """
+    # Kill the session monitor

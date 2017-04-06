@@ -1,9 +1,11 @@
-#Builtin imports
+# Builtin imports
 import logging
 import uuid
 import datetime
+import threading
+import time
 
-#External imports
+# External imports
 import bcrypt
 
 log = logging.getLogger()
@@ -11,6 +13,7 @@ log = logging.getLogger()
 graph = None
 
 sessions = {}
+
 
 class Session:
 
@@ -44,7 +47,14 @@ class Session:
         
         :return report: 
         """
-        report_string = "Id:{session_id}\nUser:{user}\nCommands Processed:{command_len}\n"
+        report_string = "Id:{session_id}\nUser:{user}\nCommands Processed:{command_len}\nCreated:{created}".format(
+            session_id=self.session_id,
+            user=self.username,
+            command_len=len(self.commands),
+            created=self.created
+        )
+        return report_string
+
     @property
     def user_data(self):
         if self._user_data:
@@ -113,14 +123,50 @@ class Session:
         # Next time user_data and authentication are accessed they'll be reloaded
         self._user_data = None
         self._auth_done = False
+        self.last_reloaded = datetime.datetime.now()
 
     def __init__(self, username, password, client):
         # Make sure the graph has been loaded before the class is instantiated
-        assert (graph)
+        assert graph
         # Generate a session id
         self.username = username
         self._password = password
         self.client = client
         self.created = datetime.datetime.now()
+        self.last_reloaded = self.created
 
-# TODO: session manager thread that goes through and reloads data from old sessions, and logs out sessions that haven't been used
+
+class Monitor:
+    # Kill switch for the monitor thread
+    running = True
+
+    @property
+    def report(self):
+        session = graph.session()
+        users_online = session.run(
+            "MATCH (u:User {online: true}) RETURN (u)"
+        )
+        session.end()
+        num_users_online = len(users_online)
+        sessions_num = len(sessions)
+        report_string = "{0} users online, with {1} active sessions".format(
+            num_users_online, sessions_num
+        )
+        return report_string
+
+    def _monitor(self):
+        log.debug("Starting session monitor thread")
+        while self.running:
+            # Iterate through the sessions
+            for session_id, session in sessions.items():
+                current_time = datetime.datetime.now()
+                # Check if it was last reloaded more than an hour ago
+                if current_time-session.last_reloaded.total_seconds() >= 3600:
+                    session.reload()
+            # Session monitoring is low priority so it can run infrequently
+            time.sleep(30)
+
+    def __init__(self):
+        # Start the monitoring thread
+        monitor_thread = threading.Thread(target=self._monitor)
+        monitor_thread.start()
