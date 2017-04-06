@@ -21,6 +21,7 @@ class cache:
         :param datastore: The datastore to cache, matched from the graphed
         :param cache_interval: A custom cache interval, in seconds
         """
+        session = self.graph.session()
         current_time = time.time()
         last_cached = datastore["last_cached"]
         cache_delta = current_time-last_cached
@@ -35,7 +36,7 @@ class cache:
             if datastore["type"] == "private":
                 # Isolate the relationship between the user and the datastore to check for user specific settings
                 paired_user = datastore["username"]
-                user_rel = self.session().run(
+                user_rel = session.run(
                     "MATCH (d {id: {id}}"
                     "MATCH (u:User {username: {username})-[r:CACHE]->(d)"
                     "RETURN (r)",
@@ -47,6 +48,7 @@ class cache:
                 # TODO: allow the relationship to specify properties from other connected nodes
                 if user_rel:
                     pass
+        session.close()
 
     def cache_buffer(self, chunk):
         """
@@ -83,7 +85,7 @@ class cache:
                 chunks.append(datastores[incr:incr_new])
                 incr = incr_new
         log.debug("Made {0} chunks of length {1}, with the remainder of {2} added to the final chunk".format(
-            len(chunks), chunk_len, datastore_num%self.threads
+            len(chunks), chunk_len, datastore_num, self.threads
         ))
         for chunk in chunks:
             c_thread = threading.Thread(target=self.cache_buffer, args=(chunk))
@@ -104,7 +106,6 @@ class cache:
         self.threads = threads
         assert type(graph) == DirectDriver
         self.graph = graph
-        self.session = graph.session()
         assert type(plugins) == dict
         self.plugins = plugins
         self.cache_threads = []
