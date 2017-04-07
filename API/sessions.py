@@ -24,8 +24,18 @@ class Session:
     commands = []
 
     def logout(self):
+        """
+        Finish the session
+        
+        :return bool: a bool indicating whether the logout was sucessful 
+        """
         # Determine whether the user has any other active sessions
-        user_still_online = any([x.username == self.username for x in sessions.values()])
+        user_still_online = False
+        for session_id, session in sessions.items():
+            if session_id != self.session_id:
+                if session.username == self.username:
+                    user_still_online = True
+                    break
         # Change the database accordingly
         session = graph.session()
         session.run(
@@ -38,7 +48,12 @@ class Session:
         )
         session.close()
         # Delete self
-        del sessions[self.session_id]
+        if self.session_id in sessions.keys():
+            del sessions[self.session_id]
+            return True
+        else:
+            log.error("Logout called for session that wasn't instantiated")
+            return False
 
     @property
     def report(self):
@@ -57,6 +72,11 @@ class Session:
 
     @property
     def user_data(self):
+        """
+        User data from the database. If there's none cached, match it from the db and return it.
+        
+        :return user_data: 
+        """
         if self._user_data:
             return self._user_data
         else:
@@ -74,6 +94,11 @@ class Session:
 
     @property
     def _auth(self):
+        """
+        Authentication
+        
+        :return: 
+        """
         if self._auth_done:
             return self._authenticated
         else:
@@ -94,7 +119,8 @@ class Session:
     def start_session(self):
         """
         Generate a session id, update the database to show that the user is online, and add self to 
-        :return: 
+        
+        :return bool: A bool indicating whether authentication was sucessful and the session started 
         """
         if self._auth:
             session_id = uuid.uuid1()
@@ -126,6 +152,13 @@ class Session:
         self.last_reloaded = datetime.datetime.now()
 
     def __init__(self, username, password, client):
+        """
+        Instantiate a session and add metadata
+        
+        :param username: 
+        :param password: 
+        :param client: 
+        """
         # Make sure the graph has been loaded before the class is instantiated
         assert graph
         # Generate a session id
@@ -142,6 +175,11 @@ class Monitor:
 
     @property
     def report(self):
+        """
+        Generate information about the session monitor
+        
+        :return report_string: The string containing the report 
+        """
         session = graph.session()
         users_online = session.run(
             "MATCH (u:User {online: true}) RETURN (u)"
@@ -155,6 +193,10 @@ class Monitor:
         return report_string
 
     def _monitor(self):
+        """
+        A monitoring thread that reloads data for each session when it gets to old
+        
+        """
         log.debug("Starting session monitor thread")
         while self.running:
             # Iterate through the sessions
@@ -167,6 +209,10 @@ class Monitor:
             time.sleep(30)
 
     def __init__(self):
+        """
+        Start the _monitor thread
+        
+        """
         # Start the monitoring thread
         monitor_thread = threading.Thread(target=self._monitor)
         monitor_thread.start()
