@@ -1,12 +1,11 @@
 #Builtin imports
+# External imports
+import importlib
 import logging
 import os
 import sys
 
-#External imports
-import importlib
-
-#Internal imports
+# Internal imports
 from exceptions import *
 
 log = logging.getLogger()

@@ -4,12 +4,11 @@ import os
 
 #Internal modules
 try:
-    import core.plugin_handler as plugin_handler
+    pass
 except ImportError:
     import plugin_handler
     import parser
-import core.notification as notification
-from exceptions import *
+from will.exceptions import *
 
 log = logging.getLogger()
 

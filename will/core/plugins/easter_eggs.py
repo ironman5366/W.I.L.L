@@ -1,18 +1,20 @@
-from core.plugin_handler import subscribe
 import logging
+
+from core.plugin_handler import subscribe
+
 
 log = logging.getLogger()
 
 easter_eggs = {
-    "Who are you?": "I am W.I.L.L, short for Wireless Intelligent Linguistical Liveware",
+    "Who are you?": "I am will, short for Wireless Intelligent Linguistical Liveware",
     "Who created you?": "I was created by Will Beddow (will@willbeddow.com)",
     "Take me to your leader": "I don't have a leader. But you can talk to my creator, Will Beddow (will@willbeddow.com)",
     "Why do you exist": "To kick ass, execute advanced context-aware natural language algorithms, and take names.",
-    "What's your name?": "I am W.I.L.L, short for Wireless Intelligent Linguistic Liveware",
-    "How old are you?": "W.I.L.L was first thought up in 2014, and W.I.L.L 1.0 was made in the same year. I underwent "
-                        "many iterations and changes, and finally, here I am. Fun fact: the current W.I.L.L uses none "
-                        "of the original code from W.I.L.L 1.0 ",
-    "Hey W.I.L.L": "What's up?",
+    "What's your name?": "I am will, short for Wireless Intelligent Linguistic Liveware",
+    "How old are you?": "will was first thought up in 2014, and will 1.0 was made in the same year. I underwent "
+                        "many iterations and changes, and finally, here I am. Fun fact: the current will uses none "
+                        "of the original code from will 1.0 ",
+    "Hey will": "What's up?",
     "Who is your master?": "I was created by Will Beddow (will@willbeddow.com)"
 }
 

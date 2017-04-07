@@ -1,12 +1,10 @@
 #Internal imports
-from core.plugin_handler import subscribe
-import tools
+#Builtin imports
+import logging
 
 #External imports
 import spotipy
-
-#Builtin imports
-import logging
+from core.plugin_handler import subscribe
 
 sp = spotipy.Spotify()
 log = logging.getLogger()

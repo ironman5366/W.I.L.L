@@ -1,11 +1,13 @@
-import unittest
-import tools
 import json
-import os
-import dataset
-import core.plugin_handler as plugin_handler
-import core.notification as notification
 import logging
+import os
+import unittest
+
+import core.notification as notification
+import core.plugin_handler as plugin_handler
+import dataset
+
+from will import tools
 
 logging.basicConfig(filename="unittests.log", level=logging.DEBUG)
 

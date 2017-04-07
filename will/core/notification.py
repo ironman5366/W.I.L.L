@@ -1,10 +1,12 @@
 #Builtin imports
 import json
 import logging
-#External imports
+
+# External imports
 import requests
-#Internal imports
-import tools
+
+# Internal imports
+from will import tools
 
 log = logging.getLogger()
 
@@ -28,7 +30,7 @@ class send_notification():
         return requests.post(
             mailgun_url,
             auth=("api", mailgun_key),
-            data={"from": "W.I.L.L <postmaster@willbeddow.com>",
+            data={"from": "will <postmaster@willbeddow.com>",
                   "to": "{0} {1} <{2}>".format(first_name,last_name,email),
                   "subject": msg_summary,
                   "text": msg})
@@ -62,11 +64,11 @@ class send_notification():
                         msg_summary = ' '.join(words[0:5])
                     else:
                         msg_summary = msg
-                msg_summary = "W.I.L.L - "+msg_summary
+                msg_summary = "will - "+msg_summary
                 user_email = user_table["email"]
                 first_name = user_table["first_name"]
                 last_name = user_table["last_name"]
                 log.info("Sending email with subject {0} to email {1}".format(msg_summary, user_email))
                 send_notification.email(mailgun_key, mailgun_url, user_email, msg_summary, msg, first_name, last_name)
                 log.debug("Successfully sent email with subject {0} to email {1}".format(msg_summary, user_email))
-            #TODO: add options for more notification methods (phone, W.I.L.L-Telegram, etc.)
+            #TODO: add options for more notification methods (phone, will-Telegram, etc.)

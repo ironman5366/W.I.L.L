@@ -5,6 +5,6 @@ __pycache__/
 
 *.pyc
 Neo4j/
-core/plugin_files/
+will/core/plugin_files/
 will.conf
 will.log

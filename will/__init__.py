@@ -1,16 +1,15 @@
 #Builtin imports
+import datetime
+import json
 import logging
 import logging.handlers
-import json
 import os
-import datetime
 
-#Internal imports
-from userspace import userspace
-from core import core
-from API import API
-from exceptions import *
-import tools
+# Internal imports
+from will.userspace import userspace
+from will import API, tools
+from will.core import core
+from will.exceptions import *
 
 version = "4.0-alpha+03"
 author = "Will Beddow"
@@ -116,7 +115,7 @@ class will:
                     else:
                         log.warning("Introduction file, not found.")
                     #Load the modules with timing and a visual display
-                    log.info("Loading W.I.L.L modules...")
+                    log.info("Loading will modules...")
                     self.load_modules()
                 else:
                     raise ConfigurationError("Configuration data isn't a dictionary. Please check your configuration.")

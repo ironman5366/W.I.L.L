@@ -1,7 +1,9 @@
 #Basic echo plugin for testing response framework
-from core.plugin_handler import subscribe
-import tools
 import logging
+
+from core.plugin_handler import subscribe
+
+from will import tools
 
 log = logging.getLogger()
 

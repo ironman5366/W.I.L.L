@@ -2,12 +2,12 @@
 import logging
 import threading
 import time
-#External imports
+
+# Internal imports
+from will.exceptions import *
+# External imports
 from neo4j.v1 import GraphDatabase, basic_auth
-import neo4j.exceptions
-#Internal imports
-from exceptions import *
-from userspace import cache_utils
+from will.userspace import cache_utils
 
 log = logging.getLogger()
 

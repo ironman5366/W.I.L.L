@@ -1,9 +1,11 @@
 #Builtin imports
-import logging
-import json
-import core
-import uuid
 import base64
+import json
+import logging
+import uuid
+
+from will import core
+
 try:
     import queue as Queue
 except ImportError:

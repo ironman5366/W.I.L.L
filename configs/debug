@@ -11,5 +11,6 @@
 "plugins": {
     "dir": "core/plugins"
 },
-"debug": true
+"debug": true,
+"secret-key": "super-secret-string"
 }

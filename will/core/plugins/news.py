@@ -1,12 +1,13 @@
 #Internal imports
-from core.plugin_handler import subscribe
-import tools
-#External imports
-import newspaper
 #Builtin imports
 import logging
 import threading
 import time
+
+#External imports
+import newspaper
+from core.plugin_handler import subscribe
+
 
 log = logging.getLogger()
 

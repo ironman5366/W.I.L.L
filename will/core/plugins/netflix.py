@@ -1,11 +1,9 @@
 #Internal imports
-from core.plugin_handler import subscribe
-import tools
-
+import json
 #Builtin imports
 import logging
-import json
-import difflib
+
+from core.plugin_handler import subscribe
 
 shows = json.loads(open("core/plugin_files/shows.json").read())
 log = logging.getLogger()
