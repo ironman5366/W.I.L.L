@@ -1,32 +1,32 @@
-#W.I.L.L 3.1
+# W.I.L.L 3.1
 
-##Welcome to W.I.L.L
+## Welcome to W.I.L.L
 W.I.L.L is an open source personal assistant that aims to be free, easy to use, and expandable by the user.
 It runs on a python based plugin framework accessible by a JSON API that let's you access it from a variety of different platforms.
 We've provided some platforms for you, but if you don't like any of those, you can easily create your own, or, if you want to change W.I.L.L, setup your own version
 
 Docs: http://will.readthedocs.io
 
-##Quickstart
+## Quickstart
 
-###Use a provided platform
+### Use a provided platform
 
-####Signup
+#### Signup
 Before you can use W.I.L.L, you need to sign up.
 You can sign up for free at https://willbeddow.com/signup
 
-####Android
+#### Android
 W.I.L.L is now available as an android app, complete with voice commands and app hookins for services like spotify and netflix! Download it now from https://play.google.com/store/apps/details?id=com.willbeddow.will
 
-#####Telegram
+##### Telegram
 All you have to do to use W.I.L.L on telegram is go @WillAssistantBot and click start!
 
-###Use the json api
+### Use the json api
 The main W.I.L.L server, as well as the web app, is at https://willbeddow.com
 It runs on a flask server that provides a JSON API
 
-###Quickstart
-####Send a request with python
+### Quickstart
+#### Send a request with python
 ```python
 import requests
 import json
@@ -47,7 +47,7 @@ print answer["text"]
 requests.post(url="{0}/api/end_session".format(server_url), data={"session_id": session_id})
 ```
 
-###API Docs:
+### API Docs:
 The core of the JSON API is a response object. A response object looks like this:
 ```json
 {"type": "success", "text": "Request successful!", "data": {}}
@@ -86,7 +86,7 @@ API Methods:
     - Takes a `session_id` and returns a boolean
 
 
-###Events framework
+### Events framework
 W.I.L.L has a customizable events framework that allows you to pass events and notifications that will be asynchronously
 pushed to the user. 
 At the moment W.I.L.L offers three classes of events, two of which endure between reboots of the server
