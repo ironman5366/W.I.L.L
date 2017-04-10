@@ -1,29 +1,29 @@
 # Builtin imports
-import json
 import logging
 import datetime
 
-# External  imports
+# External imports
 import falcon
 
 # Internal imports
 from will.exceptions import *
-from will.API import sessions
+from will.API import sessions, hooks, middleware
 from itsdangerous import Signer, BadSignature
 
 log = logging.getLogger()
 
-app = falcon.API()
+app = None
 
 configuration_data = None
 graph = None
 
 temp_tokens = {}
 
-
-def user_is_admin(req, resp, resource, params):
-    # TODO
-    return True
+class StartSession:
+    @falcon.before(client_auth)
+    def on_post(self, req, resp):
+        # Decoded JSON data
+        doc = req.context["doc"]
 
 
 @falcon.before(user_is_admin)
@@ -32,6 +32,16 @@ class StatusCheck:
         pass
 
 class GetToken:
+    def on_get(self):
+        pass
+    def on_post(self):
+        pass
+
+
+# Clients have bcrypt protected client secret, unprotected client public, and signed user_key
+# After a session is started, all that needs to be passed is a timestamp user token, linked to the authentication
+@falcon.before(hooks.client_auth)
+class StartSession:
     pass
 
 class AuthMiddleware:
@@ -41,7 +51,7 @@ class AuthMiddleware:
     def process_request(self, req, resp, resource):
         token = req.get_header('Token')
         client_id = req.get_header("Client-Id")
-
+        client_secret = req.get_header("Client-Secret")
         challenges = ['Token type="Fernet"']
 
         # If they provided a temporary token
@@ -53,20 +63,23 @@ class AuthMiddleware:
                                               challenges,
                                               href="http://will.readthedocs.io/auth")
         elif client_id:
-            if not self._client_is_valid(client_id):
-                description = "Client id {0} either was not found in the database or had an invalid signature".format(
-                    client_id
-                )
-                raise falcon.HTTP_UNAUTHORIZED("Invalid client id",
-                                               description,
-                                               challenges,
-                                               href="http://will.readthedocs.io/auth")
+            if client_secret:
+                pass
+                if not self._client_is_valid(client_id):
+                    description = "Client id {0} either was not found in the database or had an invalid signature".format(
+                        client_id
+                    )
+                    raise falcon.HTTP_UNAUTHORIZED("Invalid client id",
+                                                   description,
+                                                   challenges,
+                                                   href="http://will.readthedocs.io/auth")
+                else:
+                    # If they weren't already headed to GetToken, that's where they're headed now.
+                    raise falcon.HTTPSeeOther("/api/v1/get_token")
             else:
-                # If they weren't already headed to GetToken, that's where they're headed now.
-                raise falcon.HTTPSeeOther("/api/v1/get_token")
+                return False
         else:
             description = 'Please provide a signed client id as part of the request'
-
             raise falcon.HTTP_UNAUTHORIZED('Client id required',
                                           description,
                                           challenges,
@@ -97,6 +110,7 @@ class AuthMiddleware:
 
     def _token_is_valid(self, client_id, token):
         try:
+            # Unsign a token and check if it matches the client_id
             unsigned_client_id = signer.unsign(client_id)
             unsigned_token = signer.unsign(token)
             if unsigned_token in temp_tokens.keys():
@@ -106,73 +120,40 @@ class AuthMiddleware:
             return False
 
 
-class SessionMiddleWare:
-    def process_request(self, req, resp):
-        pass
 
-
-class RequireJSON(object):
-    def process_request(self, req, resp):
-        if not req.client_accepts_json:
-            raise falcon.HTTPNotAcceptable(
-                'This API only supports responses encoded as JSON.',
-                href='http://docs.examples.com/api/json')
-
-        if req.method in ('POST', 'PUT'):
-            if 'application/json' not in req.content_type:
-                raise falcon.HTTPUnsupportedMediaType(
-                    'This API only supports requests encoded as JSON.',
-                    href='http://docs.examples.com/api/json')
-
-
-class JSONTranslator(object):
-    def process_request(self, req, resp):
-        # req.stream corresponds to the WSGI wsgi.input environ variable,
-        # and allows you to read bytes from the request body.
-        #
-        # See also: PEP 3333
-        if req.content_length in (None, 0):
-            # Nothing to do
-            return
-
-        body = req.stream.read()
-        if not body:
-            raise falcon.HTTPBadRequest('Empty request body',
-                                        'A valid JSON document is required.')
-
-        try:
-            req.context['doc'] = json.loads(body.decode('utf-8'))
-
-        except (ValueError, UnicodeDecodeError):
-            raise falcon.HTTPError(falcon.HTTP_753,
-                                   'Malformed JSON',
-                                   'Could not decode the request body. The '
-                                   'JSON was incorrect or not encoded as '
-                                   'UTF-8.')
-
-    def process_response(self, req, resp, resource):
-        if 'result' not in req.context:
-            return
-
-        resp.body = json.dumps(req.context['result'])
 
 
 def start():
+    global app
     global session_monitor
     global signer
     try:
+        error_cause = "secret_key"
         secret_key = configuration_data["secret-key"]
         assert type(secret_key) == str
         signer = Signer(secret_key)
+        hooks.signer = signer
+        error_cause = "banned_ips"
+        assert type(configuration_data["banned_ips"]) in (list, set)
     except (KeyError, AssertionError):
-        error_string = "Please ensure that the secret_key is defined as a str in your configuration file."
+        error_string = "Please ensure that {0} is properly defined in your configuration_file.".format(error_cause)
         log.error(error_string)
         raise ConfigurationError(error_string)
     sessions.graph = graph
+    hooks.graph = graph
     # Start the session monitor
     session_monitor = sessions.Monitor()
+    app = falcon.API(
+        middleware=[
+            middleware.MonitoringMiddleware(banned_ips=configuration_data["banned_ips"]),
+            middleware.RequireJSON(),
+            middleware.JSONTranslator()
+        ]
+    )
+
 
 # TODO: write content for the API and add /api/v1 mapping
+# TODO: add an error handler for HTTP Unauthorized
 
 def kill():
     """
