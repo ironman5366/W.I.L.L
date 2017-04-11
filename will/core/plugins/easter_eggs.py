@@ -1,6 +1,6 @@
 import logging
 
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 
 
 log = logging.getLogger()

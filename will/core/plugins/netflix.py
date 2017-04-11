@@ -3,7 +3,7 @@ import json
 #Builtin imports
 import logging
 
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 
 shows = json.loads(open("core/plugin_files/shows.json").read())
 log = logging.getLogger()

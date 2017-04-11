@@ -6,8 +6,8 @@ import time
 import traceback
 
 # Internal imports
-import core
-from core.plugin_handler import subscribe
+from will import core
+from will.core.plugin_handler import subscribe
 # External imports
 from dateparser import parse
 from pytz import timezone

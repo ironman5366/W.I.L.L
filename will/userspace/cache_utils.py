@@ -88,7 +88,7 @@ class cache:
             len(chunks), chunk_len, datastore_num, self.threads
         ))
         for chunk in chunks:
-            c_thread = threading.Thread(target=self.cache_buffer, args=(chunk))
+            c_thread = threading.Thread(target=self.cache_buffer, args=(chunk,))
             self.cache_threads.append(c_thread)
             c_thread.start()
         # Wait for the threads to finish

@@ -11,7 +11,7 @@ from will import API, tools
 from will.core import core
 from will.exceptions import *
 
-version = "4.0-alpha+03"
+version = "4.0-alpha+04"
 author = "Will Beddow"
 
 class will:
@@ -75,9 +75,16 @@ class will:
         log.info("Loading userspace...")
         self.userspace = userspace(configuration_data=self.configuration_data, plugins=plugins)
         log.info("Loading API...")
-        self.API = API(configuration_data=self.configuration_data)
+        API.configuration_data = self.configuration_data
+        API.graph = self.userspace.graph
+        self.API = API.start()
+        log.info("Loaded W.I.L.L")
+
 
     def __init__(self, conf_file="will.conf", intro_file="will_logo.txt"):
+        parent_conf = os.path.join(os.path.dirname(os.path.dirname( __file__ )), conf_file)
+        if os.path.isfile(parent_conf):
+            conf_file = parent_conf
         self.start_time = datetime.datetime.now()
         if os.path.isfile(conf_file):
             conf_data = open(conf_file)

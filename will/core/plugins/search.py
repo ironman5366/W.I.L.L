@@ -8,7 +8,7 @@ import wikipedia
 # External imports
 import wolframalpha
 from bs4 import BeautifulSoup
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 from newspaper import Article
 
 from will import tools

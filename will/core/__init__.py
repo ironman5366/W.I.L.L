@@ -3,11 +3,7 @@ import logging
 import os
 
 #Internal modules
-try:
-    pass
-except ImportError:
-    import plugin_handler
-    import parser
+from will.core import plugin_handler
 from will.exceptions import *
 
 log = logging.getLogger()

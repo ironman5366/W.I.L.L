@@ -11,6 +11,46 @@ signer = None
 
 log = logging.getLogger()
 
+#TODO: add scope hooks
+
+def user_session(req, resp, resource, params):
+    pass
+
+def user_auth(req, resp, resource, params):
+    """
+    A hook to authenticate a request with a username and password in it
+    
+    :param req: 
+    :param resp: 
+    :param resource: 
+    :param params: 
+    """
+    doc = req.context["doc"]
+    if "username" in doc.keys() and "password" in doc.keys():
+        username = doc["username"]
+        password = doc["password"]
+        session = graph.session()
+        user_nodes = session.run("MATCH (u:User {username: {username}}) return (u)",
+                                 {"username": doc["username"]})
+        session.close()
+        # Check if the user exists
+        if user_nodes:
+            user = user_nodes[0]
+            pw_hash = user["password"]
+            # Check if the password is valid
+            if bcrypt.checkpw(password, pw_hash):
+                log.debug("Successfully authenticated user {0} with username and password".format(username))
+            else:
+                log.debug("Authentication failed for user {0}".format(username))
+                raise falcon.HTTP_UNAUTHORIZED("Invalid password", "Invalid password for user {0}".format(username))
+        else:
+            error_message = "Couldn't find user {0}".format(username)
+            log.debug(error_message)
+            raise falcon.HTTP_UNAUTHORIZED("User not found", error_message)
+    else:
+        raise falcon.HTTP_UNAUTHORIZED("Username and password not found",
+                                       "To access this API method you must provide a username and password")
+
 def client_auth(req, resp, resource, params):
     """
     Runs authentication for a client id and a client secret

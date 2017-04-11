@@ -92,6 +92,7 @@ class Session:
                 return user_data
             return False
 
+    # TODO: replace with client auth
     @property
     def _auth(self):
         """

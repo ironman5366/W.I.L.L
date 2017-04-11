@@ -6,7 +6,7 @@ import traceback
 
 # External imports
 import pyowm
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 
 from will import tools
 

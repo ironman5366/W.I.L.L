@@ -6,7 +6,7 @@ import os
 import sys
 
 # Internal imports
-from exceptions import *
+from will.exceptions import *
 
 log = logging.getLogger()
 

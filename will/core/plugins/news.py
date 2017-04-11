@@ -6,7 +6,7 @@ import time
 
 #External imports
 import newspaper
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 
 
 log = logging.getLogger()

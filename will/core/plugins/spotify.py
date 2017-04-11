@@ -4,7 +4,7 @@ import logging
 
 #External imports
 import spotipy
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 
 sp = spotipy.Spotify()
 log = logging.getLogger()

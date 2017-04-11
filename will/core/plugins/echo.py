@@ -1,7 +1,7 @@
 #Basic echo plugin for testing response framework
 import logging
 
-from core.plugin_handler import subscribe
+from will.core.plugin_handler import subscribe
 
 from will import tools
 

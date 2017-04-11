@@ -18,7 +18,6 @@ class userspace:
         while self.running:
             # List of user dicts
             users = session.run("match (u:User) return (u)").data()
-            log.info("Session type is {0}".format(type(users)))
             for user in users:
                 # If the user is online, make sure that everything they need is cached
                 # Properties that need to be cached will be of the type DataStore
@@ -28,7 +27,7 @@ class userspace:
                         last_cached = datastore["last_cached"]
                         # If it hasn't been cached in the past 5 minutes, start a new thread to cache it
                         if time.time()-last_cached >= 300:
-                            cache_thread = threading.Thread(target=self.cache_manager.cache_one(datastore))
+                            cache_thread = threading.Thread(target=self.cache_manager.cache_one, args=(datastore,))
                             cache_thread.start()
             time.sleep(self.loop_wait)
 
@@ -36,7 +35,7 @@ class userspace:
         assert self.graph
         assert self.configuration_data
         # The amount of time the user space should wait between each loop
-        loop_wait = 0.1
+        loop_wait = 1
         if "loop_wait" in self.configuration_data.keys():
             loop_setting = self.configuration_data["loop_wait"]
             if type(loop_setting) in (int, float):
@@ -45,7 +44,7 @@ class userspace:
                 if loop_setting.is_digit():
                     loop_wait = float(loop_setting)
                 else:
-                    error_str = "Loop setting {0} is a string and can't be converted to a float"
+                    error_str = "Loop setting {0} is a string and can't be converted to a float".format(loop_setting)
                     log.error(error_str)
                     raise ConfigurationError(error_str)
             else:
@@ -75,7 +74,7 @@ class userspace:
         graph = GraphDatabase.driver("bolt://{host}:{port}".format(
             host=db_configuration["host"],
             port=db_configuration["port"]),
-            auth = basic_auth(
+            auth=basic_auth(
                 db_configuration["user"],
                 db_configuration["password"]
             )
@@ -96,8 +95,8 @@ class userspace:
             error_string = "Cache configuration is invalid. Please check the {0} field".format(error_cause)
             log.error(error_string)
             raise ConfigurationError(error_string)
-
-        self.cache_manager = cache_utils.cache(graph, cache_configuration["threads"])
+        self.configure_loop()
+        self.cache_manager = cache_utils.cache(plugins, graph, cache_configuration["threads"])
         # Load caches for all datastores, public and private
         datastores = self.graph.session().run("MATCH (d:DataStore) return (d)")
         self.cache_manager.cache_multi(datastores)
