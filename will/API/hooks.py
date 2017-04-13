@@ -353,11 +353,29 @@ def client_auth(req, resp, resource, params):
     """
     doc = req.context["doc"]
     if "client_id" in doc.keys() and "client_secret" in doc.keys():
-        session = graph.session()
+
         client_id = doc["client_id"]
-        secret_key = doc["client_secret"]
+        signed_secret_key = doc["client_secret"]
+        # Try to usnign the secret key before opening a databsae connection
+        try:
+            secret_key = signer.unsign(signed_secret_key)
+        except BadSignature:
+            # The signature was invalid
+            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "id": "CLIENT_SECRET_BAD_SIGNATURE",
+                        "type":  "error",
+                        "status": resp.status_code,
+                        "text": "The submitted client secret key was unsigned or had a bad signature"
+                    }]
+            }
+            raise falcon.HTTPError(resp.status_code, "Bad signature")
+        session = graph.session()
         clients = session.run("MATCH (c:Client {name: {client_id}}) return (c)",
                               {"client_id": client_id})
+        session.close()
         if clients:
             client = clients[0]
             secret_key_hash = client["secret_key"]

@@ -260,9 +260,152 @@ class CreateClient:
         """
         Create a client.
          The hooks before the function makes sure that the client has permission to do this
+         Request structure:
+         {
+            "client_id": "id_of_submitter",
+            "client_secret": "signed_relevant_secret_key",
+            "data": 
+                {  
+                    "id": "id of new client",
+                    "scope": "scope of new_client"
+                }
+        }
+            
         """
+        doc = req.context["doc"]
+        # Check for all the required components for creating a new client
+        if "data" in doc.keys():
+            data = doc["data"]
+            # Validate the data inside the request
+            required_fields = {
+                "id": str,
+                "scope": str,
+                "webhook": str,
+                "provides": list
+            }
+            error_cause = None
+            try:
+                for field in required_fields:
+                    error_cause = field
+                    assert type(data[field]) == required_fields[field]
+            except (KeyError, AssertionError):
+                log.debug("{0} caused create client request to fail. Request originated from client {1}".format(
+                    error_cause, doc["client_id"]
+                ))
+                resp.status_code = falcon.HTTP_BAD_REQUEST
+                req.context["result"] = {
+                    "errors":
+                        [{
+                            "id": "{0}_INVALID".format(error_cause.upper()),
+                            "status":  resp.status_code,
+                            "text": "Please check the {0} field and resubmit. {0} was either missing, or wasn't of "
+                                    "required type {1}".format(
+                                error_cause, required_fields[error_cause]
+                            ),
+                            "type": "error"
+                        }]
+                }
+                return
+            # Data was validated successfully, fetch it from the document
+            id = required_fields["id"]
+            scope = required_fields["scope"]
+            # Check if the submitted id is already in the database
+            session = graph.session()
+            matching_clients = session.run("MATCH (c:Client {client_id:{id}})",
+                                           {"id": id})
+            # If a client with that name already exists:
+            if matching_clients:
+                resp.status_code = falcon.HTTP_CONFLICT
+                req.context["result"] = {
+                    "errors":
+                        [{
+                            "type": "error",
+                            "id": "CLIENT_ID_ALREADY_EXISTS",
+                            "status":  resp.status_code,
+                            "text": "A client with client id {0} already exists".format(
+                                id
+                            )
+                        }]
+                }
+            else:
+                # The id is unused
+                # Check to see if the scope is valid
+                if scope in hooks.scopes.keys():
+                    # The highest level that can be automatically created is a level of 2, settings_change
+                    scope_level = hooks.scopes[scope]
+                    # The client requested a valid scope that they're authorized to use
+                    # A scope of level 2 is settings_change which is the highest scope that non official
+                    # Clients are allowed to use
+                    if scope_level >= 2:
+                        log.debug("Adding client {0} with scope {1} to database, and generating secret key".format(
+                            id, scope
+                        ))
+                        # Generate the key. Nobody will see the unsigned unhashed version
+                        raw_secret_key = uuid.uuid4()
+                        # Hash the key. This version will be put in the database
+                        hashed_secret_key = bcrypt.hashpw(raw_secret_key, bcrypt.gensalt())
+                        # Sign the key. This version will be returned to the user
+                        signed_secret_key = signer.sign(raw_secret_key)
+                        # Put the client in the database
+                        session.run("CREATE (c:Client "
+                                    "{client_id: {client_id}, "
+                                    "official: false, "
+                                    "secret_key: {hashed_secret}, "
+                                    "scope: {scope}",
+                                    {
+                                        "client_id": id,
+                                        "hashed_secret": hashed_secret_key,
+                                        "scope": scope
+                                    })
+                        log.debug("Created client {} in database".format(id))
+                        # Return the data to the user
+                        req.context["result"] = {
+                            "data":{
+                                "id": "CLIENT_CREATED",
+                                "status": resp.status_code,
+                                "type": "success",
+                                "secret_key": signed_secret_key,
+                                "client_id": id,
+                                "scope": scope
+                            }
+                        }
 
-
+                    else:
+                        resp.status_code = falcon.HTTP_UNAUTHORIZED
+                        req.context["result"] = {
+                            "errors":
+                                [{
+                                    "id": "SCOPE_NOT_AUTHORIZED",
+                                    "status": resp.status_code,
+                                    "type": "error",
+                                    "text": "The client does not have authorization to create a new client with a "
+                                            "scope of {0}".format(scope)
+                                }]
+                        }
+                else:
+                    resp.status_code = falcon.HTTP_BAD_REQUEST
+                    req.context["result"] = {
+                        "errors":
+                            [{
+                                "id": "SCOPE_INVALID",
+                                "status": resp.status_code,
+                                "type": "error",
+                                "text": "Unrecognized scope {0}".format(scope)
+                            }]
+                    }
+            # No matter what, close the session
+            session.close()
+        else:
+            resp.status_code = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "id": "DATA_NOT_FOUND",
+                        "status": resp.status_code,
+                        "type": "error",
+                        "text": '"data" key with client information not found'
+                    }]
+            }
 # Clients have bcrypt protected client secret, unprotected client public, and signed user_key
 # After a session is started, all that needs to be passed is a timestamp user token, linked to the authentication
 @falcon.before(hooks.client_auth)

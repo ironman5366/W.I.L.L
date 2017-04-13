@@ -152,7 +152,7 @@ class Session:
         self._auth_done = False
         self.last_reloaded = datetime.datetime.now()
 
-    def __init__(self, username, password, client):
+    def __init__(self, username, client_id):
         """
         Instantiate a session and add metadata
         
@@ -164,8 +164,7 @@ class Session:
         assert graph
         # Generate a session id
         self.username = username
-        self._password = password
-        self.client = client
+        self.client_id = client_id
         self.created = datetime.datetime.now()
         self.last_reloaded = self.created
 
