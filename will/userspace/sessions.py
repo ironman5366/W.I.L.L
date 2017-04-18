@@ -5,8 +5,8 @@ import datetime
 import threading
 import time
 
-# External imports
-import bcrypt
+# Internal imports
+from will import tools
 
 log = logging.getLogger()
 
@@ -14,19 +14,67 @@ graph = None
 
 sessions = {}
 
+plugins = []
+
+# Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
 class Session:
-
-    session_id = None
     _user_data = None
-    _auth_done = False
-    _authenticated = False
-    commands = []
+    commands = {}
+    arguments = []
+
+    def _check_plugins(self, command_uid):
+        """
+        Run 
+        
+        :param command_uid: The command identifier
+        """
+        command_obj = self.commands[command_uid]
+        parsed_command = command_obj["parse"]
+        # Go through the words in the commands and see if any match the plugins
+        for plugin in plugins:
+            check_function = plugin["check"]
+            # TODO: add a way that a check function can optionally request more arguments.
+            # Possibly just build the command object and submit it
+            if check_function(parsed_command):
+                return plugin["function"]
+        return False
+
+    def command(self, command_str):
+        """
+        Run a command in the context of the session
+        
+        :param command_str: The raw command 
+        :return result: The result of the command 
+        """
+        # Generate an id for this command
+        command_uid = uuid.uuid1()
+        self.commands.update({
+            command_uid: {
+                "id": command_uid,
+                "text": command_str,
+                "parse": tools.parser(command_str)
+            }
+        })
+        log.debug("Created command object for command {0}, starting parsing".format(command_str))
+        # TODO: possibly add more responses than just plugins.
+        steps = [self._check_plugins]
+        for step in steps:
+            response = step()
+            if response:
+                if callable(response):
+                    # TODO: check the plugin chain and call it with the appropriate arguments
+                    pass
+                else:
+                    result = str(response)
+                break
+        return result
+
 
     def logout(self):
         """
         Finish the session
-        
+
         :return bool: a bool indicating whether the logout was sucessful 
         """
         # Determine whether the user has any other active sessions
@@ -59,7 +107,7 @@ class Session:
     def report(self):
         """
         Basic information about the session, suitable for a detailed view in an admin console
-        
+
         :return report: 
         """
         report_string = "Id:{session_id}\nUser:{user}\nCommands Processed:{command_len}\nCreated:{created}".format(
@@ -70,11 +118,14 @@ class Session:
         )
         return report_string
 
+    def _build_arguments(self):
+        pass
+
     @property
     def user_data(self):
         """
         User data from the database. If there's none cached, match it from the db and return it.
-        
+
         :return user_data: 
         """
         if self._user_data:
@@ -92,59 +143,11 @@ class Session:
                 return user_data
             return False
 
-    # TODO: replace with client auth
-    @property
-    def _auth(self):
-        """
-        Authentication
-        
-        :return: 
-        """
-        if self._auth_done:
-            return self._authenticated
-        else:
-            user_data = self.user_data
-            self._auth_done = True
-            if user_data:
-                pw_hash = user_data["password"]
-                pw_check = bcrypt.checkpw(self._password, pw_hash)
-                if pw_check:
-                    log.debug("Logged in user {0} successfully".format(self.username))
-                    self._authenticated = True
-                    return True
-                else:
-                    log.debug("Failed login attempt for user {0}".format(self.username))
-            self._authenticated = False
-            return False
-
-    def start_session(self):
-        """
-        Generate a session id, update the database to show that the user is online, and add self to 
-        
-        :return bool: A bool indicating whether authentication was sucessful and the session started 
-        """
-        if self._auth:
-            session_id = uuid.uuid1()
-            self.session_id = session_id
-            # Mark that the user is online in the database
-            session = graph.session()
-            session.run(
-                "MATCH (u:User {username: {username})"
-                "SET u.online=true",
-                {"username": self.username}
-            )
-            session.close()
-            sessions.update({
-                self.session_id: self
-            })
-            return True
-        else:
-            return False
 
     def reload(self):
         """
-        Reload possibly old data in a session
-        
+        Recache data for the user
+
         """
         log.debug("Reloading data for session belonging to user {0}".format(self.username))
         # Next time user_data and authentication are accessed they'll be reloaded
@@ -155,19 +158,22 @@ class Session:
     def __init__(self, username, client_id):
         """
         Instantiate a session and add metadata
-        
+
         :param username: 
         :param password: 
         :param client: 
         """
         # Make sure the graph has been loaded before the class is instantiated
         assert graph
-        # Generate a session id
         self.username = username
         self.client_id = client_id
         self.created = datetime.datetime.now()
         self.last_reloaded = self.created
-
+        # Generate a session id and add self to the sessions dictionary
+        self.session_id = uuid.uuid4()
+        sessions.update({
+            self.session_id: self
+        })
 
 class Monitor:
     # Kill switch for the monitor thread
@@ -177,7 +183,7 @@ class Monitor:
     def report(self):
         """
         Generate information about the session monitor
-        
+
         :return report_string: The string containing the report 
         """
         session = graph.session()
@@ -195,7 +201,7 @@ class Monitor:
     def _monitor(self):
         """
         A monitoring thread that reloads data for each session when it gets to old
-        
+
         """
         log.debug("Starting session monitor thread")
         while self.running:
@@ -203,7 +209,7 @@ class Monitor:
             for session_id, session in sessions.items():
                 current_time = datetime.datetime.now()
                 # Check if it was last reloaded more than an hour ago
-                if current_time-session.last_reloaded.total_seconds() >= 3600:
+                if current_time - session.last_reloaded.total_seconds() >= 3600:
                     session.reload()
             # Session monitoring is low priority so it can run infrequently
             time.sleep(30)
@@ -211,7 +217,7 @@ class Monitor:
     def __init__(self):
         """
         Start the _monitor thread
-        
+
         """
         # Start the monitoring thread
         monitor_thread = threading.Thread(target=self._monitor)

@@ -6,12 +6,12 @@ import logging.handlers
 import os
 
 # Internal imports
-from will.userspace import userspace
-from will import API, tools
+from will.userspace import sessions
 from will.core import core
 from will.exceptions import *
+from will import tools, userspace, API
 
-version = "4.0-alpha+04"
+version = "4.0-alpha+05"
 author = "Will Beddow"
 
 class will:
@@ -73,7 +73,7 @@ class will:
         self.core = core(configuration_data=self.configuration_data)
         plugins = self.core.plugins
         log.info("Loading userspace...")
-        self.userspace = userspace(configuration_data=self.configuration_data, plugins=plugins)
+        userspace.start(configuration_data=self.configuration_data, plugins=plugins)
         log.info("Loading API...")
         API.configuration_data = self.configuration_data
         API.graph = self.userspace.graph

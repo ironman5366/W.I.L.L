@@ -11,7 +11,8 @@ import bcrypt
 
 # Internal imports
 from will.exceptions import *
-from will.API import sessions, hooks, middleware
+from will.API import hooks, middleware
+from will.userspace import sessions
 from itsdangerous import Signer, TimestampSigner, BadSignature
 
 log = logging.getLogger()
@@ -33,6 +34,8 @@ temp_tokens = {}
 # Locked scopes are ["admin"] - for verified W.I.L.L clients that can manage clients and utilize admin features on admin
 # Accounts
 
+# Store errors so that an admin can retrieve the data
+errors = {}
 
 @falcon.before(hooks.client_auth)
 class ConnectUser:
@@ -254,6 +257,72 @@ class StatusCheck:
     def on_post(self, req, resp):
         pass
 
+
+@falcon.before(hooks.session_auth)
+class Command:
+    def on_post(self, req, resp):
+        """
+        Call a command with the session that was found
+        
+        :param req: 
+        :param resp: 
+        
+        """
+        # The session_auth hook automatically put the instantiated session class in the request context
+        session = req.context["session"]
+        # Check to make sure that "command" is in the request body
+        doc = req.context["doc"]
+        if "command" in doc.keys():
+            command = doc["command"]
+            # Run the command in the sessions command instance
+            try:
+                result = session.command(command)
+                log.debug("Got result {0} from command {1}".format(
+                    result, command
+                ))
+                req.context["result"] = {
+                    "data": {
+                        "type": "success",
+                        "id": "COMMAND_RESULT",
+                        "result": result,
+                        "command": command,
+                        "text": result
+                    }
+                }
+            except Exception as ex:
+                exception_type, exception_args = (type(ex).__name__, ex.args)
+                command_error_string = "Error of type {error_type} with arguments {error_args} occurred while " \
+                                       "running command {command} in session {session_id} owned by user " \
+                                       "{username}".format(
+                                        error_type=exception_type,
+                                        error_args=exception_args,
+                                        command=command,
+                                        session_id=session.session_id,
+                                        username=session.username)
+                log.warning(command_error_string)
+                resp.status_code = falcon.HTTP_INTERNAL_SERVER_ERROR
+                req.context["result"] = {
+                    "errors":
+                        [{
+                            "type": "error",
+                            "id": "COMMAND_ERROR",
+                            "status": resp.status_code,
+                            "text": "An internal error occurred while parsing command {0}".format(
+                                command
+                            )
+                        }]
+                }
+        else:
+            resp.status_code = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "type": "error",
+                        "status": resp.status_code,
+                        "text": "To use this method you must submit a command parameter in the request",
+                        "id": "COMMAND_NOT_FOUND"
+                    }]
+            }
 @falcon.before(hooks.client_is_official)
 class CreateClient:
     def on_post(self, req, resp):
@@ -406,45 +475,31 @@ class CreateClient:
                         "text": '"data" key with client information not found'
                     }]
             }
-# Clients have bcrypt protected client secret, unprotected client public, and signed user_key
-# After a session is started, all that needs to be passed is a timestamp user token, linked to the authentication
-@falcon.before(hooks.client_auth)
+
+@falcon.before(hooks.client_user_auth)
 class StartSession:
-    pass
+    def on_post(self, req, resp):
+        doc = req.context["doc"]
+        username = doc["username"]
+        client_id = doc["client_id"]
+        user_session = sessions.Session(username, client_id)
+        # Sign the session id from the instantiated class
+        session_id = user_session.session_id
+        signed_session_id = signer.sign(session_id)
+        success_string = "Successfully started session for user {0}".format(
+            username
+        )
+        log.debug(success_string)
+        req.context["result"] = {
+            "data":
+                {
+                    "type": "success",
+                    "id": "SESSION_ID",
+                    "session_id": signed_session_id,
+                    "text": success_string
+                }
+        }
 
-    def _match_clients(self):
-        session = graph.session()
-        clients = session.run("MATCH (c:Client) return (c)")
-        session.close()
-        self._clients = clients
-        self._clients_cached = datetime.datetime.now()
-        return clients
-
-    def _client_is_valid(self, client_id):
-        try:
-            unsigned_client_id = signer.unsign(client_id)
-            # Search for the client in the database
-            # Refresh cached clients list every 5 minutes
-            current_time = datetime.datetime.now()
-            time_filter = ((current_time - self._clients_cached).total_seconds() >= 600)
-            if self._clients and time_filter:
-                clients = self._clients
-            else:
-                clients = self._match_clients()
-            return any(unsigned_client_id == client["client_id"] for client in clients)
-        except BadSignature:
-            return False
-
-    def _token_is_valid(self, client_id, token):
-        try:
-            # Unsign a token and check if it matches the client_id
-            unsigned_client_id = signer.unsign(client_id)
-            unsigned_token = signer.unsign(token)
-            if unsigned_token in temp_tokens.keys():
-                return temp_tokens[token] == unsigned_client_id
-            return False
-        except BadSignature:
-            return False
 
 def api_thread():
     httpd = simple_server.make_server('127.0.0.1', 8000, app)
@@ -460,7 +515,7 @@ def start():
         secret_key = configuration_data["secret-key"]
         assert type(secret_key) == str
         signer = Signer(secret_key)
-        timestampsigner = TimeoutError(secret_key)
+        timestampsigner = TimestampSigner(secret_key)
         hooks.signer = signer
         error_cause = "banned-ips"
         assert type(configuration_data["banned-ips"]) in (list, set)
@@ -479,15 +534,23 @@ def start():
             middleware.JSONTranslator()
         ]
     )
+    # Add the api routes
+    base_template = "/api/v1/{}"
+    routes = {
+        "connect_user": ConnectUser(),
+        "start_session": StartSession(),
+        "create_client": CreateClient(),
+        "give_user_token": GiveUserToken(),
+        "status_check": StatusCheck(),
+        "command": Command()
+    }
+    for route, route_class in routes.items():
+        app.add_route(base_template.format(route), route_class)
     # Start the debug server if applicable
     if configuration_data["debug"]:
         log.debug("Starting the debug server")
         t = threading.Thread(target=api_thread)
         t.start()
-
-
-# TODO: write content for the API and add /api/v1 mapping
-# TODO: add an error handler for HTTP Unauthorized
 
 def kill():
     """

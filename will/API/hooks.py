@@ -1,10 +1,13 @@
-#Buildin imports
+#Builtin imports
 import logging
 
 #External imports
 from itsdangerous import BadSignature
 import falcon
 import bcrypt
+
+#Internal imports
+from will.userspace import sessions
 
 graph = None
 signer = None
@@ -20,6 +23,69 @@ scopes = {
     "basic": 5
 }
 
+def session_auth(req, resp, resource, params):
+    """
+    Checks an active session id
+    
+    :param req: 
+    :param resp: 
+    :param resource: 
+    :param params: 
+    
+    """
+    client_auth(req, resp, resource, params)
+    doc = req.context["doc"]
+    # Check that a session_id key was submitted
+    if "session_id" in doc.keys():
+        # Try to unsign a session_id
+        signed_session_id = doc["session_id"]
+        try:
+            session_id = signer.unsign(signed_session_id)
+            # Check if the session_id is valid
+            if session_id in sessions.sessions.keys():
+                # If it is valid, add the instantiated session class to the request context
+                req.context["session"] = sessions.sessions[session_id]
+            else:
+                resp.status_code = falcon.HTTP_UNAUTHORIZED
+                req.context["result"] = {
+                    "errors":
+                        [{
+                            "type": "error",
+                            "id": "SESSION_ID_INVALID",
+                            "status": resp.status_code,
+                            "text":  "Session id had a valid signature but could not be found in the active sessions. "
+                                     "If this session id was previously reported as valid, please request a new one "
+                                     "and resubmit the request"
+                        }]
+                }
+                raise falcon.HTTPError(resp.status_code, title="Invalid session id")
+
+        except BadSignature:
+            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "type": "error",
+                        "id": "SESSION_ID_SIGNATURE_INVALID",
+                        "text": "Session id {0} either is unsigned or has an invalid or expired signature. If this "
+                                "session id was previously reported as valid, please make another request to get a "
+                                "new session id.".format(signed_session_id),
+                        "status": resp.status_code
+                    }]
+            }
+            raise falcon.HTTPError(resp.status_code, "Bad signature")
+    else:
+        resp.status_code = falcon.HTTP_BAD_REQUEST
+        req.context["result"] = {
+            "errors":
+                [{
+                    "type": "error",
+                    "id": "SESSION_ID_NOT_FOUND",
+                    "status": resp.status_code,
+                    "text": "Requests to this method must include a signed session_id"
+                }]
+        }
+        raise falcon.HTTPError(resp.status_code, title="Session id not found")
 def calculate_scope(scope_submitted, scope_required):
     """
     Determine whether a submitted scope is high level enough to meet the permissions of the required scope
@@ -405,7 +471,7 @@ def client_auth(req, resp, resource, params):
                         "status": resp.status_code
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, title="Client not foun ")
+            raise falcon.HTTPError(resp.status_code, title="Client not found")
     else:
         resp.status_code = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
