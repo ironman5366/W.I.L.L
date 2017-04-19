@@ -18,6 +18,34 @@ plugins = []
 
 # Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
+
+class Command:
+
+    @property
+    def age(self):
+        """
+        The age of the command
+        
+        :return age_delta: a timedelta representing how long the command has existed 
+        """
+        return (datetime.datetime.now()-self.created).total_seconds()
+
+
+    def __init__(self, command):
+        """
+        Set basic command information, and assign a unique identifier for later reference
+        
+        :param command: 
+        """
+        # A unique identifier for the command
+        self.uid = uuid.uuid1()
+        # Parse the command with spacy
+        self.parsed = tools.parser(command)
+        # The plaintext of the command
+        self.text = command
+        # The time the command was created
+        self.created = datetime.datetime.now()
+
 class Session:
     _user_data = None
     commands = {}
@@ -48,15 +76,7 @@ class Session:
         :return result: The result of the command 
         """
         # Generate an id for this command
-        command_uid = uuid.uuid1()
-        self.commands.update({
-            command_uid: {
-                "id": command_uid,
-                "text": command_str,
-                "parse": tools.parser(command_str)
-            }
-        })
-        log.debug("Created command object for command {0}, starting parsing".format(command_str))
+        command_obj = Command(command_str)
         # TODO: possibly add more responses than just plugins.
         steps = [self._check_plugins]
         for step in steps:

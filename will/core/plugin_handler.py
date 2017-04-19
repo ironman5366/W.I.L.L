@@ -10,7 +10,41 @@ from will.exceptions import *
 
 log = logging.getLogger()
 
-plugin_subscriptions = {}
+plugin_subscriptions = []
+
+plugin_names = []
+
+
+class Plugin:
+    """
+    A basic plugin class. Implements the two required functions, exec and check.
+    """
+
+    name = None
+    arguments = []
+
+    def exec(self, **kwargs):
+        """
+        Return the needed plugin value
+        
+        :param kwargs: The argument values, in key value format 
+        
+        """
+        raise NotImplementedError("Master plugin class should not be executed")
+
+    def check(self, command_obj):
+        """
+        Basic check to see if the command fits the plugin
+        Check functions should be minimal and quick.
+        
+        :param command_obj: 
+        :return bool: A bool defining whether the plugin fits the command
+        """
+        name_lower = self.name.lower()
+        for word in command_obj.parsed:
+            if word.lemma_.lower() == name_lower:
+                return True
+        return True
 
 class PythonLoader:
     '''The class that loads the plugins'''
@@ -75,35 +109,27 @@ class PythonLoader:
             os.sep.join(os.path.normpath(self.file_path).split(os.sep)[:-1])
         )
 
-def subscribe(name, check):
+def subscribe():
     """
     Provides a decorator for subscribing plugin to commands
 
-    :param name: The unique name of the plugin
-    :param check: A pointer to the function that will check if the plugin should be run for a command or event
     """
 
     def wrap(f):
         # Subscribe the plugin, and while processing them pluck out the default plugin
         # So it doesn't have to be searched for later
-        assert type(name) == str
-        assert callable(check)
-        if name in plugin_subscriptions.keys():
+        assert type(f) == Plugin
+        # Instantiate the plugin
+        instantiated_plugin = f()
+        # Get the plugin name and arguments
+        name = instantiated_plugin.name
+        if name in plugin_names:
             error_string = "Name {0} has already been registered in plugin subscriptions. Plugin names must be " \
                            "unique identifiers.".format(name)
             log.error(error_string)
             raise PluginError(error_string)
         else:
-            subscription_data = {
-                name:
-                    {
-                        "name": name,
-                        "check": check,
-                        "function": f
-                    }
-            }
-            log.debug("Appending subscription data {0} to plugin subscriptions".format(subscription_data))
-            plugin_subscriptions.update(subscription_data)
+            plugin_subscriptions.append(instantiated_plugin)
             return f
 
     return wrap
