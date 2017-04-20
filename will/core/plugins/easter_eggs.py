@@ -1,7 +1,10 @@
 import logging
 
-from will.core.plugin_handler import subscribe
+from will.core.plugin_handler import *
+from will.core import arguments
+from will import tools
 
+parser = tools.parser
 
 log = logging.getLogger()
 
@@ -18,19 +21,31 @@ easter_eggs = {
     "Who is your master?": "I was created by Will Beddow (will@willbeddow.com)"
 }
 
-def egg_hunt(event):
-    scores = [event["doc"].similarity(event["parse"](x)) for x in easter_eggs]
-    return max(scores) >= 0.96
+@subscribe
+class EasterEggs(Plugin):
+    name = "eastereggs"
+    arguments = [arguments.CommandParsed]
 
-@subscribe(name="easter_eggs", check=egg_hunt)
-def egg(event):
-    scores = {}
-    for x in easter_eggs:
-        x_parse = event["parse"](x)
-        scores.update({
-            event["doc"].similarity(x_parse): easter_eggs[x]
-        })
-    most_compatible = scores[max(scores)]
-    log.debug("Query {0} activated easter egg {1}".format(event["command"], most_compatible))
-    response = {"type": "success", "text": most_compatible, "data": {}}
-    return response
+    # TODO: write a cleaner implemntation of this
+    def check(self, command_obj):
+        scores = [command_obj.parsed.similarity(tools.parser(x)) for x in easter_eggs]
+        return max(scores) >= 0.96
+
+    def exec(self, **kwargs):
+        scores = {}
+        doc = kwargs["CommandParsed"]
+        for x in easter_eggs:
+            x_parse = tools.parser(x)
+            scores.update({
+                doc.similarity(x_parse): easter_eggs[x]
+            })
+        most_compatible = scores[max(scores)]
+        log.debug("Query {0} activated easter egg {1}".format(doc.text, most_compatible))
+        response = {
+            "data":
+                {
+                    "type": "success"
+                }
+        }
+        response = {"type": "success", "text": most_compatible, "data": {}}
+        return response

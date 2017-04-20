@@ -1,5 +1,4 @@
 #Builtin imports
-# External imports
 import importlib
 import logging
 import os
@@ -22,6 +21,7 @@ class Plugin:
 
     name = None
     arguments = []
+    response_arguments = []
 
     def exec(self, **kwargs):
         """
@@ -46,6 +46,13 @@ class Plugin:
                 return True
         return True
 
+
+class ResponsePlugin:
+    """
+    A plugin that won't be called in normal conditions
+    """
+    def check(self):
+        return False
 class PythonLoader:
     '''The class that loads the plugins'''
 

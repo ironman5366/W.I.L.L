@@ -10,6 +10,7 @@ import pyowm
 
 log = logging.getLogger()
 
+@subscribe
 class Weather(Plugin):
 
     name = "weather"

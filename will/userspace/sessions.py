@@ -7,6 +7,10 @@ import time
 
 # Internal imports
 from will import tools
+from will.core import arguments
+
+# External imports
+import falcon
 
 log = logging.getLogger()
 
@@ -30,43 +34,128 @@ class Command:
         """
         return (datetime.datetime.now()-self.created).total_seconds()
 
-
     def __init__(self, command):
         """
         Set basic command information, and assign a unique identifier for later reference
         
-        :param command: 
+        :param command: The plaintext of the command
         """
         # A unique identifier for the command
         self.uid = uuid.uuid1()
         # Parse the command with spacy
         self.parsed = tools.parser(command)
+        self.verbs = [w.lemma_.lower() for w in self.parsed if w.pos_ == "VERB"]
         # The plaintext of the command
         self.text = command
         # The time the command was created
         self.created = datetime.datetime.now()
 
+
 class Session:
     _user_data = None
     commands = {}
-    arguments = []
+    _arguments = {}
+    responses = {}
 
-    def _check_plugins(self, command_uid):
+    def set_response(self, command_id, response_plugin):
         """
-        Run 
+        Set a response object in the class data
         
-        :param command_uid: The command identifier
+        :param command_id:
+        :param response_plugin: 
+        
         """
-        command_obj = self.commands[command_uid]
-        parsed_command = command_obj["parse"]
-        # Go through the words in the commands and see if any match the plugins
-        for plugin in plugins:
-            check_function = plugin["check"]
-            # TODO: add a way that a check function can optionally request more arguments.
-            # Possibly just build the command object and submit it
-            if check_function(parsed_command):
-                return plugin["function"]
-        return False
+        # TODO: assert that it's a member of the plugin
+        self.responses.update({command_id: response_plugin})
+
+    def _make_command(self, command_text):
+        """
+        Create a command class and update the internal command dictionary accordingly
+        
+        :param command_text: The plaintext of the command
+        :return command_class: The instantiated command class 
+        """
+        log.debug("Instantiating command {0}".format(command_text))
+        command_class = Command(command_text)
+        self.commands.update({
+            command_class.uid: command_class
+        })
+        return command_class
+
+    def process_response(self, command_id, response_text):
+        if command_id in self.responses.keys():
+            log.debug("Processing response {0} to command {1}".format(
+                command_id, response_text
+            ))
+            # Form a command object out of the response, and call it like a normal plugin
+            response_command = self._make_command(response_text)
+            response_plugin = self.responses[command_id]
+            return self._call_plugin(response_plugin, response_command)
+        else:
+            return {
+                "errors":
+                    [{
+                        "type": "error",
+                        "id": "COMMAND_ID_INVALID",
+                        "status": falcon.HTTP_BAD_REQUEST,
+                        "text": "Command id {0} did not register for a response".format(command_id)
+                    }]
+            }
+    def _call_plugin(self, plugin, command_obj):
+        """
+        Call a plugin after finding it
+        
+        :param plugin: A plugin class object 
+        :return response: The answer, what the user will see
+        """
+        # Check the plugins arguments
+        plugin_arguments = plugin.arguments
+        # Search own arguments for that
+        passed_args = {}
+        for argument in plugin_arguments:
+            arg_name = type(argument).__name__
+            session_argument = self._arguments[arg_name]
+            # Get the cached value of the argument
+            arg_value = session_argument.value(command_obj)
+            passed_args.update({arg_name: arg_value})
+        # Run the found plugin
+        try:
+            response = plugin.exec(passed_args)
+            response_keys = response.keys()
+            if "data" not in response_keys and "errors" not in response_keys:
+                log.warning("Plugin {0} returned a malformed response {1}".format(plugin.name, response))
+                response = {
+                    "errors":
+                        [{
+                            "type": "error",
+                            "id": "PLUGIN_RESPONSE_MALFORMED",
+                            "status": falcon.HTTP_INTERNAL_SERVER_ERROR,
+                            "text": "Plugin {0} returned a malformed response".format(plugin.name)
+                        }]
+                }
+        except Exception as ex:
+            exception_type, exception_args = (type(ex).__name__, ex.args)
+            error_string = "Plugin {plugin_name} threw a {error_type} error, with arguments {arguments}. The error " \
+                           "was triggered the command {error_command} from user {error_user}".format(
+                            plugin_name=plugin.name,
+                            error_type=exception_type,
+                            arguments=exception_args,
+                            error_command=command_obj.text,
+                            error_user=self.user_data["username"])
+            log.warning(error_string)
+            response = {
+                "errors":
+                    [{
+                        "type": "error",
+                        "id": "PLUGIN_ERROR",
+                        "status": falcon.HTTP_INTERNAL_SERVER_ERROR,
+                        "text": "Plugin {0} returned an error.".format(
+                            plugin.name
+                        )
+                    }]
+            }
+        # The response is an API suitable dictionary
+        return response
 
     def command(self, command_str):
         """
@@ -75,21 +164,27 @@ class Session:
         :param command_str: The raw command 
         :return result: The result of the command 
         """
-        # Generate an id for this command
-        command_obj = Command(command_str)
-        # TODO: possibly add more responses than just plugins.
-        steps = [self._check_plugins]
-        for step in steps:
-            response = step()
-            if response:
-                if callable(response):
-                    # TODO: check the plugin chain and call it with the appropriate arguments
-                    pass
-                else:
-                    result = str(response)
-                break
-        return result
-
+        command_obj = self._make_command(command_str)
+        # See which plugins match
+        matching_plugins = []
+        for plugin in plugins:
+            # Call the plugins check function to see if it matches the command
+            if plugin.check(command_obj):
+                matching_plugins.append(plugin)
+        match_len = len(matching_plugins)
+        log.debug("Found {0} matching plugins for command {1}".format(match_len, command_obj.uid))
+        final_plugin = None
+        # If exactly 1 plugin was found
+        if match_len == 1:
+            final_plugin = matching_plugins[0]
+        # TODO: set a response to ask the user
+        elif match_len >= 2:
+            pass
+        # If no plugins were found
+        # TODO: use the chatbot or implement search or both using a setting
+        else:
+            pass
+        return self._call_plugin(final_plugin, command_obj)
 
     def logout(self):
         """
@@ -138,9 +233,6 @@ class Session:
         )
         return report_string
 
-    def _build_arguments(self):
-        pass
-
     @property
     def user_data(self):
         """
@@ -175,13 +267,18 @@ class Session:
         self._auth_done = False
         self.last_reloaded = datetime.datetime.now()
 
+    def _build_arguments(self):
+        for argument in arguments.argument_list:
+            # Build the argument
+            instantiated_argument = argument(self.user_data, self.client_id, self, graph)
+            self._arguments.update({type(instantiated_argument).__name__, instantiated_argument})
+
     def __init__(self, username, client_id):
         """
         Instantiate a session and add metadata
 
         :param username: 
-        :param password: 
-        :param client: 
+        :param client_id: 
         """
         # Make sure the graph has been loaded before the class is instantiated
         assert graph
@@ -191,6 +288,8 @@ class Session:
         self.last_reloaded = self.created
         # Generate a session id and add self to the sessions dictionary
         self.session_id = uuid.uuid4()
+        # Build arguments
+        self._build_arguments()
         sessions.update({
             self.session_id: self
         })

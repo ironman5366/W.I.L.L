@@ -8,10 +8,11 @@ import wikipedia
 # External imports
 import wolframalpha
 from bs4 import BeautifulSoup
-from will.core.plugin_handler import subscribe
+from will.core.plugin_handler import *
 from newspaper import Article
 
 from will import tools
+from will.core import arguments
 
 log = logging.getLogger()
 
@@ -86,41 +87,49 @@ def search_wolfram(query, api_key):
         return False
 
 
-def is_search(event):
-    '''Determine whether it's a search command'''
-    command = event["command"]
-    if "search" in event["verbs"]:
-        return True
-    question_words = [
-        "what",
-        "when",
-        "why",
-        "how",
-        "who",
-        "are",
-        "is"
-    ]
-    first_word = command.split(" ")[0].lower()
-    log.debug("First word in command is {0}".format(first_word))
-    if first_word in question_words:
-        return True
-    return False
 
 
-@subscribe(name="search", check=is_search)
-def main(data):
-    '''Start the search'''
-    response = {"text": None, "data":{}, "type": "success"}
-    query = data["command"]
-    log.info("In main search function with query {0}".format(query))
-    db = data["db"]
-    answer = False
-    wolfram_key = tools.load_key("wolfram", db)
-    wolfram_response = search_wolfram(query, wolfram_key)
-    # If it found an answer answer will be set to that, if not it'll still be false
-    answer = wolfram_response
-    if answer:
-        response["text"] = answer
-    else:
-        response["text"]=search_google(query)
-    return response
+
+@subscribe
+class Search(Plugin):
+
+    name = "search"
+    arguments = [arguments.WolframAPI, arguments.CommandText]
+
+    def check(self, command_obj):
+        '''Determine whether it's a search command'''
+        command = command_obj.text
+        # TODO: implement verbs property in command class
+        if "search" in event["verbs"]:
+            return True
+        question_words = [
+            "what",
+            "when",
+            "why",
+            "how",
+            "who",
+            "are",
+            "is"
+        ]
+        first_word = command.split(" ")[0].lower()
+        log.debug("First word in command is {0}".format(first_word))
+        if first_word in question_words:
+            return True
+        return False
+    def exec(self, **kwargs):
+        '''Start the search'''
+
+        response = {"text": None, "data":{}, "type": "success"}
+        query = data["command"]
+        log.info("In main search function with query {0}".format(query))
+        db = data["db"]
+        answer = False
+        wolfram_key = kwargs["WolframAPI"]
+        wolfram_response = search_wolfram(query, wolfram_key)
+        # If it found an answer answer will be set to that, if not it'll still be false
+        answer = wolfram_response
+        if answer:
+            response["text"] = answer
+        else:
+            response["text"]=search_google(query)
+        return response

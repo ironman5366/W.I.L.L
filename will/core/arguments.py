@@ -1,8 +1,9 @@
 #Builtin imports
-import logging
+import logging, sys, inspect
 
 log = logging.getLogger()
 
+argument_list = []
 
 class Argument:
 
@@ -38,6 +39,15 @@ class Argument:
         self._build()
 
 # TODO: passive method of argument error
+
+class ResponseFunction(Argument):
+    def value(self, command_obj):
+        """
+        Expose the pointer to the set_response function
+        
+        :return self._session.set_response: The pointer 
+        """
+        return self._session.set_response
 
 class APIKey(Argument):
     """
@@ -84,16 +94,6 @@ class WeatherAPI(APIKey):
 
 class WolframAPI(APIKey):
     key_name = "wolfram"
-
-
-class SettingsArgument(Argument):
-    _setting_name = None
-    def _build(self):
-        user_data = self._user_data
-        session = self._graph.session()
-
-    def value(self, command_obj):
-        return self._setting
 
 
 class CommandObject(Argument):
@@ -186,3 +186,11 @@ class Location(Argument):
         :return self._location: 
         """
         return self._location
+
+# Build a list of argument classes in the file
+# Iterate through the classes
+for c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
+    # Check that the parent is the Argument class
+    if inspect.getmro(c)[1] == Argument:
+        argument_list.append(c)
+log.debug("Loaded {0} classes: {1}".format(len(argument_list), argument_list))

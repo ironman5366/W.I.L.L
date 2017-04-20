@@ -78,7 +78,7 @@ class ConnectUser:
                                 # Generate a secure token, sign it, and encrypt it in the database
                                 final_token = uuid.uuid4()
                                 # Sign the unencrypted version for the client
-                                signed_final_token = signer(final_token)
+                                signed_final_token = signer.sign(final_token)
                                 # Encrypt it and put in the database
                                 encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt())
                                 session.run({
@@ -255,6 +255,12 @@ class GiveUserToken:
 @falcon.before(hooks.user_is_admin)
 class StatusCheck:
     def on_post(self, req, resp):
+        """
+        Collect data from all the running functions, and return reports
+        
+        :param req: 
+        :param resp: 
+        """
         pass
 
 
@@ -276,19 +282,12 @@ class Command:
             command = doc["command"]
             # Run the command in the sessions command instance
             try:
+                # Let the command return the direct result dictionary
                 result = session.command(command)
                 log.debug("Got result {0} from command {1}".format(
                     result, command
                 ))
-                req.context["result"] = {
-                    "data": {
-                        "type": "success",
-                        "id": "COMMAND_RESULT",
-                        "result": result,
-                        "command": command,
-                        "text": result
-                    }
-                }
+                req.context["result"] = result
             except Exception as ex:
                 exception_type, exception_args = (type(ex).__name__, ex.args)
                 command_error_string = "Error of type {error_type} with arguments {error_args} occurred while " \
