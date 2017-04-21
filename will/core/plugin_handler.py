@@ -32,6 +32,14 @@ class Plugin:
         """
         raise NotImplementedError("Master plugin class should not be executed")
 
+    def response(self, **kwargs):
+        """
+        By default process a response the same way the main command is processed
+        
+        :param kwargs:  
+        """
+        return self.exec(kwargs=kwargs)
+
     def check(self, command_obj):
         """
         Basic check to see if the command fits the plugin
@@ -46,13 +54,6 @@ class Plugin:
                 return True
         return True
 
-
-class ResponsePlugin:
-    """
-    A plugin that won't be called in normal conditions
-    """
-    def check(self):
-        return False
 class PythonLoader:
     '''The class that loads the plugins'''
 

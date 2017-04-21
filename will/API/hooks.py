@@ -46,18 +46,33 @@ def session_auth(req, resp, resource, params):
                 # If it is valid, add the instantiated session class to the request context
                 req.context["session"] = sessions.sessions[session_id]
             else:
-                resp.status_code = falcon.HTTP_UNAUTHORIZED
-                req.context["result"] = {
-                    "errors":
-                        [{
-                            "type": "error",
-                            "id": "SESSION_ID_INVALID",
-                            "status": resp.status_code,
-                            "text":  "Session id had a valid signature but could not be found in the active sessions. "
-                                     "If this session id was previously reported as valid, please request a new one "
-                                     "and resubmit the request"
-                        }]
-                }
+                # Check if the session used to exit
+                if session_id in sessions.ended_sessions:
+                    resp.status_code = falcon.HTTP_BAD_REQUEST
+                    req.context["result"] = {
+                        "errors":
+                            [{
+                                "type": "error",
+                                "id": "SESSION_ENDED",
+                                "status": falcon.HTTP_BAD_REQUEST,
+                                "text": "Session {0} timed-out. Please start a new session".format(
+                                    session_id
+                                )
+                            }]
+                    }
+                else:
+                    resp.status_code = falcon.HTTP_UNAUTHORIZED
+                    req.context["result"] = {
+                        "errors":
+                            [{
+                                "type": "error",
+                                "id": "SESSION_ID_INVALID",
+                                "status": resp.status_code,
+                                "text":  "Session id had a valid signature but could not be found in the active "
+                                         "sessions. If this session id was previously reported as valid, please "
+                                         "request  new one and resubmit the request"
+                            }]
+                    }
                 raise falcon.HTTPError(resp.status_code, title="Invalid session id")
 
         except BadSignature:

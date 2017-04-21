@@ -1,5 +1,8 @@
 #Builtin imports
-import logging, sys, inspect
+import logging, sys, inspect, queue
+
+# External imports
+import falcon
 
 log = logging.getLogger()
 
@@ -7,13 +10,16 @@ argument_list = []
 
 class Argument:
 
-    def _build(self):
+    _build_status = "successful"
+    errors = []
+
+    def build(self):
         """
-        Use the class data to determine what the best source of data is, and define a callable object to fetch
-        the data from
+        Use the class data to determine what the best source of data is, and cache the relevant data when
+        possible
          
         """
-        pass
+        return True
 
     def value(self, command_obj):
         """
@@ -36,18 +42,25 @@ class Argument:
         self._user_data = user_data
         self._client = client
         self._session = session
-        self._build()
+        self.name = type(self).__name__
+        # If _build returns false, there's an error, and the user should be notified
+        build_valid = self.build()
+        if not build_valid:
+            # Raise an argument error
+            # Inject the error into the session
+            self.errors = [
+                {
+                    "type": "error",
+                    "id": "ARGUMENT_BUILD_FAILED",
+                    "text": "The build for argument {0} failed, and the user must address the issue. The build "
+                    "provided the following information about the failure: {1}".format(
+                        self.name, self._build_status
+                    ),
+                    "status": falcon.HTTP_CONFLICT
+                }
+            ]
 
 # TODO: passive method of argument error
-
-class ResponseFunction(Argument):
-    def value(self, command_obj):
-        """
-        Expose the pointer to the set_response function
-        
-        :return self._session.set_response: The pointer 
-        """
-        return self._session.set_response
 
 class APIKey(Argument):
     """
@@ -56,27 +69,44 @@ class APIKey(Argument):
     """
 
     key_name = None
+    _loaded_keys = queue.Queue(maxsize=1)
 
     @property
     def _key(self):
-        session = self._graph.session()
-
-        valid_keys = session.run("MATCH (a:APIKey {name: {name}) WHERE a.usages < a.max_usages or a.max_usages is null",
-                                 {"name": self.key_name})
-
-        if valid_keys:
-            session.close()
-            key = valid_keys[0]
-            # Increment the key usage
-            key_value = key["value"]
-            session.run("MATCH (a:APIKey {value: {value}}) SET a.usages = a.usages+1",
-                        {"value": key_value})
-            session.close()
-            return key_value
-        else:
-            session.close()
-            # TODO: implement passive argument error
-            raise NotImplementedError("Passive argument errors not yet implemented")
+        if self._loaded_keys.empty():
+            if not self.build():
+                log.error("{0} key fetch failing".format(self.key_name))
+                self.errors.append(
+                    {
+                        "type": "error",
+                        "text": "{0} key not available".format(self.key_name),
+                        "id": "KEY_NOT_AVAILABLE",
+                        "status": falcon.HTTP_INTERNAL_SERVER_ERROR
+                    }
+                )
+                return False
+        key = self._loaded_keys.get()
+        self.build()
+        return key
+    def build(self):
+        if self._loaded_keys.empty():
+            session = self._graph.session()
+            valid_keys = session.run("MATCH (a:APIKey {name: {name}) WHERE a.usages < a.max_usages or a.max_usages is "
+                                     "null",
+                                     {"name": self.key_name})
+            if valid_keys:
+                session.close()
+                key = valid_keys[0]
+                # Increment the key usage
+                key_value = key["value"]
+                session.run("MATCH (a:APIKey {value: {value}}) SET a.usages = a.usages+1",
+                            {"value": key_value})
+                session.close()
+                self._loaded_keys.put(key_value)
+            else:
+                session.close()
+                self._build_status = "No valid API keys found of type {0}".format(self.key_name)
+                return False
 
     def value(self, command_obj):
         """
@@ -157,7 +187,7 @@ class ClientID(Argument):
 
 class Location(Argument):
 
-    def _build(self):
+    def build(self):
         """
         Determine the users best method of getting the location, and add to the cache queue
         
@@ -174,6 +204,7 @@ class Location(Argument):
         if client_node and "location" in client_node.keys():
             location = client_node["location"]
             self._location = location
+            return True
         # The client doesn't provide a location, check for other clients and run accuracy calculations
         else:
             pass
@@ -186,6 +217,17 @@ class Location(Argument):
         :return self._location: 
         """
         return self._location
+
+class Setting(Argument):
+    setting_name = None
+    def build(self):
+        # Load the setting from the database
+        user_data = self._user_data
+        user_settings = user_data["settings"]
+class News(Argument):
+    def build(self):
+        user_data = self._user_data
+        user_news_site = user_data["settings"]["news_site"]
 
 # Build a list of argument classes in the file
 # Iterate through the classes

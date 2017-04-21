@@ -24,28 +24,37 @@ easter_eggs = {
 @subscribe
 class EasterEggs(Plugin):
     name = "eastereggs"
+    eggs = []
     arguments = [arguments.CommandParsed]
 
     # TODO: write a cleaner implemntation of this
     def check(self, command_obj):
-        scores = [command_obj.parsed.similarity(tools.parser(x)) for x in easter_eggs]
+        scores = [command_obj.parsed.similarity(x) for x in self.eggs]
         return max(scores) >= 0.96
 
     def exec(self, **kwargs):
         scores = {}
         doc = kwargs["CommandParsed"]
-        for x in easter_eggs:
-            x_parse = tools.parser(x)
+        for x_parse in self.eggs:
             scores.update({
-                doc.similarity(x_parse): easter_eggs[x]
+                doc.similarity(x_parse): easter_eggs[x_parse.text]
             })
         most_compatible = scores[max(scores)]
         log.debug("Query {0} activated easter egg {1}".format(doc.text, most_compatible))
         response = {
             "data":
                 {
-                    "type": "success"
+                    "type": "success",
+                    "id":  "EASTER_EGG_PLUGIN_SUCCESS",
+                    "text": most_compatible
                 }
         }
-        response = {"type": "success", "text": most_compatible, "data": {}}
         return response
+
+    def __init__(self):
+        """
+        Run all of the phrases through spacy when it's instantiated so that they don't have to be parsed
+        every time
+        """
+        log.debug("Loading easter eggs into spacy")
+        self.eggs = [tools.parser(x) for x in easter_eggs]
