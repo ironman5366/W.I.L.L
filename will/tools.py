@@ -25,4 +25,5 @@ def load():
     log.debug("Loading spacy")
     load_spacy()
 
-
+def ascii_encode(a):
+    return a.encode('ascii', 'ignore')
