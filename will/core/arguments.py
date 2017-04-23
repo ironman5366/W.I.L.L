@@ -333,6 +333,9 @@ class Site(Argument):
             # The cache is expired, reload the cache
             if time_delta >= self.cache_time:
                 self._site_cache = self._compile_site()
+            # If everything is in order, return the cached site
+            else:
+                self._site_cache = cache["value"]
         # Create the cache
         else:
             self._site_cache = self._compile_site()
