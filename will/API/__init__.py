@@ -17,6 +17,9 @@ from itsdangerous import Signer, TimestampSigner, BadSignature
 
 log = logging.getLogger()
 
+
+session_manager = None
+
 app = None
 
 configuration_data = None
@@ -261,7 +264,7 @@ class StatusCheck:
         :param req: 
         :param resp: 
         """
-        pass
+        return session_manager.report
 
 
 @falcon.before(hooks.session_auth)
@@ -504,11 +507,12 @@ def api_thread():
     httpd = simple_server.make_server('127.0.0.1', 8000, app)
     httpd.serve_forever()
 
-def start():
+def start(manager_thread):
     global app
-    global session_monitor
+    global session_manager
     global signer
     global timestampsigner
+    session_manager = manager_thread
     try:
         error_cause = "secret_key"
         secret_key = configuration_data["secret-key"]
@@ -524,8 +528,6 @@ def start():
         raise ConfigurationError(error_string)
     sessions.graph = graph
     hooks.graph = graph
-    # Start the session monitor
-    session_monitor = sessions.Monitor()
     app = falcon.API(
         middleware=[
             middleware.MonitoringMiddleware(banned_ips=configuration_data["banned-ips"]),

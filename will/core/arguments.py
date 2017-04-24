@@ -1,8 +1,10 @@
 # Builtin imports
 import logging
-import sys, inspect
+import sys
+import inspect
 import time
 import queue
+import datetime
 
 # Internal imports
 from will import tools
@@ -10,6 +12,7 @@ from will import tools
 # External imports
 import falcon
 import newspaper
+from pytz import timezone
 
 log = logging.getLogger()
 
@@ -68,6 +71,10 @@ class Argument:
             ]
 
 # TODO: passive method of argument error
+
+class SessionData(Argument):
+    def value(self, command_obj):
+        return self._session
 
 class APIKey(Argument):
     """
@@ -252,6 +259,30 @@ class Setting(Argument):
 class TempUnit(Setting):
     setting_name = "temp_unit"
 
+class TimeZone(Setting):
+    setting_name = "timezone"
+
+    # Use most of the build code from the Settings parent, but also build a timezone object
+    def build(self):
+        # Load the setting from the database
+        user_data = self._user_data
+        user_settings = user_data["settings"]
+        if self.setting_name in user_settings.keys():
+            self._setting_value = user_settings[self.setting_name]
+            self._timezone_obj = timezone(self._setting_value)
+        else:
+            error_string = "Couldn't find setting {} for user".format(self.setting_name)
+            self._build_status = error_string
+            self.errors.append({
+                "type": "error",
+                "text": error_string,
+                "id": "SETTING_ARGUMENT_INVALID"
+            })
+
+
+    def value(self, command_obj):
+        return datetime.datetime.now(self._timezone_obj)
+
 class Site(Argument):
     """
     A standardized site caching argument for a site that releases articles
@@ -366,6 +397,6 @@ class News(Site):
 # Iterate through the classes
 for c in inspect.getmembers(sys.modules[__name__], inspect.isclass):
     # Check that the parent is the Argument class
-    if inspect.getmro(c)[1] == Argument:
+    if inspect.getmro(c[1]) == Argument:
         argument_list.append(c)
 log.debug("Loaded {0} classes: {1}".format(len(argument_list), argument_list))

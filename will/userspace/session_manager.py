@@ -9,7 +9,7 @@ from will.userspace import sessions
 
 log = logging.getLogger()
 
-class session_manager:
+class SessionManager:
 
     running = True
     _cache_queue = queue.Queue()
@@ -25,7 +25,7 @@ class session_manager:
             while self._cache_queue.not_empty:
                 session = self._cache_queue.get()
                 log.debug("Reloading argument {0} caches for active session {1} owned by user {2}".format(
-                   len(session.arguments) ,session.session_id, session.username
+                   len(session.arguments), session.session_id, session.username
                 ))
                 # Go through the arguments in the session
                 for argument in session.arguments.values():
@@ -108,4 +108,4 @@ class session_manager:
         state_thread.start()
         cache_thread.start()
         self._cache_threads.append(state_thread)
-        self.cache_manager.append(cache_thread)
+        self._cache_threads.append(cache_thread)

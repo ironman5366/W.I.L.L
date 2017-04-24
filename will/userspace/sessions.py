@@ -2,12 +2,12 @@
 import logging
 import uuid
 import datetime
-import threading
+import queue
 import time
 
 # Internal imports
-from will import tools
 from will.core import arguments
+from will import tools
 
 # External imports
 import falcon
@@ -25,12 +25,28 @@ ended_sessions = []
 # Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
 
+class Notification:
+    @property
+    def time_reached(self):
+        return time.time() >= self.trigger_time
+
+    def __init__(self, message, title, trigger_time, scope):
+        # Decode the message and the title into ascii for maximum compatibility
+        self.title = tools.ascii_encode("W.I.L.L - "+title)
+        self.message = tools.ascii_encode(message)
+        self.scope = scope
+        self.created = datetime.datetime.now()
+        self.uid = uuid.uuid1()
+        self.trigger_time = trigger_time
+
+
 class Command:
 
     parent = None
     allow_response = False
     plugin = None
     responses = []
+    ents = {}
 
     @property
     def age(self):
@@ -67,12 +83,18 @@ class Command:
         self.text = command
         # The time the command was created
         self.created = datetime.datetime.now()
+        # Use spacy's ent recognition
+        for ent in self.parsed.ents:
+            self.ents.update({
+                ent.label_: ent.text
+            })
 
 
 class Session:
     _user_data = None
     commands = {}
     arguments = {}
+    notifications = queue.Queue()
 
     @property
     def argument_errors(self):
@@ -148,6 +170,11 @@ class Session:
                         "text": "Command id {0} does not exist in this session".format(command_id)
                     }]
             }
+    def notification(self, message, trigger_time ,title="", scope="all"):
+        # TODO: check scope
+        not_object = Notification(message, title, trigger_time, scope)
+        self.notifications.put(not_object)
+
     def _call_plugin(self, plugin, command_obj, method="exec"):
         """
         Call a plugin after finding it.

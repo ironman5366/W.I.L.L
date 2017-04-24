@@ -117,30 +117,25 @@ class PythonLoader:
             os.sep.join(os.path.normpath(self.file_path).split(os.sep)[:-1])
         )
 
-def subscribe():
+def subscribe(f):
     """
     Provides a decorator for subscribing plugin to commands
 
     """
+    assert Plugin in f.__bases__
+    # Instantiate the plugin
+    instantiated_plugin = f()
+    # Get the plugin name and arguments
+    name = instantiated_plugin.name
+    if name in plugin_names:
+        error_string = "Name {0} has already been registered in plugin subscriptions. Plugin names must be " \
+                       "unique identifiers.".format(name)
+        log.error(error_string)
+        raise PluginError(error_string)
+    else:
+        plugin_subscriptions.append(instantiated_plugin)
+        return f
 
-    def wrap(f):
-        # Subscribe the plugin, and while processing them pluck out the default plugin
-        # So it doesn't have to be searched for later
-        assert type(f) == Plugin
-        # Instantiate the plugin
-        instantiated_plugin = f()
-        # Get the plugin name and arguments
-        name = instantiated_plugin.name
-        if name in plugin_names:
-            error_string = "Name {0} has already been registered in plugin subscriptions. Plugin names must be " \
-                           "unique identifiers.".format(name)
-            log.error(error_string)
-            raise PluginError(error_string)
-        else:
-            plugin_subscriptions.append(instantiated_plugin)
-            return f
-
-    return wrap
 
 def process_plugin(path):
     """

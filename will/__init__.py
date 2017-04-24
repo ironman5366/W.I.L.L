@@ -11,10 +11,15 @@ from will.core import core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+06"
+version = "4.0-alpha+07"
 author = "Will Beddow"
 
+
 class will:
+    running = False
+    def kill(self):
+        self.running = False
+        self.API.kill()
     def configure_logging(self):
         global log
         #Logging presets.
@@ -73,11 +78,11 @@ class will:
         self.core = core(configuration_data=self.configuration_data)
         plugins = self.core.plugins
         log.info("Loading userspace...")
-        userspace.start(configuration_data=self.configuration_data, plugins=plugins)
+        self.session_manager = userspace.start(configuration_data=self.configuration_data, plugins=plugins)
         log.info("Loading API...")
         API.configuration_data = self.configuration_data
-        API.graph = self.userspace.graph
-        self.API = API.start()
+        API.graph = userspace.graph
+        self.API = API.start(self.session_manager)
         log.info("Loaded W.I.L.L")
 
 
@@ -124,6 +129,7 @@ class will:
                     #Load the modules with timing and a visual display
                     log.info("Loading will modules...")
                     self.load_modules()
+                    self.running = True
                 else:
                     raise ConfigurationError("Configuration data isn't a dictionary. Please check your configuration.")
             except json.JSONDecodeError:

@@ -99,8 +99,7 @@ class Search(Plugin):
     def check(self, command_obj):
         '''Determine whether it's a search command'''
         command = command_obj.text
-        # TODO: implement verbs property in command class
-        if "search" in event["verbs"]:
+        if "search" in command_obj.verbs:
             return True
         question_words = [
             "what",
@@ -112,24 +111,28 @@ class Search(Plugin):
             "is"
         ]
         first_word = command.split(" ")[0].lower()
-        log.debug("First word in command is {0}".format(first_word))
         if first_word in question_words:
             return True
         return False
+
     def exec(self, **kwargs):
         '''Start the search'''
-
-        response = {"text": None, "data":{}, "type": "success"}
-        query = data["command"]
-        log.info("In main search function with query {0}".format(query))
-        db = data["db"]
-        answer = False
+        response_text = None
+        query = kwargs["CommandText"]
         wolfram_key = kwargs["WolframAPI"]
+        answer = False
         wolfram_response = search_wolfram(query, wolfram_key)
         # If it found an answer answer will be set to that, if not it'll still be false
         answer = wolfram_response
         if answer:
-            response["text"] = answer
+            response_text = answer
         else:
-            response["text"]=search_google(query)
-        return response
+            response_text = search_google(query)
+        return {
+            "data":
+                {
+                    "type": "success",
+                    "text": response_text,
+                    "id": "SEARCH_SUCCESSFUL"
+                }
+        }

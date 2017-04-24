@@ -14,8 +14,10 @@ from neo4j.v1 import GraphDatabase, basic_auth
 log = logging.getLogger()
 
 running = True
+graph = None
 
 def start(configuration_data, plugins):
+    global graph
     sessions.plugins = plugins
     log.debug("Loading user database")
     db_configuration = configuration_data["db"]
@@ -47,7 +49,7 @@ def start(configuration_data, plugins):
         db_configuration["port"],
         db_configuration["user"]
     ))
-    session_class = session_manager.session_manager(plugins, graph)
+    session_class = session_manager.SessionManager(graph)
     # Load caches for all datastores, public and private
     log.debug("Started event loop thread")
     return session_class
