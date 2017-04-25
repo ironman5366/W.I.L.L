@@ -4,8 +4,12 @@ import queue
 import time
 import threading
 import json
+import time
+
 # External imports
 import falcon
+
+debug = False
 
 log = logging.getLogger()
 
@@ -15,19 +19,20 @@ class RequireJSON:
             raise falcon.HTTPNotAcceptable(
                 'This API only supports responses encoded as JSON.')
 
-        if req.method in ('POST', 'PUT'):
-            if 'application/json' not in req.content_type:
-                resp.status_code = falcon.HTTP_UNSUPPORTED_MEDIA_TYPE
+        # Normally allow only post requests, or also
+        if req.method in ("POST", "PUT", "DELETE"):
+            if 'application/vnd.api+json' not in req.content_type:
+                resp.status = falcon.HTTP_UNSUPPORTED_MEDIA_TYPE
                 req.context["result"] = {
                     "errors":
                         [{
                             "id": "UNSUPPORTED_MEDIA_TYPE",
                             "type": "error",
-                            "status": resp.status_code,
+                            "status": resp.status,
                             "text": "This API only supports requests encoded as JSON"
                         }]
                 }
-                raise falcon.HTTPError(resp.status_code, "Unsupported media type")
+                raise falcon.HTTPError(resp.status, "Unsupported media type")
 
 class JSONTranslator(object):
     def process_request(self, req, resp):
@@ -37,33 +42,33 @@ class JSONTranslator(object):
         # See also: PEP 3333
         if req.content_length in (None, 0):
             # Nothing to do
-            return
+            req.context["doc"] = {}
 
         body = req.stream.read()
         if not body:
-            resp.status_code = falcon.HTTP_BAD_REQUEST
+            resp.status = falcon.HTTP_BAD_REQUEST
             req.context["result"] = {
                 "errors":
                     [{
                         "id": "REQUEST_EMPTY",
                         "type": "error",
                         "text": "Empty request body, a valid JSON document is required",
-                        "status": resp.status_code
+                        "status": resp.status
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, "Empty request")
+            raise falcon.HTTPError(resp.status, "Empty request")
 
         try:
             req.context['doc'] = json.loads(body.decode('utf-8'))
 
         except (ValueError, UnicodeDecodeError):
-            resp.status_code = falcon.HTTP_500
+            resp.status = falcon.HTTP_500
             req.context["result"] = {
                 "errors":
                     [{
                         "id": "JSON Malformed",
                         "type": "error",
-                        "status": resp.status_code,
+                        "status": resp.status,
                         "text": "Could not decode the request body. The "
                                 "JSON was incorrect or not encoded as "
                                 "UTF-8."
@@ -84,7 +89,7 @@ class JSONTranslator(object):
                 req.context["result"], resource)
             )
             error_code = falcon.HTTP_INTERNAL_SERVER_ERROR
-            resp.status_code = error_code
+            resp.status = error_code
             resp.body = json.dumps(
                 {"errors":
                     [{
@@ -96,7 +101,7 @@ class JSONTranslator(object):
                     }]
                 }
             )
-            raise falcon.HTTPError(resp.status_code, title="Invalid response")
+            raise falcon.HTTPError(resp.status, title="Invalid response")
 
 
 class MonitoringMiddleware:
@@ -117,17 +122,17 @@ class MonitoringMiddleware:
                             "an inordinate amount of API requests, you can make requests again after not making any " \
                             "for 15 minutes.\nOtherwise, if the ban is permanent, and you believe it's erroneous, "\
                             "you can contact me at will@willbeddow.com to possibly get the ban reversed."
-            resp.status_code = falcon.HTTP_TOO_MANY_REQUESTS
+            resp.status = falcon.HTTP_TOO_MANY_REQUESTS
             req.context["result"] = {
                 "errors":
                     [{
                         "id": "IP_BANNED",
                         "type": "error",
-                        "status": resp.status_code,
+                        "status": resp.status,
                         "text": error_message
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, title="Banned")
+            raise falcon.HTTPError(resp.status, title="Banned")
 
 
     def _ban_monitor(self):

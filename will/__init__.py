@@ -11,7 +11,7 @@ from will.core import core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+07"
+version = "4.0-alpha+08"
 author = "Will Beddow"
 
 
@@ -19,7 +19,7 @@ class will:
     running = False
     def kill(self):
         self.running = False
-        self.API.kill()
+        API.kill()
     def configure_logging(self):
         global log
         #Logging presets.
@@ -82,7 +82,7 @@ class will:
         log.info("Loading API...")
         API.configuration_data = self.configuration_data
         API.graph = userspace.graph
-        self.API = API.start(self.session_manager)
+        API.start(self.session_manager)
         log.info("Loaded W.I.L.L")
 
 

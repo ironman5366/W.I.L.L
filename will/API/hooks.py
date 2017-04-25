@@ -48,7 +48,7 @@ def session_auth(req, resp, resource, params):
             else:
                 # Check if the session used to exit
                 if session_id in sessions.ended_sessions:
-                    resp.status_code = falcon.HTTP_BAD_REQUEST
+                    resp.status = falcon.HTTP_BAD_REQUEST
                     req.context["result"] = {
                         "errors":
                             [{
@@ -61,22 +61,22 @@ def session_auth(req, resp, resource, params):
                             }]
                     }
                 else:
-                    resp.status_code = falcon.HTTP_UNAUTHORIZED
+                    resp.status = falcon.HTTP_UNAUTHORIZED
                     req.context["result"] = {
                         "errors":
                             [{
                                 "type": "error",
                                 "id": "SESSION_ID_INVALID",
-                                "status": resp.status_code,
+                                "status": resp.status,
                                 "text":  "Session id had a valid signature but could not be found in the active "
                                          "sessions. If this session id was previously reported as valid, please "
                                          "request  new one and resubmit the request"
                             }]
                     }
-                raise falcon.HTTPError(resp.status_code, title="Invalid session id")
+                raise falcon.HTTPError(resp.status, title="Invalid session id")
 
         except BadSignature:
-            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
@@ -85,22 +85,23 @@ def session_auth(req, resp, resource, params):
                         "text": "Session id {0} either is unsigned or has an invalid or expired signature. If this "
                                 "session id was previously reported as valid, please make another request to get a "
                                 "new session id.".format(signed_session_id),
-                        "status": resp.status_code
+                        "status": resp.status
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, "Bad signature")
+            raise falcon.HTTPError(resp.status, "Bad signature")
     else:
-        resp.status_code = falcon.HTTP_BAD_REQUEST
+        resp.status = falcon.HTTP_BAD_REQUEST
         req.context["result"] = {
             "errors":
                 [{
                     "type": "error",
                     "id": "SESSION_ID_NOT_FOUND",
-                    "status": resp.status_code,
+                    "status": resp.status,
                     "text": "Requests to this method must include a signed session_id"
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, title="Session id not found")
+        raise falcon.HTTPError(resp.status, title="Session id not found")
+
 def calculate_scope(scope_submitted, scope_required):
     """
     Determine whether a submitted scope is high level enough to meet the permissions of the required scope
@@ -141,7 +142,7 @@ def _scope_check(req, resp, resource, params, level):
                 client_id, resource
             ))
         else:
-            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
@@ -150,26 +151,26 @@ def _scope_check(req, resp, resource, params, level):
                         "text": "Your clients scope {0} does not meet the required scope admin for this method".format(
                             scope
                         ),
-                        "status": resp.status_code
+                        "status": resp.status
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, "Insufficient")
+            raise falcon.HTTPError(resp.status, "Insufficient")
     else:
         log.error("Invalid scope in database! Unrecognized scope {0} appeared in database between user {1} and client "
                   "{2}".format(scope, username, client_id))
         # Throw an error because there's invalid data
-        resp.status_code = falcon.HTTP_INTERNAL_SERVER_ERROR
+        resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
         req.context["result"] = {
             "errors":
                 [{
                     "type": "error",
                     "id": "SCOPE_INTERNAL_ERROR",
-                    "status": resp.status_code,
+                    "status": resp.status,
                     "text": "The database provided an invalid scope. Please contact will@willbeddow.com to submit a "
                             "bug report."
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, title="Internal scope error")
+        raise falcon.HTTPError(resp.status, title="Internal scope error")
 
 def client_is_official(req, resp, resource, params):
     """
@@ -188,17 +189,17 @@ def client_is_official(req, resp, resource, params):
     if client["official"]:
         log.debug("Client {0} is an official client".format(client_id))
     else:
-        resp.status_code = falcon.HTTP_UNAUTHORIZED
+        resp.status = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
             "errors":
                 [{
                     "id": "CLIENT_UNOFFICIAL",
                     "type": "error",
-                    "status": resp.status_code,
+                    "status": resp.status,
                     "text": "Client {0} is not official".format(client_id)
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, "Client unofficial")
+        raise falcon.HTTPError(resp.status, "Client unofficial")
 
 
 
@@ -223,17 +224,17 @@ def user_is_admin(req, resp, resource, params):
             username
         ))
     else:
-        resp.status_code = falcon.HTTP_UNAUTHORIZED
+        resp.status = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
             "errors":
                 [{
                     "id": "USER_NOT_ADMIN",
                     "type": "error",
-                    "status": resp.status_code,
+                    "status": resp.status,
                     "text": "User {0} is not an administrator".format(username)
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, "Administrator privileges")
+        raise falcon.HTTPError(resp.status, "Administrator privileges")
 
 def client_user_auth(req, resp, resource, params):
     """
@@ -282,82 +283,82 @@ def client_user_auth(req, resp, resource, params):
                                 doc["client_id"], username
                             ))
                         else:
-                            resp.status_code=falcon.HTTP_UNAUTHORIZED
+                            resp.status=falcon.HTTP_UNAUTHORIZED
                             req.context["result"] = {
                                 "errors":
                                     [{
                                         "id": "ACCESS_TOKEN_INVALID",
                                         "type": "error",
                                         "text": "Submitted access token is invalid",
-                                        "status": resp.status_code
+                                        "status": resp.status
                                     }]
                             }
-                            raise falcon.HTTPError(resp.status_code)
+                            raise falcon.HTTPError(resp.status)
                     else:
-                        resp.status_code = falcon.HTTP_UNAUTHORIZED
+                        resp.status = falcon.HTTP_UNAUTHORIZED
                         req.context["result"] = {
                             "error":
                                 [{
                                     "type": "error",
                                     "id": "USER_NOT_AUTHENTICATED",
-                                    "status": resp.status_code,
+                                    "status": resp.status,
                                     "text": "User {0} has not authenticated with client {1}".format(
                                         username, doc["client_id"]
                                     )
                                 }]
                         }
-                        raise falcon.HTTPError(resp.status_code, "User not authenticated")
+                        raise falcon.HTTPError(resp.status, "User not authenticated")
                 except BadSignature:
-                    resp.status_code = falcon.HTTP_UNAUTHORIZED
+                    resp.status = falcon.HTTP_UNAUTHORIZED
                     req.context["result"] = {
                         "errors":
                             [{
                                 "id": "ACCESS_TOKEN_INVALID",
                                 "type": "error",
-                                "status": resp.status_code,
+                                "status": resp.status,
                                 "text": "Provided access token had a bad or corrupt signature"
                             }]
                     }
-                    raise falcon.HTTPError(resp.status_code, "Invalid access token")
+                    raise falcon.HTTPError(resp.status, "Invalid access token")
                 finally:
                     # No matter what close the session
                     session.close()
             else:
-                resp.status_code = falcon.HTTP_UNAUTHORIZED
+                resp.status = falcon.HTTP_UNAUTHORIZED
                 req.context["result"] = {
                     "errors":
                         [{
                             "id": "USERNAME_INVALID",
                             "type": "error",
-                            "status": resp.status_code,
+                            "status": resp.status,
                             "text": "User {0} not found".format(username)
                         }]
                 }
-                raise falcon.HTTPError(resp.status_code, title="User not found")
+                raise falcon.HTTPError(resp.status, title="User not found")
         else:
-            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
                         "id": "USERNAME_NOT_FOUND",
                         "type": "error",
-                        "status": resp.status_code,
+                        "status": resp.status,
                         "text": "Username not provided"
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, "Username not found")
+            raise falcon.HTTPError(resp.status, "Username not found")
     else:
-        resp.status_code = falcon.HTTP_UNAUTHORIZED
+        resp.status = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
             "errors":
                 [{
                     "id": "ACCESS_TOKEN_NOT_FOUND",
                     "type": "error",
                     "text": "Access token not provided",
-                    "status": resp.status_code
+                    "status": resp.status
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, "Accesss token required")
+        raise falcon.HTTPError(resp.status, "Accesss token required")
 
 def user_auth(req, resp, resource, params):
     """
@@ -385,43 +386,43 @@ def user_auth(req, resp, resource, params):
                 log.debug("Successfully authenticated user {0} with username and password".format(username))
             else:
                 log.debug("Authentication failed for user {0}".format(username))
-                resp.status_code = falcon.HTTP_UNAUTHORIZED
+                resp.status = falcon.HTTP_UNAUTHORIZED
                 req.context["result"] = {
                     "errors":
                         [{
                             "id": "PASSWORD_INVALID",
-                            "status": resp.status_code,
+                            "status": resp.status,
                             "type": "error",
                             "text": "Invalid password for user {0}".format(username)
                         }]
                 }
-                raise falcon.HTTPError(resp.status_code, title="Invalid password")
+                raise falcon.HTTPError(resp.status, title="Invalid password")
         else:
             error_message = "Couldn't find user {0}".format(username)
             log.debug(error_message)
-            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
                         "type": "error",
                         "id": "USER_INVALID",
-                        "status": resp.status_code,
+                        "status": resp.status,
                         "text": "User {0} could not be found".format(username)
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, "User not found")
+            raise falcon.HTTPError(resp.status, "User not found")
     else:
-        resp.status_code = falcon.HTTP_UNAUTHORIZED
+        resp.status = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
             "errors":
                 [{
                     "type": "error",
                     "id": "USERNAME_PASSWORD_NOT_FOUND",
-                    "status":  resp.status_code,
+                    "status":  resp.status,
                     "text": "To access this API method you must provide a username and password"
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, "Username/password not found")
+        raise falcon.HTTPError(resp.status, "Username/password not found")
 
 def client_auth(req, resp, resource, params):
     """
@@ -434,7 +435,6 @@ def client_auth(req, resp, resource, params):
     """
     doc = req.context["doc"]
     if "client_id" in doc.keys() and "client_secret" in doc.keys():
-
         client_id = doc["client_id"]
         signed_secret_key = doc["client_secret"]
         # Try to usnign the secret key before opening a databsae connection
@@ -442,17 +442,17 @@ def client_auth(req, resp, resource, params):
             secret_key = signer.unsign(signed_secret_key)
         except BadSignature:
             # The signature was invalid
-            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
                         "id": "CLIENT_SECRET_BAD_SIGNATURE",
                         "type":  "error",
-                        "status": resp.status_code,
+                        "status": resp.status,
                         "text": "The submitted client secret key was unsigned or had a bad signature"
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, "Bad signature")
+            raise falcon.HTTPError(resp.status, "Bad signature")
         session = graph.session()
         clients = session.run("MATCH (c:Client {name: {client_id}}) return (c)",
                               {"client_id": client_id})
@@ -464,38 +464,38 @@ def client_auth(req, resp, resource, params):
                 log.debug("Successful authentication for client {0}".format(client_id))
             else:
                 log.debug("Failed authentication for client {0}".format(client_id))
-                resp.status_code = falcon.HTTP_UNAUTHORIZED
+                resp.status = falcon.HTTP_UNAUTHORIZED
                 req.context["result"] = {
                     "errors":
                         [{
                             "id": "CLIENT_SECRET_INVALID",
                             "type": "error",
                             "text": "Provided clients secret key is invalid",
-                            "status": resp.status_code
+                            "status": resp.status
                         }]
                 }
-                raise falcon.HTTPError(resp.status_code, title="Invalid client secret")
+                raise falcon.HTTPError(resp.status, title="Invalid client secret")
         else:
-            resp.status_code = falcon.HTTP_UNAUTHORIZED
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
                         "id": "CLIENT_ID_INVALID",
                         "type": "error",
                         "text": "Couldn't find client {0}".format(client_id),
-                        "status": resp.status_code
+                        "status": resp.status
                     }]
             }
-            raise falcon.HTTPError(resp.status_code, title="Client not found")
+            raise falcon.HTTPError(resp.status, title="Client not found")
     else:
-        resp.status_code = falcon.HTTP_UNAUTHORIZED
+        resp.status = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
             "errors":
                 [{
                     "id": "CLIENT_ID_NOT_FOUND",
-                    "status": resp.status_code,
+                    "status": resp.status,
                     "type": "error",
                     "text": "You must pass a client id and client secret with every request"
                 }]
         }
-        raise falcon.HTTPError(resp.status_code, title="Client info not found")
+        raise falcon.HTTPError(resp.status, title="Client info not found")
