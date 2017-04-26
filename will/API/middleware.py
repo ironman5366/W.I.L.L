@@ -1,7 +1,8 @@
 # Builtin imports
 import logging
 import queue
-import time
+import base64
+import binascii
 import threading
 import json
 import time
@@ -59,14 +60,16 @@ class JSONTranslator(object):
             raise falcon.HTTPError(resp.status, "Empty request")
 
         try:
-            req.context['doc'] = json.loads(body.decode('utf-8'))
-
+            loaded_json = json.loads(body.decode('utf-8'))
+            doc_keys = loaded_json.keys()
+            assert ("auth" in doc_keys and "data" in doc_keys)
+            req.context["doc"] = loaded_json["data"]
         except (ValueError, UnicodeDecodeError):
             resp.status = falcon.HTTP_500
             req.context["result"] = {
                 "errors":
                     [{
-                        "id": "JSON Malformed",
+                        "id": "JSON_MALFORMED",
                         "type": "error",
                         "status": resp.status,
                         "text": "Could not decode the request body. The "
@@ -75,6 +78,19 @@ class JSONTranslator(object):
                     }]
             }
             raise falcon.HTTPError(falcon.HTTP_500, "Malformed JSON")
+        # The data did not include both auth and data keys
+        except AssertionError:
+            resp.status = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "type": "error",
+                        "id": "JSON_INCORRECT",
+                        "status": resp.status,
+                        "text": "The JSON data did not include top level `auth` and `data` keys."
+                    }]
+            }
+            raise falcon.HTTPError(resp.status, "Incorrect JSON")
 
     def process_response(self, req, resp, resource):
         if 'result' not in req.context:
@@ -82,7 +98,7 @@ class JSONTranslator(object):
         # Validate the JSON according the the API spec
         result_keys = req.context["result"].keys()
         key_check = lambda k: (k in result_keys and "id" in k.keys() and "type" in k.keys())
-        if any([key_check(i) for i in  ["data", "errors", "meta"]]):
+        if any([key_check(i) for i in ["data", "errors", "meta"]]):
             resp.body = json.dumps(req.context['result'])
         else:
             log.error("Server response {0} to resource {1} failed to provide data key".format(
@@ -103,6 +119,85 @@ class JSONTranslator(object):
             )
             raise falcon.HTTPError(resp.status, title="Invalid response")
 
+class AuthTranslator:
+    """
+    Decode authorization from various sources and puts everything into req.context["auth"]
+    """
+    @staticmethod
+    def _b64_error(req, resp, header):
+        resp.status = falcon.HTTP_BAD_REQUEST
+        req.context["result"] = {
+                "type": "error",
+                "id": "HEADER_{}_INVALID".format(header.upper()),
+                "text": "Passed {} header was not valid base64".format(header),
+                "status": resp.status
+        }
+        raise falcon.HTTPError(resp.status, "Invalid encoding")
+
+    def process_request(self, req, resp):
+        if req.method == "GET":
+            auth = {}
+            encoded_client_id = req.get_header("X-Client-Id", required=True)
+            try:
+                client_id = base64.b64decode(encoded_client_id).decode("utf-8")
+                auth.update({"client_id": client_id})
+            except binascii.Error:
+                self._b64_error(req, resp, "X-Client-Id")
+            client_secret = req.get_header("X-Client-Secret")
+            if client_secret:
+                auth.update({"client_secret": client_secret})
+            access_token = req.get_header("X-Access-Token")
+            if access_token:
+                auth.update({"access_token": access_token})
+            # Allow http basic auth
+            authorization = req.get_header("Authorization")
+            # Assume that it's a basic http authorization header with base64 encoded username:password
+            if authorization:
+                try:
+                    decoded_header = base64.b64decode(authorization).decote('utf-8')
+                    if ":" in decoded_header:
+                        h_split = decoded_header.split(":")
+                        username = h_split[0]
+                        password = h_split[1]
+                        auth.update({
+                            "username": username,
+                            "password": password
+                        })
+                    # Throw a bad request error
+                    else:
+                        resp.status = falcon.HTTP_BAD_REQUEST
+                        req.context["result"] = {
+                            "errors":
+                                [{
+                                    "type": "error",
+                                    "id": "AUTHORIZATION_HEADER_INCOMPLETE",
+                                    "text": "Didn't find colon separated username and password in decoded "
+                                            "authorization header",
+                                    "status": resp.status
+                                }]
+                        }
+                        raise falcon.HTTPError(resp.status, "Incomplete header")
+                # Error decoding the authorization header from base64
+                except binascii.Error:
+                   self._b64_error(req, resp, "Authorization")
+            req.context["auth"] = auth
+        else:
+            doc = req.context["doc"]
+            doc_auth = doc["auth"]
+            if "client_id" in doc_auth.keys():
+                req.context["auth"] = doc["auth"]
+            # Raise an http error because always required field client id was missing
+            else:
+                resp.status = falcon.HTTP_BAD_REQUEST
+                req.context["result"] = {
+                    [{
+                        "type": "error",
+                        "id": "CLIENT_ID_NOT_FOUND",
+                        "text": "Client id must be submitted in the authorization portion of every request",
+                        "status": resp.status
+                    }]
+                }
+                raise falcon.HTTPError(resp.status, "Client id not found")
 
 class MonitoringMiddleware:
     """

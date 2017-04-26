@@ -135,7 +135,7 @@ class Session:
         """
         Route a response to a plugin query
         
-        :param command_id: A command uid that represents an instantiated command within this esssion
+        :param command_id: A command uid that represents an instantiated command within this session
         :param response_text: The text of the response
         :return answer: The answer the plugin returned 
         """

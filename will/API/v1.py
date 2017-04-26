@@ -1,6 +1,7 @@
 # Builtin imports
 import logging
 import uuid
+import time
 
 # Internal imports
 from will.API import hooks
@@ -17,10 +18,23 @@ graph = None
 timestampsigner = None
 signer = None
 
-
-# TODO: update ids
-
 class Oauth2:
+    """
+    Handles all oauth2 authentication.
+    At the route /api/v1/oauth2/step_id where step_id is one of `user_token` or `access_token`
+    Post:
+        user_token
+            As an authenticated user (username+pw authentication from hooks.user_auth), request a signed access token
+            That will be given to a client. The token is valid for 5 minutes and only valid with the client_id
+            specified in the request, and with the scope specified in the request.
+        access_token
+            Post a user token to create a permanent relationship between a client and a user. Delete the previous
+            user_token and return the access token. The access token will only be valid for the correct scope.
+    Delete:
+        access_token
+            Delete the relationship between a user and a client
+    """
+    @falcon.before(hooks.client_auth)
     @falcon.before(hooks.user_auth)
     def on_post(self, req, resp, step_id):
         """
@@ -33,12 +47,13 @@ class Oauth2:
         
         """
         doc = req.context["doc"]
+        auth = req.context["auth"]
         if step_id == "user_token":
             # Generate a user token, put it in the database, and sign it
             # I can be sure that username already exists thanks to the pre request hook
-            username = doc["username"]
-            if "client_id" in doc.keys():
-                client_id = doc["client_id"]
+            username = auth["username"]
+            if "client_id" in auth.keys():
+                client_id = auth["client_id"]
                 # Check that there's a scope object in the request and check it against a list of allowed scopes
                 if "scope" in doc.keys():
                     scope = doc["scope"]
@@ -93,10 +108,10 @@ class Oauth2:
                                                "text": "You must provide a client id with this request"}]}
             pass
         elif step_id == "access_token":
-            if "user_token" in doc.keys():
-                signed_auth_token = doc["user_token"]
-                if "username" in doc.keys():
-                    username = doc["username"]
+            if "user_token" in auth.keys():
+                signed_auth_token = auth["user_token"]
+                if "username" in auth.keys():
+                    username = auth["username"]
                     # Make sure the user exists
                     session = graph.session()
                     users = session.run("MATCH (u:User {username: {username}}) return (u)",
@@ -113,17 +128,17 @@ class Oauth2:
                             # Validation
                             rel = rels[0]
                             log.debug("Starting client connection process for client {0} and user {1}".format(
-                                doc["client_id"], username
+                                auth["client_id"], username
                             ))
                             try:
                                 # Check the signature with a 5 minute expiration
                                 unsigned_auth_token = timestampsigner.unsign(signed_auth_token, 300)
                                 log.debug("Token for user {0} provided by client {1} unsigned successfully".format(
-                                    username, doc["client_id"]
+                                    username, auth["client_id"]
                                 ))
                                 if unsigned_auth_token == rel["authorization_token"]:
                                     log.debug("Token check successful. Permanently connecting user {0} and client"
-                                              " {1}".format(username, doc["client_id"]))
+                                              " {1}".format(username, auth["client_id"]))
                                     # Generate a secure token, sign it, and encrypt it in the database
                                     final_token = uuid.uuid4()
                                     # Sign the unencrypted version for the client
@@ -136,7 +151,7 @@ class Oauth2:
                                         "CREATE (u)-[:USES {scope: {scope}, {access_token: {access_token}}]->(c)",
                                         {
                                             "username": username,
-                                            "client_id": doc["client-id"],
+                                            "client_id": auth["client_id"],
                                             "scope": rel["scope"],
                                             "access_token": encrypted_final_token
                                         }
@@ -153,15 +168,15 @@ class Oauth2:
                                     }
                                 else:
                                     log.debug("Token provided by client {0} was mismatched with token provided by "
-                                              "user {1}".format(doc["client_id"], username))
+                                              "user {1}".format(auth["client_id"], username))
                                     resp.status = falcon.HTTP_FORBIDDEN
                                     req.context["result"] = {
                                         "errors":
                                             [{
                                                 "id": "AUTH_TOKEN_MISMATCHED",
                                                 "type": "error",
-                                                "text": "Provided token unsigned successfully but did not match with the "
-                                                        "token provided by the user."
+                                                "text": "Provided token unsigned successfully but did not match with "
+                                                        "the token provided by the user."
                                             }]
                                     }
                             # The timestamp or the signature was invalild
@@ -193,7 +208,7 @@ class Oauth2:
                                         "id": "USER_NOT_AUTHORIZED",
                                         "type": "error",
                                         "text": "The user {0} has not authorized a connection with client {1}".format(
-                                            username, doc["client_id"]
+                                            username, auth["client_id"]
                                         ),
                                         "status": resp.status
                                     }]
@@ -260,15 +275,16 @@ class Oauth2:
         if step_id in step_rels.keys():
             step_rel = step_rels[step_id]
             doc = req.context["doc"]
-            if "client_id" in doc.keys():
-                client_id = doc["client_id"]
+            auth = req.context["auth"]
+            if "client_id" in auth.keys():
+                client_id = auth["client_id"]
                 session = graph.session()
                 user_rels = session.run("MATCH (c:Client {client_id: {client_id})"
                                         "MATCH (u:User {username: {username}"
                                         "MATCH (u)-[r:{step_rel}]->(c)"
                                         "return (r)",
                                         {"client_id": client_id,
-                                         "username": doc["username"],
+                                         "username": auth["username"],
                                          "step_rel": step_rel})
                 if user_rels:
                     # Delete the relationship
@@ -282,7 +298,7 @@ class Oauth2:
                         "data":
                             {
                                 "type": "success",
-                                "text": "Deleted relationship between user {0} and client {1}".format(doc["username"],
+                                "text": "Deleted relationship between user {0} and client {1}".format(auth["username"],
                                                                                                       client_id)
                             }
                     }
@@ -293,7 +309,7 @@ class Oauth2:
                             [{
                                 "type": "error",
                                 "text": "Couldn't find a relationship between user {0} and client {1}".format(
-                                    doc["username"], client_id
+                                    auth["username"], client_id
                                 )
                             }]
                     }
@@ -324,10 +340,11 @@ class Oauth2:
 
 
 class Users:
-    @falcon.before(hooks.client_user_auth)
+    @falcon.before(hooks.session_auth)
+    @falcon.before(hooks.client_can_change_settings)
     def on_put(self, req, resp):
         """
-        Update a users settings
+        Change user settings
         
         :param req: 
         :param resp: 
@@ -335,43 +352,227 @@ class Users:
         """
         pass
 
-    @falcon.before(hooks.client_user_auth)
+    @falcon.before(hooks.session_auth)
+    @falcon.before(hooks.client_can_read_settings)
     def on_get(self, req, resp):
         """
         Get information about a user
         
         :param req: 
         :param resp: 
+        """
+        auth = req.context["auth"]
+        username = auth["username"]
+        log.debug("Fetching data about user {}".format(username))
+        # Start a graph session and return nonsensitive user data
+        session = graph.session()
+        matching_users = session.run("MATCH (u:User {username:{username}})"
+                                     "return (u)",
+                                     {"username": username})
+        session.close()
+        # We know the user exists because they passed the client user auth hook
+        user = matching_users[0]
+        user_fields = ["first_name", "last_name", "username", "settings"]
+        user_data = {}
+        # Put the users data into a dictionary that will be returned in a "data" key
+        for d in user_fields:
+            user_data.update({d: user[d]})
+        req.context["result"] = {
+            "data":
+                {
+                    "type": "success",
+                    "text": "Fetched user data for user {}".format(username),
+                    "user_data": user_data
+                }
+        }
+
+
+    @falcon.before(hooks.session_auth)
+    @falcon.before(hooks.client_is_official)
+    def on_delete(self, req, resp):
+        """
+        Delete a user
         :return: 
         """
-        pass
+        auth = req.context["auth"]
+        username = auth["username"]
+        log.info("Deleting user {}".format(username))
+        # End all the users sessions
+        for session in sessions.sessions.values():
+            if session.username == username:
+                session.logout()
+        session = graph.session()
+        # Delete the user in the database
+        session.run("MATCH (u:User {username: {username}})"
+                    "DETACH DELETE (u)")
+        session.close()
+        req.context["result"] = {
+            "data":
+                {
+                    "type": "success",
+                    "text": "Deleted user {}".format(username),
+                    "id": "USER_DELETED"
+                }
+        }
 
-    def on_delete(self):
-        pass
+    @falcon.before(hooks.client_is_official)
+    def on_post(self, req, resp):
+        """
+        Create a new user
+        
+        :param req: 
+        :param resp: 
+        :return: 
+        """
+        doc = req.context["data"]
+        data_keys = doc.keys()
+        required_fields = {
+            "username": str,
+            "password": str,
+            "first_name": str,
+            "last_name": str,
+            "settings": dict
+        }
+        field_errors = []
+        # TODO: validate settings
+        for field, field_type in required_fields.items():
+            if field in data_keys:
+                if type(doc[field]) != field_type:
+                    field_error = {
+                        "type": 'error',
+                        "id": "FIELD_{}_INVALID_TYPE".format(field.upper()),
+                        "text": "Field {0} must be of type {1}".format(field, type(field_type).__name__),
+                        "status": falcon.HTTP_BAD_REQUEST
+                    }
+                    field_errors.append(field_error)
+            else:
+                field_error = {
+                    "type": "error",
+                    "id": "FIELD_{}_NOT_FOUND".format(field.upper()),
+                    "text": "Field {} required to create a user".format(field),
+                    "status": falcon.HTTP_BAD_REQUEST
+                }
+                field_errors.append(field_error)
+        # Check if there were errors during validation
+        if field_errors:
+            resp.status_code = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
+                "errors": field_errors
+            }
+        # If the data was validated successfully, create the user in the database
+        # At the same time create an authorization token for the official client
+        else:
+            session = graph.session()
+            # Check to see if the username already exists
+            users_found = session.run("MATCH (u:User {username: {username})",
+                                      {"username": doc["username"]})
+            if users_found:
+                resp.status = falcon.HTTP_CONFLICT
+                req.context["result"] = {
+                    "errors":
+                        [{
+                            "type": "error",
+                            "id": "USERNAME_ALREADY_EXISTS",
+                            "text": "Username {} is already taken".format(doc["username"]),
+                            "status": resp.status
+                        }]
+                }
+            # The user doesn't already exist
+            else:
+                log.info("Creating user {}".format(doc["username"]))
+                # Hash the users password
+                hashed_password = bcrypt.hashpw(doc["password"], bcrypt.gensalt())
+                auth = req.context["auth"]
+                client_id = auth["client_id"]
+                # Use oauth code to generate a access token for the official client.
+                # Generate a secure token, sign it, and encrypt it in the database
+                final_token = uuid.uuid4()
+                # Sign the unencrypted version for the client
+                signed_final_token = signer.sign(final_token)
+                # Encrypt it and put in the database
+                encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt())
+                session.run(
+                    "MATCH (c:Client {client_id: {client_id})"
+                    "CREATE (u:User {"
+                    "admin: false, "
+                    "username: {username}, "
+                    "password: {password}, "
+                    "first_name: {first_name}, "
+                    "last_name: {last_name},"
+                    "settings:  {settings}"
+                    "created: {created}})-[:USES {scope: 'official', access_token: {access_token}})->(c)",
+                    {
+                        "client_id": client_id,
+                        "username": doc["username"],
+                        "password": hashed_password,
+                        "first_name": doc["first_name"],
+                        "last_name": doc["last_name"],
+                        "settings": doc["settings"],
+                        "created": time.time(),
+                        "access_token": encrypted_final_token
+                    }
+                )
+                req.context["result"] = {
+                    "data":
+                        {
+                            "type": "success",
+                            "text": "Successfully created user {}".format(doc["username"]),
+                            "id": "USER_CREATED",
+                            "access_token": signed_final_token
+                        }
+                }
+            session.close()
+
 
 
 class Sessions:
     @falcon.before(hooks.client_user_auth)
-    def on_get(self, req, resp, session_id):
+    def on_post(self, req, resp, null_session_id):
         """
-        Fetch session information
-        :param req: 
-        :param resp: 
-        :param session_id: The session id to fetch
-        :return: 
+        Create a session
+        
         """
-        if session_id in sessions.ended_sessions:
-            pass
+        if null_session_id:
+            resp.status = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "type": "error",
+                        "id": "NO_SESSION_ID_ON_CREATE",
+                        "text": "POST requests to this method cannot include session id paths",
+                        "status": resp.status
+                    }]
+            }
         else:
-            for session in sessions.sessions:
-                if session.uid == session_id:
-                    pass
+            auth = req.context["auth"]
+            username = auth["username"]
+            client = auth["client_id"]
+            # Instantiate a session class
+            log.debug("Starting session for user {0} on client {1}".format(username, client))
+            session_class = sessions.Session(username, client)
+            # Sign the session id
+            unsigned_session_id = session_class.session_id
+            session_id = signer.sign(unsigned_session_id)
+            req.context["result"] = {
+                "data":
+                    {
+                        "type": "success",
+                        "id": "SESSION_CREATED",
+                        "session_id": session_id,
+                        "text": "Successfully created a session for user {0} on client {1}".format(username, client)
+                    }
+            }
 
-    def put(self, req, resp):
+    @falcon.before(hooks.session_auth)
+    def on_delete(self, req, resp, session_id):
         """
-        Change an attribute of the session
+        Logout a session
+        The session auth hook already confirms it exists, and the assert param hook 
         :param req: 
         :param resp: 
+        :param session_id:
         :return: 
         """
-        doc = req.context["doc"]
+        # The session auth hook put this into req.context
+        session = req.context["session"]
+        session.logout()

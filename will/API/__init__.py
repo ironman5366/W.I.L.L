@@ -20,6 +20,9 @@ app = None
 
 configuration_data = None
 
+session_manager = None
+graph = None
+
 temp_tokens = {}
 
 # User temporary rel [:AUTHORIZED{"user_token": unsigned_user_token, "scope": scope]
@@ -319,7 +322,8 @@ def start(manager_thread):
         middleware=[
             middleware.MonitoringMiddleware(banned_ips=configuration_data["banned-ips"]),
             middleware.RequireJSON(),
-            middleware.JSONTranslator()
+            middleware.JSONTranslator(),
+            middleware.AuthTranslator()
         ]
     )
     # Add the routes for each version to the API
