@@ -8,3 +8,4 @@ Neo4j/
 will/core/plugin_files/
 will.conf
 *.log
+/tests.conf

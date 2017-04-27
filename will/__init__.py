@@ -73,7 +73,10 @@ class will:
 
     def load_modules(self):
         log.info("Loading global tools...")
-        tools.load()
+        if "model" in self.configuration_data.keys():
+            tools.load(lang=self.configuration_data["model"])
+        else:
+            tools.load()
         log.info("Loading core...")
         self.core = core(configuration_data=self.configuration_data)
         plugins = self.core.plugins

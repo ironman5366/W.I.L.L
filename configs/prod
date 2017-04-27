@@ -8,7 +8,7 @@
 "plugins": {
     "dir": "core/plugins"
 },
-"debug": true,
+"debug": false,
 "secret-key": "super-secret-string",
-"model": "en_core_web_sm"
+"model": "en"
 }

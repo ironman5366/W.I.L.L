@@ -1,6 +1,4 @@
-python-telegram-bot >= 5.3.0
 spacy >= 0.101.0
-dataset >= 0.7.1
 wolframalpha >= 3.0
 beautifulsoup4 >= 4.4.1
 flask >= 0.12
@@ -8,9 +6,6 @@ bcrypt >= 3.1.2
 requests >= 2.12.4
 google >= 1.9.3
 wikipedia >= 1.4.0
-websocket-client >= 0.35.0
-flask-socketio >= 2.8.2
-gevent >= 1.2.0
 newspaper3k >= 0.0.9.8
 spotipy >= 2.4.4
 dateparser >= 0.5.1
