@@ -9,3 +9,5 @@ will/core/plugin_files/
 will.conf
 *.log
 /tests.conf
+/will_tests.conf
+will_tests.conf

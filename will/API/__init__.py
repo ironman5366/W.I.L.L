@@ -84,11 +84,7 @@ def start(manager_thread):
     )
     # Add the routes for each version to the API
     router.process_routes(app)
-    # Start the debug server if applicable
-    if configuration_data["debug"]:
-        log.debug("Starting the debug server")
-        t = threading.Thread(target=api_thread)
-        t.start()
+    return app
 
 def kill():
     """

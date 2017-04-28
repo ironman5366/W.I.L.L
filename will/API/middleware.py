@@ -22,7 +22,7 @@ class RequireJSON:
 
         # Normally allow only post requests, or also
         if req.method in ("POST", "PUT", "DELETE"):
-            if 'application/vnd.api+json' not in req.content_type:
+            if not req.content_type or 'application/json' not in req.content_type:
                 resp.status = falcon.HTTP_UNSUPPORTED_MEDIA_TYPE
                 req.context["result"] = {
                     "errors":
@@ -35,7 +35,7 @@ class RequireJSON:
                 }
                 raise falcon.HTTPError(resp.status, "Unsupported media type")
 
-class JSONTranslator(object):
+class JSONTranslator:
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.

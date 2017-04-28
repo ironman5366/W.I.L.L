@@ -17,6 +17,7 @@ author = "Will Beddow"
 
 class will:
     running = False
+    app = None
     def kill(self):
         self.running = False
         API.kill()
@@ -85,7 +86,7 @@ class will:
         log.info("Loading API...")
         API.configuration_data = self.configuration_data
         API.graph = userspace.graph
-        API.start(self.session_manager)
+        self.app = API.start(self.session_manager)
         log.info("Loaded W.I.L.L")
 
 

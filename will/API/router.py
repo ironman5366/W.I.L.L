@@ -10,33 +10,35 @@ base_path = "/api/{version_num}"
 
 routes = {
     "oauth2": {
-        "route": "/oauth2/{step_id}",
+        "routes": ["/oauth2/{step_id}", "/oauth2"],
         "versions":
             {
                 "v1": v1.Oauth2()
             }
     },
     "users": {
-        "route": "/users/{username}",
+        "routes":
+            ["/users/{username}", "/users"],
         "versions":
             {
                 "v1": v1.Users()
             }
     },
     "sessions": {
-        "route": "/sessions/{session_id}",
+        "routes":
+            ["/sessions/{session_id}", "/sessions"],
         "versions": {
             "v1": v1.Sessions()
         }
     },
     "clients": {
-        "route": "/clients",
+        "routes": ["/clients"],
         "versions": {
             "v1": v1.Sessions()
         }
     },
     "commands": {
-        "route": "/commands",
+        "routes": ["/commands"],
         "versions": {
             "v1": v1.Sessions()
         }
@@ -51,6 +53,7 @@ def process_routes(app):
     """
     for route, route_data in routes.items():
         for version, version_instance in route_data["versions"].items():
-            path = base_path.format(version_num=version)+route_data["route"]
-            log.info("Processing route {0}".format(path))
-            app.add_route(path, version_instance)
+            for route in route_data["routes"]:
+                path = base_path.format(version_num=version)+route
+                log.info("Processing route {0}".format(path))
+                app.add_route(path, version_instance)
