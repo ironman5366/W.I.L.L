@@ -10,5 +10,6 @@
 },
 "debug": false,
 "secret-key": "super-secret-string",
-"model": "en"
+"model": "en",
+"banned-ips": []
 }

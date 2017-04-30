@@ -1,6 +1,10 @@
 import unittest
 from falcon import testing
-from will.API import v1, middleware, hooks
+import logging
+import will
+
+log = logging.getLogger()
+Will = None
 
 class APITestCase(testing.TestCase):
     master_url = None
@@ -40,6 +44,4 @@ class MiddlewareTests(APITestCase):
         self._fmt_resp(resp)
         self.assertEqual(True, True)
 
-# Unit tests for the API
-if __name__ == '__main__':
-    unittest.main()
+tests = [MiddlewareTests]

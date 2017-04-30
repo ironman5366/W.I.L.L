@@ -10,5 +10,6 @@
 },
 "debug": true,
 "secret-key": "super-secret-string",
-"model": "en_core_web_sm"
+"model": "en_core_web_sm",
+"banned-ips": []
 }
