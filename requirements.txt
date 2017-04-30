@@ -12,3 +12,5 @@ dateparser >= 0.5.1
 pyowm >= 2.6.1
 whenareyou >= 0.1.0
 pytz >= 2016.10
+neo4j-driver >= 1.2.1
+falcon >= 1.1.0
