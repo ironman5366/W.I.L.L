@@ -1,7 +1,6 @@
-spacy >= 0.101.0
+spacy >= 1.8
 wolframalpha >= 3.0
 beautifulsoup4 >= 4.4.1
-flask >= 0.12
 bcrypt >= 3.1.2
 requests >= 2.12.4
 google >= 1.9.3
