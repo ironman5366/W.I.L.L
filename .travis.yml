@@ -1,4 +1,5 @@
 language: python
+cache: pip
 python:
   - "3.2"
   - "3.3"
@@ -13,6 +14,7 @@ python:
 install:
   - pip install -r requirements.txt
   - python -m spacy.en.download
+  - python -m spacy.en_core_web_sm.download
 
 # command to run tests
-script: nosetest tests
+script: nosetests tests
