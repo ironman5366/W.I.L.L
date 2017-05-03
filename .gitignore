@@ -11,3 +11,4 @@ will.conf
 /tests.conf
 /will_tests.conf
 will_tests.conf
+coverage/

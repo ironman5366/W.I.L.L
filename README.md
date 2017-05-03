@@ -4,7 +4,7 @@
 
 ### W.I.L.L 4.0 is currently in alpha testing
 
-### Code coverage as of 4-27-2017: `0%`
+### Code coverage as of 5-03-2017: `33%`
 
 ### Testing agenda:
 

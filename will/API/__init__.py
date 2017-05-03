@@ -59,7 +59,7 @@ def start(manager_thread):
     session_mangaer = manager_thread
     # Check the relevant configuration data for the API
     try:
-        error_cause = "secret_key"
+        error_cause = "secret-key"
         secret_key = configuration_data["secret-key"]
         assert type(secret_key) == str
         signer = Signer(secret_key)
