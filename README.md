@@ -1,3 +1,4 @@
+https://api.travis-ci.org/ironman5366/W.I.L.L.svg?branch=dev
 # W.I.L.L 4.0 alpha
 
 ## Welcome to W.I.L.L
