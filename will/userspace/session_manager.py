@@ -9,6 +9,7 @@ from will.userspace import sessions
 
 log = logging.getLogger()
 
+
 class SessionManager:
 
     running = True

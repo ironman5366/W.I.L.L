@@ -14,13 +14,21 @@ from will import tools, userspace, API
 version = "4.0-alpha+08"
 author = "Will Beddow"
 
+log = None
+
 
 class will:
+
     running = False
     app = None
+    session_manager = None
+    core = None
+    API = None
+
     def kill(self):
         self.running = False
         API.kill()
+
     def configure_logging(self):
         global log
         #Logging presets.
@@ -37,9 +45,9 @@ class will:
             log_data.update({"level": logging.DEBUG})
         else:
             log_data.update({"level": logging.INFO})
-        #If relevant, override presets with user preferences
-        #Define logging settings in the configuration by logging_{mysetting}: setting_value
-        #Example: logging_filename: "will.log"
+        # If relevant, override presets with user preferences
+        # Define logging settings in the configuration by logging_{mysetting}: setting_value
+        # Example: logging_filename: "will.log"
         for conf_key, conf_val in self.configuration_data.items():
             if conf_key.startswith("logging_"):
                 setting_name = conf_key.split("logging_")[1]
@@ -84,11 +92,9 @@ class will:
         log.info("Loading userspace...")
         self.session_manager = userspace.start(configuration_data=self.configuration_data, plugins=plugins)
         log.info("Loading API...")
-        API.configuration_data = self.configuration_data
-        API.graph = userspace.graph
-        self.app = API.start(self.session_manager)
+        self.API = API.App(self.configuration_data, self.session_manager, userspace.graph)
+        self.app = self.API.app
         log.info("Loaded W.I.L.L")
-
 
     def __init__(self, conf_file="will.conf", intro_file="will_logo.txt"):
         parent_conf = os.path.join(os.path.dirname(os.path.dirname( __file__ )), conf_file)
@@ -99,13 +105,13 @@ class will:
             conf_data = open(conf_file)
             try:
                 configuration_data = json.load(conf_data)
-                #Validation of configuration_data
+                # Validation of configuration_data
                 required_attrs = {
                     "db": dict,
                     "debug": bool
                 }
                 error_key, error_type = (None, None)
-                #Check the type of the configuration data
+                # Check the type of the configuration data
                 if type(configuration_data) == dict:
                     try:
                         for attr, attr_type in required_attrs.items():
@@ -118,11 +124,11 @@ class will:
                                                      "{1}".format(
                             error_key, error_type
                         ))
-                    #Configuration data fully validated
+                    # Configuration data fully validated
                     self.configuration_data = configuration_data
-                    #Set the configuration data for userspace too
+                    # Set the configuration data for userspace too
                     userspace.configuration_data = self.configuration_data
-                    #Configure logging
+                    # Configure logging
                     self.configure_logging()
                     if os.path.isfile(intro_file):
                         intro = open(intro_file).read()
@@ -130,7 +136,7 @@ class will:
                         log.info(logo_screen)
                     else:
                         log.warning("Introduction file, not found.")
-                    #Load the modules with timing and a visual display
+                    # Load the modules with timing and a visual display
                     log.info("Loading will modules...")
                     self.load_modules()
                     self.running = True
