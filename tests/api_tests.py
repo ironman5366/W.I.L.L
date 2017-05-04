@@ -1,12 +1,18 @@
+# Internal imports
 from will import API
+from will import exceptions
+
+# Builtin imports
 import unittest
-import falcon
 from unittest.mock import *
 
 
 class InstanceTest(unittest.TestCase):
     def test_load(self):
-        print("Testing API load")
+        """
+        Test load an instance of the API, asserting that the App class instantiates the middleware and calls the 
+        app_callable parameter with it
+        """
         configuration_data = {
             "debug": True,
             "banned-ips": [],
@@ -18,6 +24,19 @@ class InstanceTest(unittest.TestCase):
         self.assertTrue(API_mock.called)
         API_mock.assert_called_with(middleware=API_instance.middleware)
         API_instance.kill()
+
+    def test_malformed_conf(self):
+        """
+        Pass the API a malformed configuration object and assert that it raises an instance of 
+        `exceptions.ConfigurationError`
+        """
+        malformed_conf_data = {
+            "nope": 1.23
+        }
+        with self.assertRaises(exceptions.ConfigurationError):
+            API.App(malformed_conf_data, MagicMock(), MagicMock())
+
+
 class RoutingTest(unittest.TestCase):
     def test_routing(self):
         app = Mock()
@@ -26,4 +45,4 @@ class RoutingTest(unittest.TestCase):
         self.assertTrue(app.add_route.called)
 
 if __name__ == '__main__':
-    unittest.main(exit=True)
+    unittest.main()

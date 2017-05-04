@@ -8,7 +8,7 @@ import falcon
 from will.exceptions import *
 from will.API import hooks, middleware,v1,router
 from will.userspace import sessions
-from itsdangerous import Signer, TimestampSigner, BadSignature
+from itsdangerous import Signer, TimestampSigner
 
 log = logging.getLogger()
 
@@ -47,19 +47,16 @@ class App:
 
     def _load_middleware(self):
         """
-        Instantiate the middleware classes, and throw an error if the configuration hasn't been loaded yet
+        Instantiate the middleware classes
         :return middleware: A list containing the instantiated classes 
         """
-        if self._conf_loaded:
-            self.monitor_instance = middleware.MonitoringMiddleware(banned_ips=self.configuration_data["banned-ips"])
-            return [
-                self.monitor_instance,
-                middleware.RequireJSON(),
-                middleware.JSONTranslator(),
-                middleware.AuthTranslator()
-            ]
-        else:
-            raise ModuleLoadError("API: Middleware cannot be loaded before configuration data is read")
+        self.monitor_instance = middleware.MonitoringMiddleware(banned_ips=self.configuration_data["banned-ips"])
+        return [
+            self.monitor_instance,
+            middleware.RequireJSON(),
+            middleware.JSONTranslator(),
+            middleware.AuthTranslator()
+        ]
 
     def _load_configuration(self):
         """

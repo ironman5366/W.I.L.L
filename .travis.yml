@@ -12,4 +12,7 @@ install:
   - python -m spacy.en.download
 
 # command to run tests
-script: nosetests tests
+script: nosetests --with-coverage tests
+
+after_success:
+  - codecov
