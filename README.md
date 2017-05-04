@@ -1,11 +1,11 @@
 [![Travis](https://api.travis-ci.org/ironman5366/W.I.L.L.svg?branch=dev)]()
+[![codecov](https://codecov.io/gh/ironman5366/W.I.L.L/branch/dev/graph/badge.svg)](https://codecov.io/gh/ironman5366/W.I.L.L)
 # W.I.L.L 4.0 alpha
 
 ## Welcome to W.I.L.L
 
 ### W.I.L.L 4.0 is currently in alpha testing
 
-### Code coverage as of 5-03-2017: `33%`
 
 ### Testing agenda:
 
