@@ -27,7 +27,7 @@ class will:
 
     def kill(self):
         self.running = False
-        API.kill()
+        self.API.kill()
 
     def configure_logging(self):
         global log
