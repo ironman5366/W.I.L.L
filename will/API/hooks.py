@@ -56,7 +56,7 @@ def user_auth(req, resp, resource, params):
         if user_search:
             user_node = user_search[0]
             # Check the pw against the hash
-            auth = bcrypt.checkpw(password, user_node["password"])
+            auth = bcrypt.checkpw(password.encode('utf-8'), user_node["password"].encode('utf-8'))
             # If the password is incorrect, through an unauthorized error
             if not auth:
                 resp.status = falcon.HTTP_UNAUTHORIZED
