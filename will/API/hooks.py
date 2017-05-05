@@ -104,11 +104,7 @@ def assert_param(req, resp, resource, params):
     :param resource: 
     :param params: 
     """
-    param_vals = []
-    for _, p_val in params.values():
-        param_vals.append(p_val)
-    # If no params have been passed
-    if not any(param_vals):
+    if not params.values():
         resp.status = falcon.HTTP_BAD_REQUEST
         req.context["result"] = {
             "errors":
@@ -130,14 +126,10 @@ def session_auth(req, resp, resource, params):
     :param params: 
     
     """
-    doc = req.context["doc"]
     # Check if the session id is present
-    auth = doc["auth"]
+    auth = req.context["auth"]
     signed_session_id = None
-    if "session_id" in params.keys():
-        if params["session_id"]:
-            signed_session_id = params["session_id"]
-    elif "session_id" in auth.keys():
+    if "session_id" in auth.keys():
         signed_session_id = auth["session_id"]
     if signed_session_id:
         # Unsign the session id
