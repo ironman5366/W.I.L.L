@@ -11,7 +11,7 @@ from will.core import core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+15"
+version = "4.0-alpha+17"
 author = "Will Beddow"
 
 log = None
@@ -26,10 +26,19 @@ class will:
     API = None
 
     def kill(self):
+        """
+        Kill all running parts of W.I.L.L. For each individual components this usually consists of setting variables
+        which threads monitor to false, and ending running services.
+        """
         self.running = False
         self.API.kill()
 
     def configure_logging(self):
+        """
+        Configure logging settings and set up a logger with backups. Overrides for the manual logging settings can
+        be set in will.conf with the format logging_*.
+        Example: logging_filename: "othername.log" would override the default will.log
+        """
         global log
         #Logging presets.
         #Since they won't change in the code, no reason to make them keyword args
@@ -81,6 +90,15 @@ class will:
         logging.getLogger('neo4j.bolt').setLevel(logging.CRITICAL)
 
     def load_modules(self):
+        """
+        Run the necessary start methods for each part of the system, passing along configuration data and required
+        instances of other components and necessary
+        Loaded components:
+            - Core: The part of W.I.L.L that loads plugins, builds arguments, and controls notifications
+            - Userspace: The part of W.I.L.L that keeps track of sessions, reloads and caches arguments, and manages 
+                users
+            - API: The web-facing falcon WSGI app that's used to control all the components of W.I.L.L
+        """
         log.info("Loading global tools...")
         if "model" in self.configuration_data.keys():
             tools.load(lang=self.configuration_data["model"])
@@ -97,6 +115,12 @@ class will:
         log.info("Loaded W.I.L.L")
 
     def __init__(self, conf_file="will.conf", intro_file="will_logo.txt"):
+        """
+        
+        :param conf_file: The configuration file from which W.I.L.L will draw settings like database credentials, banned
+        ips, etc. 
+        :param intro_file: The file containing the introduction message to display as W.I.L.L starts
+        """
         parent_conf = os.path.join(os.path.dirname(os.path.dirname( __file__ )), conf_file)
         if os.path.isfile(parent_conf):
             conf_file = parent_conf

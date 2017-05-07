@@ -289,14 +289,15 @@ def _scope_check(req, resp, resource, params, level):
         }
         raise falcon.HTTPError(resp.status, "Username not found")
 
+
 def client_is_official(req, resp, resource, params):
     """
     Checks that a client is official
 
     """
     client_auth(req, resp, resource, params)
-    doc = req.context["doc"]
-    client_id = doc["client_id"]
+    auth = req.context["auth"]
+    client_id = auth["client_id"]
     session = graph.session()
     clients = session.run("MATCH (c:Client {client_id: {client_id}}) return (c)",
                 {"client_id": client_id})
@@ -327,7 +328,6 @@ def user_is_admin(req, resp, resource, params):
     
     """
     # If there's a scope problem with the client this will raise an error. It also runs the client and user auth checks
-    session_auth(req, resp, resource, params)
     _scope_check(req, resp, resource, params, "admin")
     doc = req.context["doc"]
     username = doc["username"]
@@ -360,15 +360,12 @@ def client_can_read_settings(req, resp, resource, params):
     Simple scope hook for admin prviliges
 
     """
-    session_auth(req, resp, resource, params)
     _scope_check(req, resp, resource, params, "settings_read")
 
 def client_can_change_settings(req, resp, resource, params):
-    session_auth(req, resp, resource, params)
     _scope_check(req, resp, resource, params, "settings_change")
 
 def client_can_make_commands(req, resp, resource, params):
-    session_auth(req, resp, resource, params)
     _scope_check(req, resp, resource, params, "command")
 
 def client_user_auth(req, resp, resource, params):

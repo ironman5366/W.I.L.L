@@ -225,3 +225,177 @@ class SessionAuthTest(unittest.TestCase):
         # Regardless, delete the fake session from sessions
         finally:
             del sessions.sessions[session_mock.session_id]
+
+
+class CalculateScopeTests(unittest.TestCase):
+    """
+    Basic tests for the utility method that checks submitted and required scopes based on hooks.scopes
+    """
+
+    def test_invalid_scope(self):
+        """
+        Submit a scope that's under the level of the required scope, and assert that the returned value is False
+        """
+        required_scope = "admin"
+        submitted_scope = "command"
+        scope_resp = hooks.calculate_scope(submitted_scope, required_scope)
+        self.assertFalse(scope_resp)
+
+    def test_wrong_submitted_scope(self):
+        """
+        Submit a submitted scope that doesn't exist
+        """
+        required_scope = "admin"
+        submitted_scope = "nope"
+        scope_resp = hooks.calculate_scope(submitted_scope, required_scope)
+        self.assertFalse(scope_resp)
+
+    def test_wrong_required_scope(self):
+        """
+        Submit a required scope that doesn't exist
+        """
+        required_scope = "nope"
+        submitted_scope = "command"
+        scope_resp = hooks.calculate_scope(submitted_scope, required_scope)
+        self.assertFalse(scope_resp)
+
+    def test_correct_scope(self):
+        """
+        Submit a correct required and submitted scope, with the submitted scope within the correct range
+        """
+        required_scope = "command"
+        submitted_scope = "settings_change"
+        scope_resp = hooks.calculate_scope(submitted_scope, required_scope)
+        self.assertTrue(scope_resp)
+
+
+class CheckScopeTests(unittest.TestCase):
+    """
+    Tests for the internal method hooks._scope_check that determines whether scope data submitted in a valid 
+    authenticated requests matches the corresponding scope permissions in the database
+    """
+    session_auth_copy = None
+
+    def setUp(self):
+        """
+        Mock out hooks.session_auth so that it doesn't interfere with the testing
+        """
+        self.session_auth_copy = hooks.session_auth
+        hooks.session_auth = MagicMock()
+
+    def tearDown(self):
+        """
+        Restore hooks.session_auth
+        """
+        hooks.session_auth = self.session_auth_copy
+
+    def test_valid_scope(self):
+        """
+        Mock a request that has a valid scope for the request it's accessing
+        """
+        method_required_scope = "command"
+        # Mock the database query to return the scope we want it to
+        mock_session([{"scope": "command"}])
+        hooks._scope_check(
+            mock_request(auth={"username": "holden", "client_id": "rocinate"}),
+            MagicMock(),
+            None,
+            None,
+            method_required_scope)
+        self.assert_(True)
+
+    def test_invalid_scope(self):
+        """
+        Mock a request that doesn't have a sufficient scope for the request it's trying to access
+        """
+        method_required_scope = "settings_change"
+        # Mock the database query to return a lower scope
+        mock_session([{"scope": "settings_read"}])
+        fake_request = mock_request(auth={"username": "holden", "client_id": "rocinate"})
+        try:
+            hooks._scope_check(fake_request, MagicMock(), None, None, method_required_scope)
+            # If it doesn't throw the required error, the test should fail
+            self.fail("The scope check method didn't reject an invalid scope")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_INSUFFICIENT")
+
+    def test_bad_database_scope(self):
+        """
+        Test the function behavior when the database returns an invalid scope 
+        """
+        method_required_scope = "settings_change"
+        # Mock the database query to return a scope that doens't exist
+        mock_session([{"scope": "nonexistent_scope"}])
+        fake_request = mock_request(auth={"username": "holden", "client_id": "rocinate"})
+        try:
+            hooks._scope_check(fake_request, MagicMock(), None, None, method_required_scope)
+            # If it doesn't throw the required error, the test should fail
+            self.fail("The scope check method didn't raise an error when the database returned a bad scope")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_INTERNAL_SERVER_ERROR)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_INTERNAL_ERROR")
+
+    def test_no_username_submitted(self):
+        """
+        Mock a request to the method that doesn't include a username and assert that it throws the correct type of error
+        """
+        # Submit a valid scope, although it doesn't matter, since the method will check for the username before it
+        # checks the scope
+        method_required_scope = "settings_change"
+        # Don't include anything in the auth section of the request
+        invalid_request = mock_request()
+        try:
+            hooks._scope_check(invalid_request, MagicMock(), None, None, method_required_scope)
+            # If it doesn't throw the required error, the test should fail
+            self.fail("The scope check method didn't raise an error when no username was submitted" )
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(invalid_request.context["result"]["errors"][0]["id"], "USERNAME_NOT_FOUND")
+
+
+class ClientIsOfficialTests(unittest.TestCase):
+
+    """
+    Test that the hook which checks whether the client is noted as official works properly
+    """
+    client_auth_copy = None
+
+    def setUp(self):
+        """
+        Mock out hooks.client_auth while this test is running
+        """
+        self.client_auth_copy = hooks.client_auth
+        hooks.client_auth = MagicMock()
+
+    def tearDown(self):
+        """
+        Restore hooks.client_auth from the copy
+        """
+        hooks.client_auth = self.client_auth_copy
+
+    def test_official_client(self):
+        """
+        Test a valid official client
+        """
+        # Mock the session so that it will return that the client is official
+        mock_session([{"official": True}])
+        correct_client_id = "rocinate"
+        fake_request = mock_request(auth={"client_id": correct_client_id})
+        hooks.client_is_official(fake_request, MagicMock(), None, None)
+        self.assert_(True)
+
+    def test_unofficial_client(self):
+        """
+        Test a client that's not noted as official, and assert that it throws the correct error
+        """
+        bad_client_id = "anubis"
+        fake_request = mock_request(auth={"client_id": bad_client_id})
+        mock_session([{"official": False}])
+        try:
+            hooks.client_is_official(fake_request, MagicMock(), None, None)
+            # The test should fail if the required error isn't thrown
+            self.fail("Client is official tests didn't raise an error when an unofficial client was submitted")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_UNOFFICIAL")
