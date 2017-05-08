@@ -329,8 +329,8 @@ def user_is_admin(req, resp, resource, params):
     """
     # If there's a scope problem with the client this will raise an error. It also runs the client and user auth checks
     _scope_check(req, resp, resource, params, "admin")
-    doc = req.context["doc"]
-    username = doc["username"]
+    auth = req.context["auth"]
+    username = auth["username"]
     # Run a graph session and check if the user is an admin
     session = graph.session()
     users = session.run("MATCH (u:User {username:{username}}) return(u)",
@@ -357,8 +357,7 @@ def user_is_admin(req, resp, resource, params):
 
 def client_can_read_settings(req, resp, resource, params):
     """
-    Simple scope hook for admin prviliges
-
+    Simple scope hook for read settings privileges
     """
     _scope_check(req, resp, resource, params, "settings_read")
 
@@ -381,7 +380,6 @@ def client_user_auth(req, resp, resource, params):
     # First check that the client has proper authentication
     client_auth(req, resp, resource, params)
     # If the client has proper authentication, check their access token
-    doc = req.context["doc"]
     auth = req.context["auth"]
     if "access_token" in auth.keys():
         access_token = auth["access_token"]
@@ -406,12 +404,13 @@ def client_user_auth(req, resp, resource, params):
                                         "MATCH (u)-[r:USES]->(c)"
                                         "return (r)",
                                         {"username": username,
-                                         "client_id": doc["client_id"]})
+                                         "client_id": auth["client_id"]})
                     # If the relationship exists
                     if rels:
                         rel = rels[0]
                         encrypted_access_token = rel["access_token"]
-                        if bcrypt.checkpw(unsigned_access_token, encrypted_access_token):
+                        if bcrypt.checkpw(unsigned_access_token.encode('utf-8'),
+                                          encrypted_access_token.encode('utf-8')):
                             log.debug("Successful authentication from client {0} on behalf of user {1}".format(
                                 auth["client_id"], username
                             ))
@@ -430,13 +429,13 @@ def client_user_auth(req, resp, resource, params):
                     else:
                         resp.status = falcon.HTTP_UNAUTHORIZED
                         req.context["result"] = {
-                            "error":
+                            "errors":
                                 [{
                                     "type": "error",
                                     "id": "USER_NOT_AUTHENTICATED",
                                     "status": resp.status,
                                     "text": "User {0} has not authenticated with client {1}".format(
-                                        username, doc["client_id"]
+                                        username, auth["client_id"]
                                     )
                                 }]
                         }
@@ -491,7 +490,7 @@ def client_user_auth(req, resp, resource, params):
                     "status": resp.status
                 }]
         }
-        raise falcon.HTTPError(resp.status, "Accesss token required")
+        raise falcon.HTTPError(resp.status, "Access token required")
 
 def client_auth(req, resp, resource, params):
     """
@@ -502,7 +501,6 @@ def client_auth(req, resp, resource, params):
     :param resource: The resource that will be activated
     :param params: Additional parameters
     """
-    doc = req.context["doc"]
     auth = req.context["auth"]
     if "client_id" in auth.keys() and "client_secret" in auth.keys():
         client_id = auth["client_id"]
@@ -529,8 +527,8 @@ def client_auth(req, resp, resource, params):
         session.close()
         if clients:
             client = clients[0]
-            secret_key_hash = client["secret_key"]
-            if bcrypt.checkpw(secret_key, secret_key_hash):
+            secret_key_hash = client["client_secret"]
+            if bcrypt.checkpw(secret_key.encode('utf-8'), secret_key_hash.encode('utf-8')):
                 log.debug("Successful authentication for client {0}".format(client_id))
             else:
                 log.debug("Failed authentication for client {0}".format(client_id))

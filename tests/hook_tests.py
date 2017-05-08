@@ -29,7 +29,7 @@ def mock_request(auth={}, doc={}, **kwargs):
     return base_class
 
 
-def mock_session(return_value=None):
+def mock_session(return_value=None, side_effect=None):
     """
     Reach into the hooks file and change it's `graph.session` class to a mock method that returns what the tests
     need it to return
@@ -38,7 +38,12 @@ def mock_session(return_value=None):
     """
     hooks.graph = MagicMock()
     hooks.graph.session = MagicMock
-    hooks.graph.session.run = MagicMock(return_value=return_value)
+    if side_effect:
+        # Give an option to return it with a side ffect instead of a return value
+        assert not return_value
+        hooks.graph.session.run = MagicMock(side_effect=side_effect)
+    else:
+        hooks.graph.session.run = MagicMock(return_value=return_value)
 
 
 class UserAuthTests(unittest.TestCase):
@@ -399,3 +404,365 @@ class ClientIsOfficialTests(unittest.TestCase):
         except falcon.HTTPError as exception:
             self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
             self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_UNOFFICIAL")
+
+
+class UserIsAdminTests(unittest.TestCase):
+    _scope_check_copy = None
+
+    def setUp(self):
+        """
+        Mock hooks._scope_check for just this function
+        """
+        self._scope_check_copy = hooks._scope_check
+        hooks._scope_check = MagicMock()
+
+    def tearDown(self):
+        """
+        Restore hooks._scope_check from the copy
+        """
+        hooks._scope_check = self._scope_check_copy
+
+    def test_valid_user(self):
+        """
+        Mock a request where the user is an administrator
+        """
+        admin_user = {"username": "holden"}
+        fake_request = mock_request(auth=admin_user)
+        # Mock the database query to say that the user is an admin
+        mock_session([{"admin": True}])
+        hooks.user_is_admin(fake_request, MagicMock(), None, None)
+        self.assert_(True)
+
+    def test_invalid_user(self):
+        """
+        Mock a request where the user is not an administrator, and assert that it throws the correct http error
+        """
+        invalid_user = {"username": "amos"}
+        fake_request = mock_request(auth=invalid_user)
+        # Mock the database sssion to say that the user isn't dn admin
+        mock_session([{"admin": False}])
+        try:
+            hooks.user_is_admin(fake_request, MagicMock(), None, None)
+            self.fail("User is admin hook did not reject a non administrator user")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USER_NOT_ADMIN")
+
+
+class ScopeHookTests(unittest.TestCase):
+    """
+    Test all of the basic scope hooks within one method
+    """
+    _scope_check_copy = None
+    _scope_check_mock = MagicMock()
+
+    def setUp(self):
+        """
+        Mock hooks._scope_check for just this function
+        """
+        self._scope_check_copy = hooks._scope_check
+        hooks._scope_check = self._scope_check_mock
+
+    def tearDown(self):
+        """
+        Restore hooks._scope_check from the copy
+        """
+        hooks._scope_check = self._scope_check_copy
+
+    def test_client_read_settings(self):
+        hooks.client_can_read_settings(None, None, None, None)
+        self._scope_check_mock.assert_called_with(None,  None, None, None, "settings_read")
+
+    def test_client_can_change_settings(self):
+        hooks.client_can_change_settings(None, None, None, None)
+        self._scope_check_mock.assert_called_with(None, None, None, None, "settings_change")
+
+    def test_client_can_make_commands(self):
+        hooks.client_can_make_commands(None, None, None, None)
+        self._scope_check_mock.assert_called_with(None, None, None, None, "command")
+
+
+class ClientUserAuthTests(unittest.TestCase):
+    """
+    Tests for the method hooks.client_user_auth that authenticates both the client and the user
+    """
+    client_auth_copy = None
+
+    def setUp(self):
+        """
+        Mock hooks.client_auth for the scope of the method
+        """
+        self.client_auth_copy = hooks.client_auth
+        hooks.client_auth = MagicMock()
+
+    def tearDown(self):
+        hooks.client_auth = self.client_auth_copy
+
+    def test_access_token_missing(self):
+        """
+        Submit a request that doesn't include an access token in the auth section of the request and assert that the
+        correct http error is raised
+        """
+        fake_request = mock_request()
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an HTTPError isn't thrown
+            self.fail("The client user auth method failed to raise an error when it was called without an access token")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "ACCESS_TOKEN_NOT_FOUND")
+
+    def test_username_missing(self):
+        """
+        Submit a request that includes an access token but not a username and assert that the correct http error
+        is raised
+        """
+        fake_request = mock_request(auth={"access_token": "token"})
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an HTTPError isn't thrown
+            self.fail("The client user auth method failed to raise an error when it was called without a username")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USERNAME_NOT_FOUND")
+
+    def test_invalid_username(self):
+        """
+        Submit a request that includes an invalid username
+        """
+        fake_request = mock_request(auth={"access_token": "token", "username": "lionelpolanski"})
+        # Mock the session to return no users
+        mock_session([])
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            # If an HTTPError isn't raised the test should fail
+            self.fail("The client user auth method failed to raise an error when it was called with a nonexistent "
+                      "username")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USERNAME_INVALID")
+
+    def test_bad_signature_access_token(self):
+        """
+        Submit a request that includes a valid username, but an access token with a bad signature. Assert that the 
+        method raises the correct http error
+        """
+        fake_request = mock_request(auth={"access_token": "token", "username": "holden"})
+        # Mock the session to return the user
+        mock_session([{"username": "holden"}])
+        # Mock itsdangerous to raise a bad signature error
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(side_effect=itsdangerous.BadSignature("Oops"))
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an HTTPError isn't raised
+            self.fail("The client user auth method failed to raise an error when an access token with a bad signature"
+                      "was submitted")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "ACCESS_TOKEN_INVALID")
+        # Unmock itdangerous
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_no_rel_found(self):
+        """
+        Assert that the method throws the correct error when it receives a request from a user that's not properly
+        linked with the client
+        """
+        # A hacky way to have different values for different mocked db queries inside the method
+        def session_side_effect(param, _):
+            # If it's the first one, return that the user exists
+            if param.endswith("return (u)"):
+                return ([{"username": "holden"}])
+            # If it's the other query, return that there's no rel
+            else:
+                return ([])
+        mock_session(side_effect=session_side_effect)
+        fake_request = mock_request(auth={"access_token": "token", "username": "holden", "client_id": "rocinate"})
+        # Mock itsdangerous to return what we want it do
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value=True)
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an HTTPError isn't raised
+            self.fail("The client user auth method failed to raise an error when the client and user were not "
+                      "authenticated together.")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USER_NOT_AUTHENTICATED")
+        # Unmock itsdangerous
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_invalid_access_token(self):
+        """
+        Test an invalid access token
+        """
+
+        # A hacky way to have different values for different mocked db queries inside the method
+        def session_side_effect(param, _):
+            # If it's the first one, return that the user exists
+            if param.endswith("return (u)"):
+                return ([{"username": "holden"}])
+            # If it's the other query, return that there's no rel
+            else:
+                # The hashed value of "not_token"
+                return ([{"access_token": "$2b$12$oFr1SU2H5PKM7Der91GnAOVX4zxv6bDokeLF7zUFhHPJoScXi11la"}])
+        mock_session(side_effect=session_side_effect)
+        fake_request = mock_request(auth={"access_token": "token", "username": "holden", "client_id": "rocinate"})
+        # Mock itsdangerous to return what we want it do
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value="token")
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an HTTPError isn't raised
+            self.fail("The client user auth method failed to raise an error when the client and user were not "
+                      "authenticated together.")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "ACCESS_TOKEN_INVALID")
+        # Unmock itsdangerous
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_valid_auth(self):
+        """
+        Submit a valid username, and a valid rel
+        """
+
+        # A hacky way to have different values for different mocked db queries inside the method
+        def session_side_effect(param, _):
+            # If it's the first one, return that the user exists
+            if param.endswith("return (u)"):
+                return ([{"username": "holden"}])
+            # If it's the other query, return that there's no rel
+            else:
+                # The encyrpted value of "token"
+                return ([{"access_token": "$2b$12$g59RaPDZRoIMV/cpnaElOOqi37vPCeeyxe5GQX7gDpLPhRZZ3vsYG"}])
+
+        mock_session(side_effect=session_side_effect)
+        fake_request = mock_request(auth={"access_token": "token", "username": "holden",  "client_id": "rocinate"})
+        # Mock itsdangerous to return what we want it do
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value="token")
+        try:
+            hooks.client_user_auth(fake_request, MagicMock(), None, None)
+            self.assert_(True)
+        # Unmock itsdangerous regardless of if the test fails
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+
+class ClientAuthTests(unittest.TestCase):
+    """
+    Tests for the method hooks.client_auth, which authenticates just a client
+    """
+
+    def test_client_id_missing(self):
+        """
+        Mock a request with the client_id parameter missing. Note: this will be the same as if client_auth is missing
+        """
+        fake_request = mock_request()
+        try:
+            hooks.client_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an HTTPError isn't raised
+            self.fail("The client auth hook failed to raise an error when a request was submitted without the client "
+                      "id parameter")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_ID_NOT_FOUND")
+
+    def test_client_not_exist(self):
+        """
+        Submit a client id that the mocked database won't find
+        """
+        fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "super-secret"})
+        # Mock the session to not find the client
+        mock_session([])
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value=True)
+        try:
+            hooks.client_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if it an HTTPError isn't raised
+            self.fail("The client auth hook failed to raise an error when a nonexistent client id was submitted")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_ID_INVALID")
+        # Unmock itsdangerous regardless of if the test fails
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_client_secret_bad_signature(self):
+        """
+        Submit a client_secret parameter that's unsigned, an assert that it raises the correct http error
+        """
+        fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "super-secret"})
+        # Mock the database to find the client
+        mock_session([{"client_id": "anubis"}])
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(side_effect=itsdangerous.BadSignature("oops"))
+        try:
+            hooks.client_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if an http error isn't raised
+            self.fail("The client auth method failed to raise an error when a client secret without a signature was "
+                      "submitted")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_SECRET_BAD_SIGNATURE")
+        # Unmock itsdangerous regardless of if the test fails
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_client_secret_invalid(self):
+        """
+        Submit a client secret key that has a valid signature, but is invalid
+        """
+        fake_request = mock_request(auth={"client_"
+                                          "id": "anubis", "client_secret": "super-secret"})
+        # Mock the session to not find the client
+        # The hash of "secret"
+        mock_session([{
+            "client_secret": "$2b$12$WNFp8f2wqiCEZ/x8SKUGp.H4cOq09OAk.kZh7kxaywN65wpgruxiC"
+        }])
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value="super-secret")
+        try:
+            hooks.client_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if it an HTTPError isn't raised
+            self.fail("The client auth hook failed to raise an invalid client secret was submitted")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_SECRET_INVALID")
+        # Unmock itsdangerous regardless of if the test fails
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_valid_client_auth(self):
+        """
+        Submit valid mocked credentials, and assert that no errors are raised
+        """
+        fake_request = mock_request(auth={"client_"
+                                          "id": "anubis", "client_secret": "secret"})
+        # Mock the session to not find the client
+        # The hash of "secret"
+        mock_session([{
+            "client_secret": "$2b$12$WNFp8f2wqiCEZ/x8SKUGp.H4cOq09OAk.kZh7kxaywN65wpgruxiC"
+        }])
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value='secret')
+        try:
+            hooks.client_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if it an HTTPError isn't raised
+            self.assert_(True)
+        # Unmock itsdangerous regardless of if the test fails
+        finally:
+            hooks.signer = itsdangerous_signer_copy
