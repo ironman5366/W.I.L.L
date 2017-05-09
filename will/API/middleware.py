@@ -19,8 +19,6 @@ class RequireJSON:
         if not req.client_accepts_json:
             raise falcon.HTTPNotAcceptable(
                 'This API only supports responses encoded as JSON.')
-
-        # Normally allow only post requests, or also
         if req.method in ("POST", "PUT", "DELETE"):
             if not req.content_type or 'application/json' not in req.content_type:
                 resp.status = falcon.HTTP_UNSUPPORTED_MEDIA_TYPE
@@ -44,6 +42,7 @@ class JSONTranslator:
         if req.content_length in (None, 0):
             # Nothing to do
             req.context["doc"] = {}
+            req.context["auth"] = {}
 
         body = req.stream.read()
         if not body:
@@ -119,10 +118,12 @@ class JSONTranslator:
             )
             raise falcon.HTTPError(resp.status, title="Invalid response")
 
+
 class AuthTranslator:
     """
     Decode authorization from various sources and puts everything into req.context["auth"]
     """
+
     @staticmethod
     def _b64_error(req, resp, header):
         resp.status = falcon.HTTP_BAD_REQUEST

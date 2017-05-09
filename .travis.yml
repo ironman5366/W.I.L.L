@@ -1,4 +1,5 @@
 language: python
+sudo: required
 cache: pip
 python:
   - "3.5"
@@ -11,8 +12,17 @@ install:
   - pip install -r requirements.txt
   - python -m spacy.en.download
 
+services:
+  - docker
+
+# build the API from the Dockerfile
+before_install:
+  - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+
 # command to run tests
 script: nosetests --with-coverage tests
 
 after_success:
   - codecov
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - docker push willassistant/core:"$TRAVIS_BRANCH"

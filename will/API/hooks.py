@@ -23,13 +23,6 @@ scopes = {
     "basic": 5
 }
 
-# Document structure:
-# {"data":
-#   {relevant_data},
-# {"auth":
-#   {required_auth}
-
-
 def user_auth(req, resp, resource, params):
     """
     Basic auth with a username and password
