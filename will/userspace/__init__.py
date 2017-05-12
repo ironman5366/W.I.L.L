@@ -16,6 +16,21 @@ log = logging.getLogger()
 running = True
 graph = None
 
+
+def key_cache():
+    """
+    Go through neo4j, check for keys that are renewed, and give them a new timestamp
+    """
+    session = graph.session()
+    for key in session.run("MATCH (k:APIKey) return (k)"):
+        # Check if it's been more than the refresh value of the key since it's been refreshe
+        if time.time()-key["timestamp"] >= key["refresh"]:
+            session.run("MATCH (k:APIKey {value: {value}})"
+                        "set k.usages=0"
+                        "set k.timestamp=timestamp();",
+                        {"value": key["value"]})
+    session.close()
+
 def start(configuration_data, plugins):
     global graph
     sessions.plugins = plugins
@@ -51,6 +66,8 @@ def start(configuration_data, plugins):
         db_configuration["port"],
         db_configuration["user"]
     ))
+    # Refresh the API keys
+    key_cache()
     session_class = session_manager.SessionManager(graph)
     # Load caches for all datastores, public and private
     log.debug("Started event loop thread")
