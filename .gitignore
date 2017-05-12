@@ -12,3 +12,4 @@ will.conf
 /will_tests.conf
 will_tests.conf
 coverage/
+env.list

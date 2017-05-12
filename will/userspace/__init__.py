@@ -35,15 +35,17 @@ def start(configuration_data, plugins):
         error_string = "Database configuration is invalid. Please check the {0} field".format(error_cause)
         log.error(error_string)
         raise CredentialsError(error_string)
-    graph = GraphDatabase.driver("bolt://{host}:{port}".format(
+    connection_url = "bolt://{host}:{port}".format(
         host=db_configuration["host"],
-        port=db_configuration["port"]),
+        port=db_configuration["port"]
+    )
+    log.debug("Connecting to database at {}".format(connection_url))
+    graph = GraphDatabase.driver(connection_url,
         auth=basic_auth(
             db_configuration["user"],
             db_configuration["password"]
         )
     )
-    graph = graph
     log.debug("Successfully connected to database at {0}:{1} with username {2}".format(
         db_configuration["host"],
         db_configuration["port"],

@@ -7,6 +7,7 @@ python:
   - "3.6"
   - "3.6-dev" # 3.6 development branch
   - "3.7-dev" # 3.7 development branch
+
 # command to install dependencies
 install:
   - pip install -r requirements.txt
@@ -14,12 +15,15 @@ install:
 
 services:
   - docker
+  - neo4j
 
-# build the API from the Dockerfile
 before_install:
+  # Build the API from the Dockerfile
   - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+  # Test run the instance in docker. These tests are the most important, as they're running closer to the prod conf
+  - docker run -d willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd/W.I.L.L/tests; nosetests *.py;"
 
-# command to run tests
+# Rerun the tests out of the container to get coverage data
 script: nosetests --with-coverage tests
 
 after_success:

@@ -11,7 +11,7 @@ from will.core import core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+19"
+version = "4.0-alpha+20"
 author = "Will Beddow"
 
 log = None
@@ -23,6 +23,57 @@ class will:
     session_manager = None
     core = None
     API = None
+
+    def __init__(self, conf_data, intro_file="will_logo.txt"):
+        """
+        Load W.I.L.L
+        
+        :param conf_data: The JSON configuration data for W.I.L.L
+        :param intro_file: The file containing the introduction message to display as W.I.L.L starts
+        """
+        self.start_time = datetime.datetime.now()
+        try:
+            configuration_data = json.loads(conf_data)
+            # Validation of configuration_data
+            required_attrs = {
+                "db": dict,
+                "debug": bool
+            }
+            error_key, error_type = (None, None)
+            # Check the type of the configuration data
+            if type(configuration_data) == dict:
+                try:
+                    for attr, attr_type in required_attrs.items():
+                        error_key = attr
+                        error_type = attr_type
+                        assert error_key in configuration_data.keys()
+                        assert type(configuration_data[attr]) == attr_type
+                except AssertionError:
+                    raise ConfigurationError("Incorrect configuration. Configuration key {0} must be of type "
+                                             "{1}".format(
+                        error_key, error_type
+                    ))
+                # Configuration data fully validated
+                self.configuration_data = configuration_data
+                # Set the configuration data for userspace too
+                userspace.configuration_data = self.configuration_data
+                # Configure logging
+                self.configure_logging()
+                if os.path.isfile(intro_file):
+                    intro = open(intro_file).read()
+                    logo_screen = intro.format(version_number=version)
+                    log.info(logo_screen)
+                else:
+                    log.warning("Introduction file not found.")
+                # Load the modules with timing and a visual display
+                log.info("Loading will modules...")
+                self.load_modules()
+                self.running = True
+            else:
+                raise ConfigurationError("Configuration data isn't a dictionary. Please check your configuration.")
+        except json.JSONDecodeError:
+            raise ConfigurationError("Couldn't decode configuration data. Please make sure that your configuration "
+                                     "file is in JSON format")
 
     def kill(self):
         """
@@ -39,8 +90,8 @@ class will:
         Example: logging_filename: "othername.log" would override the default will.log
         """
         global log
-        #Logging presets.
-        #Since they won't change in the code, no reason to make them keyword args
+        # Logging presets.
+        # Since they won't change in the code, no reason to make them keyword args
         log_data = {
             "filename": "will.log",
             "filemode": "w",
@@ -112,64 +163,3 @@ class will:
         self.API = API.App(self.configuration_data, self.session_manager, userspace.graph)
         self.app = self.API.app
         log.info("Loaded W.I.L.L")
-
-    def __init__(self, conf_file="will.conf", intro_file="will_logo.txt"):
-        """
-        
-        :param conf_file: The configuration file from which W.I.L.L will draw settings like database credentials, banned
-        ips, etc. 
-        :param intro_file: The file containing the introduction message to display as W.I.L.L starts
-        """
-        parent_conf = os.path.join(os.path.dirname(os.path.dirname( __file__ )), conf_file)
-        if os.path.isfile(parent_conf):
-            conf_file = parent_conf
-        self.start_time = datetime.datetime.now()
-        if os.path.isfile(conf_file):
-            conf_data = open(conf_file)
-            try:
-                configuration_data = json.load(conf_data)
-                # Validation of configuration_data
-                required_attrs = {
-                    "db": dict,
-                    "debug": bool
-                }
-                error_key, error_type = (None, None)
-                # Check the type of the configuration data
-                if type(configuration_data) == dict:
-                    try:
-                        for attr, attr_type in required_attrs.items():
-                            error_key = attr
-                            error_type = attr_type
-                            assert error_key in configuration_data.keys()
-                            assert type(configuration_data[attr]) == attr_type
-                    except AssertionError:
-                        raise ConfigurationError("Incorrect configuration. Configuration key {0} must be of type "
-                                                     "{1}".format(
-                            error_key, error_type
-                        ))
-                    # Configuration data fully validated
-                    self.configuration_data = configuration_data
-                    # Set the configuration data for userspace too
-                    userspace.configuration_data = self.configuration_data
-                    # Configure logging
-                    self.configure_logging()
-                    if os.path.isfile(intro_file):
-                        intro = open(intro_file).read()
-                        logo_screen = intro.format(version_number=version)
-                        log.info(logo_screen)
-                    else:
-                        log.warning("Introduction file, not found.")
-                    # Load the modules with timing and a visual display
-                    log.info("Loading will modules...")
-                    self.load_modules()
-                    self.running = True
-                else:
-                    raise ConfigurationError("Configuration data isn't a dictionary. Please check your configuration.")
-            except json.JSONDecodeError:
-                raise ConfigurationError("Couldn't decode configuration data. Please make sure that your configuration "
-                                         "file is in JSON format")
-        else:
-            raise ConfigurationError("Couldn't find configuration file {0}.".format(conf_file))
-
-if __name__ == "__main__":
-    will()
