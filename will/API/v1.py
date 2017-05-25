@@ -18,9 +18,12 @@ graph = None
 timestampsigner = None
 signer = None
 
-class Oauth2:
+
+class Oauth2Step:
     """
-    Handles all oauth2 authentication.
+    The base class for an Oauth step.
+    Inherited by Oauth resource classes, used to house shared code
+    The oauth2 resources handle authentication by the oauth2 spec
     At the route /api/v1/oauth2/step_id where step_id is one of `user_token` or `access_token`
     Post:
         user_token
@@ -33,248 +36,27 @@ class Oauth2:
     Delete:
         access_token
             Delete the relationship between a user and a client
-    """
-    @falcon.before(hooks.client_auth)
-    @falcon.before(hooks.user_auth)
-    def on_post(self, req, resp, step_id):
         """
-        Send parameters and get a token for a certain id.
-        Precondition is that user and client are authenticated
-        
-        :param req: The request object
-        :param resp: The response object
-        :param step_id: The step of the authorization. Should be either ["user_token", or "access_token"]
-        
-        """
-        doc = req.context["doc"]
-        auth = req.context["auth"]
-        if step_id == "user_token":
-            # Generate a user token, put it in the database, and sign it
-            # I can be sure that username already exists thanks to the pre request hook
-            username = auth["username"]
-            if "client_id" in auth.keys():
-                client_id = auth["client_id"]
-                # Check that there's a scope object in the request and check it against a list of allowed scopes
-                if "scope" in doc.keys():
-                    scope = doc["scope"]
-                    # Assert that the client and user both exist
-                    session = graph.session()
-                    clients = session.run("MATCH (c:Client {client_id: {client_id}}) return (c)")
-                    if clients:
-                        # Use uuid4 for a random id.
-                        unsigned_id = uuid.uuid4()
-                        # Sign the id with a timestamp. When checking the key we'll check for a max age of 5 minutes
-                        signed_id = timestampsigner.sign(unsigned_id)
-                        # Put the unsigned id and the scope in the database connected to the user
-                        # Once the client resubmits the access token, the AUTHORIZED relationship will be destroyed and
-                        # Replaced with a permanent USED one
-                        # TODO: do this in a transaction
-                        session.run("MATCH (u:User {username: {username}})"
-                                    "MATCH (c:Client {client_id: {client_id}})"
-                                    "CREATE (u)-[:AUTHORIZED {scope: {scope}, authorization_token: {auth_token}}]->(c)",
-                                    {
-                                        "username": username,
-                                        "client_id": client_id,
-                                        "scope": scope,
-                                        "auth_token": unsigned_id
-                                    }
-                                    )
-                        req.context["result"] = {"data":
-                                                     {"id": "USER_AUTHORIZATION_TOKEN",
-                                                      "type": "success",
-                                                      "token": signed_id}}
-                    else:
-                        resp.status = falcon.HTTP_UNAUTHORIZED
-                        req.context["result"] = {"errors":
-                                                     [{"id": "CLIENT_ID_INVALID",
-                                                       "type": "error",
-                                                       "status": resp.status,
-                                                       "text": "Client id {} is invalid.".format(client_id)}]}
-                    # Regardless of the response, close the session
-                    session.close()
-                else:
-                    resp.status = falcon.HTTP_UNAUTHORIZED
-                    req.context["result"] = {"errors":
-                                                 [{"id": "SCOPE_NOT_FOUND",
-                                                   "type": "error",
-                                                   "text": "You must provide a scope with this request",
-                                                   "status": resp.status}]}
-            else:
-                resp.status = falcon.HTTP_UNAUTHORIZED
-                req.context["result"] = {"errors":
-                                             [{"id": "CLIENT_ID_NOT_FOUND",
-                                               "type": "error",
-                                               "status": resp.status,
-                                               "text": "You must provide a client id with this request"}]}
-            pass
-        elif step_id == "access_token":
-            if "user_token" in auth.keys():
-                signed_auth_token = auth["user_token"]
-                if "username" in auth.keys():
-                    username = auth["username"]
-                    # Make sure the user exists
-                    session = graph.session()
-                    users = session.run("MATCH (u:User {username: {username}}) return (u)",
-                                        {"username": username})
-                    # The user exists
-                    if users:
-                        # Check if an AUTHORIZED relationship exists between the user and the client
-                        rels = session.run("MATCH (u:User {username: {username}})"
-                                           "MATCH (c:Client {client_id: {client_id}})"
-                                           "MATCH (u)-[r:AUTHORIZED]->(c) return(r)",
-                                           {"username": username,
-                                            "client_id": doc["client_id"]})
-                        if rels:
-                            # Validation
-                            rel = rels[0]
-                            log.debug("Starting client connection process for client {0} and user {1}".format(
-                                auth["client_id"], username
-                            ))
-                            try:
-                                # Check the signature with a 5 minute expiration
-                                unsigned_auth_token = timestampsigner.unsign(signed_auth_token, 300)
-                                log.debug("Token for user {0} provided by client {1} unsigned successfully".format(
-                                    username, auth["client_id"]
-                                ))
-                                if unsigned_auth_token == rel["authorization_token"]:
-                                    log.debug("Token check successful. Permanently connecting user {0} and client"
-                                              " {1}".format(username, auth["client_id"]))
-                                    # Generate a secure token, sign it, and encrypt it in the database
-                                    final_token = uuid.uuid4()
-                                    # Sign the unencrypted version for the client
-                                    signed_final_token = signer.sign(final_token)
-                                    # Encrypt it and put in the database
-                                    encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt())
-                                    session.run({
-                                        "MATCH (u:User {username:{username}})"
-                                        "MATCH (c:Client {client_id:{client_id}})"
-                                        "CREATE (u)-[:USES {scope: {scope}, {access_token: {access_token}}]->(c)",
-                                        {
-                                            "username": username,
-                                            "client_id": auth["client_id"],
-                                            "scope": rel["scope"],
-                                            "access_token": encrypted_final_token
-                                        }
-                                    })
-                                    # Return the signed token to the client
-                                    req.context["result"] = {
-                                        "data":
-                                            {
-                                                "id": "CLIENT_ACCESS_TOKEN",
-                                                "type": "success",
-                                                "access_token": signed_final_token,
-                                                "text": "Generated signed access token"
-                                            }
-                                    }
-                                else:
-                                    log.debug("Token provided by client {0} was mismatched with token provided by "
-                                              "user {1}".format(auth["client_id"], username))
-                                    resp.status = falcon.HTTP_FORBIDDEN
-                                    req.context["result"] = {
-                                        "errors":
-                                            [{
-                                                "id": "AUTH_TOKEN_MISMATCHED",
-                                                "type": "error",
-                                                "text": "Provided token unsigned successfully but did not match with "
-                                                        "the token provided by the user."
-                                            }]
-                                    }
-                            # The timestamp or the signature was invalild
-                            except (BadSignature, BadTimeSignature):
-                                log.debug("Client connection for user {0} and client {1} failed because of a bad or "
-                                          "expired signature. Deleting inapplicable relation")
-                                resp.status = falcon.HTTP_FORBIDDEN
-                                req.context["result"] = {
-                                    "errors":
-                                        [{
-                                            "id": "AUTH_TOKEN_INVALID",
-                                            "type": "error",
-                                            "text": "Provided authentication token had an invalid or expired signature",
-                                            "status": resp.status
-                                        }]
-                                }
-                            # Regardless of whether the token was valid, we want to delete the temporary auth connection
-                            finally:
-                                session.run("MATCH (u:User {username: {username}})"
-                                            "MATCH (c:Client {client_id: {client_id}})"
-                                            "MATCH (u)-[r:AUTHORIZED]->(c)"
-                                            "DETACH DELETE (r)")
+    _step_id = None
 
-                        else:
-                            resp.status = falcon.HTTP_UNAUTHORIZED
-                            resp.context["result"] = {
-                                "errors":
-                                    [{
-                                        "id": "USER_NOT_AUTHORIZED",
-                                        "type": "error",
-                                        "text": "The user {0} has not authorized a connection with client {1}".format(
-                                            username, auth["client_id"]
-                                        ),
-                                        "status": resp.status
-                                    }]
-                            }
-                    else:
-                        resp.status = falcon.HTTP_UNAUTHORIZED
-                        resp.context["result"] = {
-                            "errors":
-                                [{
-                                    "id": "USERNAME_INVALID",
-                                    "type": "error",
-                                    "status": resp.status,
-                                    "text": "Couldn't find username {0}".format(username)
-                                }]
-                        }
-                    session.close()
-                else:
-                    resp.status = falcon.HTTP_UNAUTHORIZED
-                    resp.context["result"] = {
-                        "errors":
-                            [{
-                                "id": "USERNAME_NOT_FOUND",
-                                "type": "error",
-                                "status": resp.status,
-                                "text": "A valid username must be submitted with this this request"
-                            }]
-                    }
-            else:
-                resp.status = falcon.HTTP_UNAUTHORIZED
-                resp.context["result"] = {
-                    "errors":
-                        [{
-                            "id": "AUTH_TOKEN_NOT_FOUND",
-                            "type": "error",
-                            "status": resp.status,
-                            "text": "A signed and recent authorization token must be submitted along with this request."
-                        }]
-                }
-        else:
-            resp.status = falcon.HTTP_NOT_FOUND
-            req.context["result"] = {
-                "errors":
-                    [{
-                        "type": "error",
-                        "id": "STEP_ID_NOT_FOUND",
-                        "status": resp.status,
-                        "text": "Step id {} not found".format(step_id)
-                    }]
-            }
+    def on_post(self, req, resp):
+        raise NotImplementedError
 
     @falcon.before(hooks.user_auth)
-    def on_delete(self, req, resp, step_id):
+    def on_delete(self, req, resp):
         """
         As an authenticated user, terminate a relationship with a client
-        
+
         :param req: 
         :param resp: 
-    
+
         """
         step_rels = {
             "user_token": "AUTHORIZED",
             "access_token": "USES"
         }
-        if step_id in step_rels.keys():
-            step_rel = step_rels[step_id]
-            doc = req.context["doc"]
+        if self._step_id in step_rels.keys():
+            step_rel = step_rels[self._step_id]
             auth = req.context["auth"]
             if "client_id" in auth.keys():
                 client_id = auth["client_id"]
@@ -318,12 +100,12 @@ class Oauth2:
                 resp.status = falcon.HTTP_NOT_FOUND
                 req.context["result"] = {
                     "errors":
-                    [{
-                        "type": "error",
-                        "id": "CLIENT_ID_NOT_FOUND",
-                        "text": "A DELETE request to this method must include a client id",
-                        "status": resp.status
-                    }]
+                        [{
+                            "type": "error",
+                            "id": "CLIENT_ID_NOT_FOUND",
+                            "text": "A DELETE request to this method must include a client id",
+                            "status": resp.status
+                        }]
                 }
         # The passed step id (DELETE /api/v1/oauth2/step_id) was not recognized
         else:
@@ -332,11 +114,248 @@ class Oauth2:
                 "errors":
                     [{
                         "type": "error",
-                        "id":  "STEP_ID_NOT_FOUND",
-                        "text": "Step id {0} not recognized".format(step_id),
+                        "id": "STEP_ID_NOT_FOUND",
+                        "text": "Step id {0} not recognized".format(self._step_id),
                         "status": resp.status_code
                     }]
             }
+
+
+class AccessToken(Oauth2Step):
+    _step_id = "access_token"
+    def on_post(self, req, resp):
+        """
+        The access token component of the oauth authentication
+        :param req: 
+        :param resp: 
+        :return: 
+        """
+        auth = req.context["auth"]
+        doc = req.context["doc"]
+        if "user_token" in auth.keys():
+            signed_auth_token = auth["user_token"]
+            if "username" in auth.keys():
+                username = auth["username"]
+                # Make sure the user exists
+                session = graph.session()
+                users = session.run("MATCH (u:User {username: {username}}) return (u)",
+                                    {"username": username})
+                # The user exists
+                if users:
+                    # Check if an AUTHORIZED relationship exists between the user and the client
+                    rels = session.run("MATCH (u:User {username: {username}})"
+                                       "MATCH (c:Client {client_id: {client_id}})"
+                                       "MATCH (u)-[r:AUTHORIZED]->(c) return(r)",
+                                       {"username": username,
+                                        "client_id": doc["client_id"]})
+                    if rels:
+                        # Validation
+                        rel = rels[0]
+                        log.debug("Starting client connection process for client {0} and user {1}".format(
+                            auth["client_id"], username
+                        ))
+                        try:
+                            # Check the signature with a 5 minute expiration
+                            unsigned_auth_token = timestampsigner.unsign(signed_auth_token, 300)
+                            log.debug("Token for user {0} provided by client {1} unsigned successfully".format(
+                                username, auth["client_id"]
+                            ))
+                            if unsigned_auth_token == rel["authorization_token"]:
+                                log.debug("Token check successful. Permanently connecting user {0} and client"
+                                          " {1}".format(username, auth["client_id"]))
+                                # Generate a secure token, sign it, and encrypt it in the database
+                                final_token = uuid.uuid4()
+                                # Sign the unencrypted version for the client
+                                signed_final_token = signer.sign(final_token)
+                                # Encrypt it and put in the database
+                                encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt())
+                                session.run({
+                                    "MATCH (u:User {username:{username}})"
+                                    "MATCH (c:Client {client_id:{client_id}})"
+                                    "CREATE (u)-[:USES {scope: {scope}, {access_token: {access_token}}]->(c)",
+                                    {
+                                        "username": username,
+                                        "client_id": auth["client_id"],
+                                        "scope": rel["scope"],
+                                        "access_token": encrypted_final_token
+                                    }
+                                })
+                                # Return the signed token to the client
+                                req.context["result"] = {
+                                    "data":
+                                        {
+                                            "id": "CLIENT_ACCESS_TOKEN",
+                                            "type": "success",
+                                            "access_token": signed_final_token,
+                                            "text": "Generated signed access token"
+                                        }
+                                }
+                            else:
+                                log.debug("Token provided by client {0} was mismatched with token provided by "
+                                          "user {1}".format(auth["client_id"], username))
+                                resp.status = falcon.HTTP_FORBIDDEN
+                                req.context["result"] = {
+                                    "errors":
+                                        [{
+                                            "id": "AUTH_TOKEN_MISMATCHED",
+                                            "type": "error",
+                                            "text": "Provided token unsigned successfully but did not match with "
+                                                    "the token provided by the user."
+                                        }]
+                                }
+                        # The timestamp or the signature was invalild
+                        except (BadSignature, BadTimeSignature):
+                            log.debug("Client connection for user {0} and client {1} failed because of a bad or "
+                                      "expired signature. Deleting inapplicable relation")
+                            resp.status = falcon.HTTP_FORBIDDEN
+                            req.context["result"] = {
+                                "errors":
+                                    [{
+                                        "id": "AUTH_TOKEN_INVALID",
+                                        "type": "error",
+                                        "text": "Provided authentication token had an invalid or expired signature",
+                                        "status": resp.status
+                                    }]
+                            }
+                        # Regardless of whether the token was valid, we want to delete the temporary auth connection
+                        finally:
+                            session.run("MATCH (u:User {username: {username}})"
+                                        "MATCH (c:Client {client_id: {client_id}})"
+                                        "MATCH (u)-[r:AUTHORIZED]->(c)"
+                                        "DETACH DELETE (r)")
+
+                    else:
+                        resp.status = falcon.HTTP_UNAUTHORIZED
+                        resp.context["result"] = {
+                            "errors":
+                                [{
+                                    "id": "USER_NOT_AUTHORIZED",
+                                    "type": "error",
+                                    "text": "The user {0} has not authorized a connection with client {1}".format(
+                                        username, auth["client_id"]
+                                    ),
+                                    "status": resp.status
+                                }]
+                        }
+                else:
+                    resp.status = falcon.HTTP_UNAUTHORIZED
+                    resp.context["result"] = {
+                        "errors":
+                            [{
+                                "id": "USERNAME_INVALID",
+                                "type": "error",
+                                "status": resp.status,
+                                "text": "Couldn't find username {0}".format(username)
+                            }]
+                    }
+                session.close()
+            else:
+                resp.status = falcon.HTTP_UNAUTHORIZED
+                resp.context["result"] = {
+                    "errors":
+                        [{
+                            "id": "USERNAME_NOT_FOUND",
+                            "type": "error",
+                            "status": resp.status,
+                            "text": "A valid username must be submitted with this this request"
+                        }]
+                }
+        else:
+            resp.status = falcon.HTTP_UNAUTHORIZED
+            resp.context["result"] = {
+                "errors":
+                    [{
+                        "id": "AUTH_TOKEN_NOT_FOUND",
+                        "type": "error",
+                        "status": resp.status,
+                        "text": "A signed and recent authorization token must be submitted along with this request."
+                    }]
+            }
+
+
+@falcon.before(hooks.user_auth)
+@falcon.before(hooks.client_is_official)
+@falcon.before(hooks.origin_client_auth)
+class UserToken(Oauth2Step):
+    """
+    User token role for oauth
+    """
+    _step_id = "user_token"
+
+    def on_post(self, req, resp):
+        """
+        Send parameters and get a token for a certain id.
+        Precondition is that the user is authorized and an OFFICIAL client submitted the request
+        
+        :param req: The request object
+        :param resp: The response object
+        
+        """
+        doc = req.context["data"]
+        auth = req.context["auth"]
+        # Generate a user token, put it in the database, and sign it
+        # I can be sure that username already exists thanks to the pre request hook
+        username = auth["username"]
+        if "origin_client_id" in auth.keys():
+            client_id = auth["origin_client_id"]
+            # Check that there's a scope object in the request and check it against a list of allowed scopes
+            if "scope" in doc.keys():
+                scope = doc["scope"]
+                # Assert that the client and user both exist
+                session = graph.session()
+                clients = session.run("MATCH (c:Client {client_id: {client_id}}) return (c)",
+                                      {"client_id": client_id})
+                if clients:
+                    # Get the callback url for the client and make a call to it
+                    client = clients[0]
+                    callback_url = client["callback_url"]
+                    # Use uuid4 for a random id.
+                    unsigned_id = uuid.uuid4()
+                    # Sign the id with a timestamp. When checking the key we'll check for a max age of 5 minutes
+                    signed_id = timestampsigner.sign(unsigned_id)
+                    # Put the unsigned id and the scope in the database connected to the user
+                    # Once the client resubmits the access token, the AUTHORIZED relationship will be destroyed and
+                    # Replaced with a permanent USED one
+                    # TODO: do this in a transaction
+                    session.run("MATCH (u:User {username: {username}})"
+                                "MATCH (c:Client {client_id: {client_id}})"
+                                "CREATE (u)-[:AUTHORIZED {scope: {scope}, authorization_token: {auth_token}}]->(c)",
+                                {
+                                    "username": username,
+                                    "client_id": client_id,
+                                    "scope": scope,
+                                    "auth_token": unsigned_id
+                                }
+                                )
+                    req.context["result"] = {"data":
+                                                 {"id": "USER_AUTHORIZATION_TOKEN",
+                                                  "type": "success",
+                                                  "token": signed_id,
+                                                  "callback_url": callback_url}}
+                else:
+                    resp.status = falcon.HTTP_UNAUTHORIZED
+                    req.context["result"] = {"errors":
+                                                 [{"id": "CLIENT_ID_INVALID",
+                                                   "type": "error",
+                                                   "status": resp.status,
+                                                   "text": "Client id {} is invalid.".format(client_id)}]}
+                # Regardless of the response, close the session
+                session.close()
+            else:
+                resp.status = falcon.HTTP_UNAUTHORIZED
+                req.context["result"] = {"errors":
+                                             [{"id": "SCOPE_NOT_FOUND",
+                                               "type": "error",
+                                               "text": "You must provide a scope with this request",
+                                               "status": resp.status}]}
+        else:
+            resp.status = falcon.HTTP_UNAUTHORIZED
+            req.context["result"] = {"errors":
+                                         [{"id": "ORIGIN_CLIENT_ID_NOT_FOUND",
+                                           "type": "error",
+                                           "status": resp.status,
+                                           "text": "You must provide an origin client id with this request"}]}
+
 
 
 class Users:
@@ -524,7 +543,6 @@ class Users:
             session.close()
 
 
-
 class Sessions:
     @falcon.before(hooks.client_user_auth)
     def on_post(self, req, resp, null_session_id):
@@ -662,7 +680,66 @@ class Commands:
                     }]
             }
 
+
 class Clients:
+    @falcon.before(hooks.client_is_official)
+    @falcon.before(hooks.origin_client_auth)
+    def on_get(self, req, resp):
+        """
+        On a request from an official client, return data about the client.
+        :param req: , 
+        :param resp:  
+        """
+        auth = req.context["auth"]
+        origin_client_id = auth["origin_client_id"]
+        # Match the client in the database
+        session = graph.session()
+        clients = session.run("MATCH (c:Client {client_id: {client_id}} return (c)", {"client_id": origin_client_id})
+        client = clients[0]
+        client_callback = client["callback_url"]
+        # Get the number of users that use it
+        users = session.run("MATCH (c:Client {client_id: {client_id})"
+                            "MATCH (u)-[:USES]->(c)"
+                            "return (u)",
+                            {"client_id": origin_client_id})
+        user_num = len(users)
+        req.context["result"] = {"data":
+                                     {"user_num": user_num,
+                                      "id": "CLIENT_DATA_FETCHED",
+                                      "text": "Client {0} has a callback url of {1}, and has {2} users.".format(
+                                          origin_client_id, client_callback, user_num
+                                      )}}
+        session.close()
+
+    @falcon.before(hooks.client_is_official)
+    @falcon.before(hooks.origin_client_auth)
+    def on_delete(self, req, resp):
+        """
+        Delete a client
+        Preconditions: The request is coming from an official client, and the other client has authenticated
+        :param req: 
+        :param resp: 
+        """
+        auth = req.context["auth"]
+        client_id = auth["origin_client_id"]
+        log.debug("Deleting client {}".format(client_id))
+        # Start a neo4j session
+        session = graph.session()
+        try:
+            session.run("MATCH (c:Client {client_id: {client_id}},"
+                        "detach"
+                        "delete (c)",
+                        {"client_id": client_id})
+            req.context["result"] = {
+                "data":
+                    {"type": "success",
+                     "id": "CLIENT_DELETED",
+                     "text": "Successfully deleted client {}".format(client_id)}
+            }
+        # No matter what, close the session
+        finally:
+            session.close()
+
     @falcon.before(hooks.client_is_official)
     def on_post(self,req, resp):
         """

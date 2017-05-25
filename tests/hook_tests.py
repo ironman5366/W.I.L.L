@@ -660,7 +660,7 @@ class ClientUserAuthTests(unittest.TestCase):
 
 class ClientAuthTests(unittest.TestCase):
     """
-    Tests for the method hooks.client_auth, which authenticates just a client
+    Tests for the method hooks._generic_client_auth, which authenticates just a client
     """
 
     def test_client_id_missing(self):
@@ -749,8 +749,7 @@ class ClientAuthTests(unittest.TestCase):
         """
         Submit valid mocked credentials, and assert that no errors are raised
         """
-        fake_request = mock_request(auth={"client_"
-                                          "id": "anubis", "client_secret": "secret"})
+        fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "secret"})
         # Mock the session to not find the client
         # The hash of "secret"
         mock_session([{
@@ -764,5 +763,27 @@ class ClientAuthTests(unittest.TestCase):
             # The test should fail if it an HTTPError isn't raised
             self.assert_(True)
         # Unmock itsdangerous regardless of if the test fails
+        finally:
+            hooks.signer = itsdangerous_signer_copy
+
+    def test_valid_origin_client_auth(self):
+        """
+        Submit the same valid request to origin_client_auth and assert that it works
+        :return: 
+        """
+        fake_request = mock_request(auth={"origin_client_id": "anubis", "origin_client_secret": "secret"})
+        # Mock the session to not find the client
+        # The hash of "secret"
+        mock_session([{
+            "client_secret": "$2b$12$WNFp8f2wqiCEZ/x8SKUGp.H4cOq09OAk.kZh7kxaywN65wpgruxiC"
+        }])
+        itsdangerous_signer_copy = hooks.signer
+        hooks.signer = MagicMock()
+        hooks.signer.unsign = MagicMock(return_value='secret')
+        try:
+            hooks.origin_client_auth(fake_request, MagicMock(), None, None)
+            # The test should fail if it an HTTPError isn't raised
+            self.assert_(True)
+            # Unmock itsdangerous regardless of if the test fails
         finally:
             hooks.signer = itsdangerous_signer_copy

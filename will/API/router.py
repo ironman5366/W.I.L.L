@@ -9,11 +9,18 @@ log = logging.getLogger()
 base_path = "/api/{version_num}"
 
 routes = {
-    "oauth2": {
-        "routes": ["/oauth2/{step_id}", "/oauth2"],
+    "access_token": {
+        "routes": ["/oauth2/access_token"],
         "versions":
             {
-                "v1": v1.Oauth2()
+                "v1": v1.AccessToken()
+            }
+    },
+    "user_token":{
+        "routes": ["/oauth2/user_token"],
+        "versions":
+            {
+                "v1": v1.UserToken()
             }
     },
     "users": {

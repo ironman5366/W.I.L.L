@@ -14,6 +14,7 @@ debug = False
 
 log = logging.getLogger()
 
+
 class RequireJSON:
     def process_request(self, req, resp):
         if not req.client_accepts_json:
@@ -33,16 +34,13 @@ class RequireJSON:
                 }
                 raise falcon.HTTPError(resp.status, "Unsupported media type")
 
+
 class JSONTranslator:
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.
         #
         # See also: PEP 3333
-        if req.content_length in (None, 0):
-            # Nothing to do
-            req.context["doc"] = {}
-            req.context["auth"] = {}
 
         body = req.stream.read()
         if not body:
@@ -59,11 +57,11 @@ class JSONTranslator:
             raise falcon.HTTPError(resp.status, "Empty request")
 
         try:
-            loaded_json = json.loads(body.decode('utf-8'))
+            loaded_json = json.loads(body)
             doc_keys = loaded_json.keys()
             assert ("auth" in doc_keys and "data" in doc_keys)
             req.context["doc"] = loaded_json["data"]
-        except (ValueError, UnicodeDecodeError):
+        except ValueError:
             resp.status = falcon.HTTP_500
             req.context["result"] = {
                 "errors":
@@ -91,32 +89,70 @@ class JSONTranslator:
             }
             raise falcon.HTTPError(resp.status, "Incorrect JSON")
 
+    @staticmethod
+    def key_check(result):
+        required_keys = ["text", "id", "type"]
+        key_found = False
+        for t, v in result.items():
+            if t == "data":
+                key_found = True
+                if type(v) == dict:
+                    for k in required_keys:
+                        if k not in v.keys():
+                            return False
+                else:
+                    return False
+            elif t == "errors":
+                key_found = True
+                if type(v) == list:
+                    for k in required_keys:
+                            if k not in v[0].keys():
+                                return False
+                else:
+                    return False
+        return key_found
+
     def process_response(self, req, resp, resource):
         if 'result' not in req.context:
             return
         # Validate the JSON according the the API spec
-        result_keys = req.context["result"].keys()
-        key_check = lambda k: (k in result_keys and "id" in k.keys() and "type" in k.keys())
-        if any([key_check(i) for i in ["data", "errors", "meta"]]):
-            resp.body = json.dumps(req.context['result'])
-        else:
-            log.error("Server response {0} to resource {1} failed to provide data key".format(
-                req.context["result"], resource)
-            )
+        try:
+            if self.key_check(req.context["result"]):
+                resp.body = json.dumps(req.context['result'])
+            else:
+                log.error("Server response to resource {0} failed to provide data key".format(resource))
+                error_code = falcon.HTTP_INTERNAL_SERVER_ERROR
+                resp.status = error_code
+                resp.body = json.dumps(
+                    {"errors":
+                        [{
+                            "type": "error",
+                            "id": "JSON_MALFORMED_ERROR",
+                            "status": error_code,
+                            "text": "The server has returned a malformed or invalid response. Please submit a bug "
+                                    "report to will@willbeddow.com"
+                        }]
+                    }
+                )
+                raise falcon.HTTPError(resp.status, title="Error, invalid response")
+        except Exception as e:
+            log.error("Exception {0} occurred while decoding a JSON response to resource {1}".format(
+                e.args, resource
+            ))
             error_code = falcon.HTTP_INTERNAL_SERVER_ERROR
             resp.status = error_code
             resp.body = json.dumps(
                 {"errors":
                     [{
                         "type": "error",
-                        "id": "JSON_MALFORMED_ERROR",
+                        "id": "SERVER_JSON_DECODE_ERROR",
                         "status": error_code,
                         "text": "The server has returned a malformed or invalid response. Please submit a bug report "
                                 "to will@willbeddow.com"
                     }]
                 }
             )
-            raise falcon.HTTPError(resp.status, title="Invalid response")
+            raise falcon.HTTPError(resp.status, title="Error, invalid response")
 
 
 class AuthTranslator:
@@ -128,10 +164,10 @@ class AuthTranslator:
     def _b64_error(req, resp, header):
         resp.status = falcon.HTTP_BAD_REQUEST
         req.context["result"] = {
-                "type": "error",
-                "id": "HEADER_{}_INVALID".format(header.upper()),
-                "text": "Passed {} header was not valid base64".format(header),
-                "status": resp.status
+            "type": "error",
+            "id": "HEADER_{}_INVALID".format(header.upper()),
+            "text": "Passed {} header was not valid base64".format(header),
+            "status": resp.status
         }
         raise falcon.HTTPError(resp.status, "Invalid encoding")
 
@@ -180,7 +216,7 @@ class AuthTranslator:
                         raise falcon.HTTPError(resp.status, "Incomplete header")
                 # Error decoding the authorization header from base64
                 except binascii.Error:
-                   self._b64_error(req, resp, "Authorization")
+                    self._b64_error(req, resp, "Authorization")
             req.context["auth"] = auth
         else:
             doc = req.context["doc"]
@@ -200,6 +236,7 @@ class AuthTranslator:
                 }
                 raise falcon.HTTPError(resp.status, "Client id not found")
 
+
 class MonitoringMiddleware:
     """
     Middleware for checking ip rate limits
@@ -216,7 +253,7 @@ class MonitoringMiddleware:
         if req_ip in self.banned_ips:
             error_message = "Your ip has been either temporarily blacklisted for API misuse.\nIf you've been making " \
                             "an inordinate amount of API requests, you can make requests again after not making any " \
-                            "for 15 minutes.\nOtherwise, if the ban is permanent, and you believe it's erroneous, "\
+                            "for 15 minutes.\nOtherwise, if the ban is permanent, and you believe it's erroneous, " \
                             "you can contact me at will@willbeddow.com to possibly get the ban reversed."
             resp.status = falcon.HTTP_TOO_MANY_REQUESTS
             req.context["result"] = {
@@ -230,7 +267,6 @@ class MonitoringMiddleware:
             }
             raise falcon.HTTPError(resp.status, title="Banned")
 
-
     def _ban_monitor(self):
         while self.running:
             # Look through the requests from the past 10 seconds
@@ -240,9 +276,9 @@ class MonitoringMiddleware:
                 if ip in ips.keys():
                     ips[ip] += 1
                 else:
-                    ips.update({ip:1})
+                    ips.update({ip: 1})
             for ip, num_requests in ips.items():
-                ip_rate = num_requests/5
+                ip_rate = num_requests / 5
                 if ip_rate >= 1.5:
                     self.banned_ips.append(ip)
                     log.debug("Banning ip {0}".format(ip))
@@ -259,7 +295,7 @@ class MonitoringMiddleware:
                                 self.banned_ips.remove(ip)
                                 del self._banned_silent[ip]
                     else:
-                        self._banned_silent.update({ip:1})
+                        self._banned_silent.update({ip: 1})
                 else:
                     # If the ip is violating, delete it from banned_silent
                     if ip in self._banned_silent:

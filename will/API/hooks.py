@@ -485,19 +485,24 @@ def client_user_auth(req, resp, resource, params):
         }
         raise falcon.HTTPError(resp.status, "Access token required")
 
-def client_auth(req, resp, resource, params):
-    """
-    Runs authentication for a client id and a client secret
 
-    :param req: Request object
-    :param resp: Response object
-    :param resource: The resource that will be activated
-    :param params: Additional parameters
+def _generic_client_auth(client_id_type, client_secret_type, req, resp, resource, params):
+    """
+    An internal client authentication hook to check variable authentication parameters for a client id and secret,
+    and authenticate them against neo4j
+    
+    :param client_id_type: The key to use for the client id. Ex: "client_id"
+    :param client_secret_type: The key to use for client secret. Ex: "client_secret"
+    :param req: The request object
+    :param resp: The response object
+    :param resource: 
+    :param params: 
+    :return: 
     """
     auth = req.context["auth"]
-    if "client_id" in auth.keys() and "client_secret" in auth.keys():
-        client_id = auth["client_id"]
-        signed_secret_key = auth["client_secret"]
+    if client_id_type in auth.keys() and client_secret_type in auth.keys():
+        client_id = auth[client_id_type]
+        signed_secret_key = auth[client_secret_type]
         # Try to usnign the secret key before opening a databsae connection
         try:
             secret_key = signer.unsign(signed_secret_key)
@@ -508,7 +513,7 @@ def client_auth(req, resp, resource, params):
                 "errors":
                     [{
                         "id": "CLIENT_SECRET_BAD_SIGNATURE",
-                        "type":  "error",
+                        "type": "error",
                         "status": resp.status,
                         "text": "The submitted client secret key was unsigned or had a bad signature"
                     }]
@@ -560,3 +565,27 @@ def client_auth(req, resp, resource, params):
                 }]
         }
         raise falcon.HTTPError(resp.status, title="Client info not found")
+
+# TODO: have a client_auth and origin_client_auth method, both testing against _generic_client_auth
+
+def client_auth(req, resp, resource, params):
+    """
+    Runs authentication for a client id and a client secret
+
+    :param req: Request object
+    :param resp: Response object
+    :param resource: The resource that will be activated
+    :param params: Additional parameters
+    """
+    _generic_client_auth("client_id", 'client_secret', req, resp, resource, params)
+
+def origin_client_auth(req, resp, resource, params):
+    """
+    Runs authentication for an origin client
+    :param req: 
+    :param resp: 
+    :param resource: 
+    :param params: 
+    :return: 
+    """
+    _generic_client_auth("origin_client_id", "origin_client_secret", req, resp, resource, params)
