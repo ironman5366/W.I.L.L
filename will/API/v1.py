@@ -123,6 +123,7 @@ class Oauth2Step:
 
 class AccessToken(Oauth2Step):
     _step_id = "access_token"
+
     def on_post(self, req, resp):
         """
         The access token component of the oauth authentication

@@ -25,7 +25,15 @@ def mock_request(method="POST", body=None, headers={}, json_decode=False, conten
         headers.update({"Content-Type": content_type})
     base_class = MagicMock()
     base_class.context = {}
-    base_class.headers = headers
+
+    def headers_side_effect(header_key, required=False):
+        if header_key in headers:
+            return headers[header_key]
+        else:
+            if required:
+                raise falcon.HTTPBadRequest("Header {} not found".format(header_key))
+
+    base_class.get_header = MagicMock(side_effect=headers_side_effect)
     base_class.method = method
     if body:
         base_class.content_length = len(body)
@@ -177,35 +185,77 @@ class JSONTranslatorTests(unittest.TestCase):
 class AuthTranslatorTests(unittest.TestCase):
     instance = middleware.AuthTranslator()
 
-    def test_invalid_b64_client(self):
-        """
-        Test an invalid b64 client header
-        :return: 
-        """
-        pass
-
     def test_invalid_b64_auth(self):
+        fake_request = mock_request(method="GET", headers={
+            "X-Client-Id": "rocinate",
+            "Authorization": "not b64"
+        })
+        try:
+            self.instance.process_request(fake_request, MagicMock())
+            # The test should fail if the correct http error isn't raised
+            self.fail("The auth translator middleware failed to raise a header invalid error when Authorization wasn't "
+                      "valid b64")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_BAD_REQUEST)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "HEADER_AUTHORIZATION_INVALID")
+
+    def test_missing_client_id_header(self):
         """
-        Test invalid b64 authentication
+        Submit a get request without a client id and assert that the proper error si thrown
         :return: 
         """
-        pass
+        fake_request = mock_request(method="GET")
+        try:
+            self.instance.process_request(fake_request, MagicMock())
+            # The test should fail if the proper HTTP Error isn't raised
+            self.fail("The auth translator middleware when no client id header was passed")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_BAD_REQUEST)
 
     def test_incomplete_auth(self):
         """
         Test an incomplete authentication header
         :return: 
         """
-        pass
+        # Authentication is the b64 hash of "justusername"
+        fake_request = mock_request(method="GET", headers={
+            "X-Client-Id": "rocinate",
+            "Authorization": "anVzdHVzZXJuYW1l"
+        })
+        try:
+            self.instance.process_request(fake_request, MagicMock())
+            # The test should fail if the proper http error isn't raised
+            self.fail("The auth translator middleware failed to raise an error when an incomplete header was "
+                      "submitted")
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_BAD_REQUEST)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "AUTHORIZATION_HEADER_INCOMPLETE")
 
-    def test_missing_client_id(self):
+    def test_valid_headers(self):
         """
-        Test a missing client id
-        :return: 
+        Submit valid headers and assert that they end up in the right place
         """
+        fake_request = mock_request(method="GET", headers={
+            "X-Client-Id": "rocinate",
+            "Authorization": "aG9sZGVuOnBhc3N3b3Jk",
+            "X-Client-Secret": "super-secret",
+            "X-Access-Token": "access-token"
+        })
+        self.instance.process_request(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["auth"]["client_id"], "rocinate")
+        self.assertEqual(fake_request.context["auth"]["username"], "holden")
+        self.assertEqual(fake_request.context["auth"]["password"], "password")
+        self.assertEqual(fake_request.context["auth"]["client_secret"], "super-secret")
+        self.assertEqual(fake_request.context["auth"]["access_token"], "access-token")
 
-    def test_successful_auth(self):
+    def test_post_missing_client_id(self):
         """
-        Check a request with a successful authentication
-        :return: 
+        Submit a post request with a missing client id and assert that the correct type of error is thrown
         """
+        fake_request = mock_request()
+        fake_request.context.update({"auth": {}})
+        try:
+            pass
+        except falcon.HTTPError as exception:
+            self.assertEqual(exception.status, falcon.HTTP_BAD_REQUEST)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_ID_NOT_FOUND")

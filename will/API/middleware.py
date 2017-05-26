@@ -61,6 +61,7 @@ class JSONTranslator:
             doc_keys = loaded_json.keys()
             assert ("auth" in doc_keys and "data" in doc_keys)
             req.context["doc"] = loaded_json["data"]
+            req.context["auth"] = loaded_json["auth"]
         except ValueError:
             resp.status = falcon.HTTP_500
             req.context["result"] = {
@@ -164,22 +165,50 @@ class AuthTranslator:
     def _b64_error(req, resp, header):
         resp.status = falcon.HTTP_BAD_REQUEST
         req.context["result"] = {
-            "type": "error",
-            "id": "HEADER_{}_INVALID".format(header.upper()),
-            "text": "Passed {} header was not valid base64".format(header),
-            "status": resp.status
+            "errors":
+             [{
+                "type": "error",
+                "id": "HEADER_{}_INVALID".format(header.upper()),
+                "text": "Passed {} header was not valid base64".format(header),
+                "status": resp.status
+            }]
         }
         raise falcon.HTTPError(resp.status, "Invalid encoding")
 
     def process_request(self, req, resp):
+        """
+        Decode headers or JSON post params into the required authentication headers and objects
+        GET:
+            - X-Client-Id
+                - Required: True
+                - Form: Plaintext
+                - Post equivalent: auth/client_id
+            - X-Client-Secret
+                - Required: False
+                - Form: Plaintext
+                - Post equivalent: auth/client_secret
+            - X-Access-Token
+                - Required: False
+                - Form: Plaintext
+                - Post equivalent: auth/access_token
+            - Authorization
+                - Required: False
+                - Form: Base64
+                - Schema: username:password
+                - Post equivalent: auth/username and auth/password
+        POST:
+            - auth
+                - client_id
+                    - required: True
+            -  data
+        :param req: The request object
+        :param resp: The response object
+        :return: 
+        """
         if req.method == "GET":
             auth = {}
-            encoded_client_id = req.get_header("X-Client-Id", required=True)
-            try:
-                client_id = base64.b64decode(encoded_client_id).decode("utf-8")
-                auth.update({"client_id": client_id})
-            except binascii.Error:
-                self._b64_error(req, resp, "X-Client-Id")
+            client_id = req.get_header("X-Client-Id", required=True)
+            auth.update({"client_id": client_id})
             client_secret = req.get_header("X-Client-Secret")
             if client_secret:
                 auth.update({"client_secret": client_secret})
@@ -191,7 +220,7 @@ class AuthTranslator:
             # Assume that it's a basic http authorization header with base64 encoded username:password
             if authorization:
                 try:
-                    decoded_header = base64.b64decode(authorization).decote('utf-8')
+                    decoded_header = base64.b64decode(authorization).decode('utf-8')
                     if ":" in decoded_header:
                         h_split = decoded_header.split(":")
                         username = h_split[0]
@@ -213,18 +242,14 @@ class AuthTranslator:
                                     "status": resp.status
                                 }]
                         }
+                        print (req.context)
                         raise falcon.HTTPError(resp.status, "Incomplete header")
                 # Error decoding the authorization header from base64
                 except binascii.Error:
                     self._b64_error(req, resp, "Authorization")
             req.context["auth"] = auth
         else:
-            doc = req.context["doc"]
-            doc_auth = doc["auth"]
-            if "client_id" in doc_auth.keys():
-                req.context["auth"] = doc["auth"]
-            # Raise an http error because always required field client id was missing
-            else:
+            if "client_id" not in req.context["auth"].keys():
                 resp.status = falcon.HTTP_BAD_REQUEST
                 req.context["result"] = {
                     [{
