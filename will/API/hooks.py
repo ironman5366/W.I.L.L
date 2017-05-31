@@ -127,7 +127,7 @@ def session_auth(req, resp, resource, params):
     if signed_session_id:
         # Unsign the session id
         try:
-            session_id = signer.unsign(signed_session_id)
+            session_id = signer.unsign(signed_session_id).decode('utf-8')
             req.context["unsigned_session_id"] = session_id
             # Go through the sessions
             if session_id in sessions.sessions.keys():
@@ -388,7 +388,7 @@ def client_user_auth(req, resp, resource, params):
                 # Unsign the access token
                 session = graph.session()
                 try:
-                    unsigned_access_token = signer.unsign(access_token)
+                    unsigned_access_token = signer.unsign(access_token).decode('utf-8')
                     # Check the access token against the database using bcrypt
                     session = graph.session()
                     rels = session.run(
@@ -503,9 +503,9 @@ def _generic_client_auth(client_id_type, client_secret_type, req, resp, resource
     if client_id_type in auth.keys() and client_secret_type in auth.keys():
         client_id = auth[client_id_type]
         signed_secret_key = auth[client_secret_type]
-        # Try to usnign the secret key before opening a databsae connection
+        # Try to unsign the secret key before opening a database connection
         try:
-            secret_key = signer.unsign(signed_secret_key)
+            secret_key = signer.unsign(signed_secret_key).decode('utf-8')
         except BadSignature:
             # The signature was invalid
             resp.status = falcon.HTTP_UNAUTHORIZED

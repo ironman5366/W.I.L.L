@@ -5,6 +5,7 @@ from will.userspace import sessions
 # Builtin imports
 import unittest
 from unittest.mock import *
+import copy
 
 # External imports
 import falcon
@@ -37,7 +38,8 @@ def mock_session(return_value=None, side_effect=None):
     
     """
     hooks.graph = MagicMock()
-    hooks.graph.session = MagicMock
+    mock_copy = copy.deepcopy(MagicMock)
+    hooks.graph.session = mock_copy
     if side_effect:
         # Give an option to return it with a side ffect instead of a return value
         assert not return_value
@@ -169,15 +171,17 @@ class SessionAuthTest(unittest.TestCase):
             "session_id": "ubiquitous.signature"
         }
         fake_request = mock_request(auth=session_auth)
+        signer_copy = copy.deepcopy(hooks.signer)
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value="ubiquitous")
+        hooks.signer.unsign = MagicMock(return_value=b"ubiquitous")
         try:
             hooks.session_auth(fake_request, MagicMock(), None, None)
             self.fail("HTTP Error wasn't raised")
         except falcon.HTTPError as exception:
             self.assertEqual(exception.status, falcon.HTTP_UNAUTHORIZED)
             self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SESSION_ID_INVALID")
-
+        finally:
+            hooks.signer = signer_copy
     def test_no_client_session(self):
         """
         Submit a request with a signed session id but without a client in the auth dict
@@ -189,7 +193,7 @@ class SessionAuthTest(unittest.TestCase):
         fake_request = mock_request(auth=session_auth)
         # Remove the fake signature
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value="ubiquitous")
+        hooks.signer.unsign = MagicMock(return_value=b"ubiquitous")
         # Mock the important aspects of a session object
         session_mock = MagicMock()
         session_mock.session_id = "ubiquitous"
@@ -215,8 +219,9 @@ class SessionAuthTest(unittest.TestCase):
         }
         fake_request = mock_request(auth=session_auth)
         # Remove the fake signature
+        signer_copy = copy.deepcopy(hooks.signer)
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value="ubiquitous")
+        hooks.signer.unsign = MagicMock(return_value=b"ubiquitous")
         # Mock the important aspects of a session object
         session_mock = MagicMock()
         session_mock.session_id = "ubiquitous"
@@ -230,6 +235,7 @@ class SessionAuthTest(unittest.TestCase):
         # Regardless, delete the fake session from sessions
         finally:
             del sessions.sessions[session_mock.session_id]
+            hooks.signer = signer_copy
 
 
 class CalculateScopeTests(unittest.TestCase):
@@ -551,7 +557,7 @@ class ClientUserAuthTests(unittest.TestCase):
         # Mock the session to return the user
         mock_session([{"username": "holden"}])
         # Mock itsdangerous to raise a bad signature error
-        itsdangerous_signer_copy = hooks.signer
+        itsdangerous_signer_copy = copy.deepcopy(hooks.signer)
         hooks.signer = MagicMock()
         hooks.signer.unsign = MagicMock(side_effect=itsdangerous.BadSignature("Oops"))
         try:
@@ -584,7 +590,7 @@ class ClientUserAuthTests(unittest.TestCase):
         # Mock itsdangerous to return what we want it do
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value=True)
+        hooks.signer.unsign = MagicMock(return_value=b'valid')
         try:
             hooks.client_user_auth(fake_request, MagicMock(), None, None)
             # The test should fail if an HTTPError isn't raised
@@ -616,7 +622,7 @@ class ClientUserAuthTests(unittest.TestCase):
         # Mock itsdangerous to return what we want it do
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value="token")
+        hooks.signer.unsign = MagicMock(return_value=b"token")
         try:
             hooks.client_user_auth(fake_request, MagicMock(), None, None)
             # The test should fail if an HTTPError isn't raised
@@ -649,7 +655,7 @@ class ClientUserAuthTests(unittest.TestCase):
         # Mock itsdangerous to return what we want it do
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value="token")
+        hooks.signer.unsign = MagicMock(return_value=b"token")
         try:
             hooks.client_user_auth(fake_request, MagicMock(), None, None)
             self.assert_(True)
@@ -686,7 +692,7 @@ class ClientAuthTests(unittest.TestCase):
         mock_session([])
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value=True)
+        hooks.signer.unsign = MagicMock(return_value=b"valid")
         try:
             hooks.client_auth(fake_request, MagicMock(), None, None)
             # The test should fail if it an HTTPError isn't raised
@@ -733,7 +739,7 @@ class ClientAuthTests(unittest.TestCase):
         }])
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value="super-secret")
+        hooks.signer.unsign = MagicMock(return_value=b"super-secret")
         try:
             hooks.client_auth(fake_request, MagicMock(), None, None)
             # The test should fail if it an HTTPError isn't raised
@@ -757,7 +763,7 @@ class ClientAuthTests(unittest.TestCase):
         }])
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value='secret')
+        hooks.signer.unsign = MagicMock(return_value=b"secret")
         try:
             hooks.client_auth(fake_request, MagicMock(), None, None)
             # The test should fail if it an HTTPError isn't raised
@@ -779,7 +785,7 @@ class ClientAuthTests(unittest.TestCase):
         }])
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
-        hooks.signer.unsign = MagicMock(return_value='secret')
+        hooks.signer.unsign = MagicMock(return_value=b'secret')
         try:
             hooks.origin_client_auth(fake_request, MagicMock(), None, None)
             # The test should fail if it an HTTPError isn't raised
