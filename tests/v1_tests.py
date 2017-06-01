@@ -233,7 +233,44 @@ class Oauth2StepTests(unittest.TestCase):
                 self.assertEqual(exception.status, falcon.HTTP_NOT_FOUND)
                 self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "STEP_ID_NOT_FOUND")
 
-
+    def test_missing_rel_delete(self):
+        """
+        Test an otherwise correct delete request where the relationship between the user and client couldn't be
+        found, and assert that the correct error is raised
+        """
+        if self.instance._step_id:
+            # Mock the multi step hooks
+            # Mock a client_id and username
+            hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
+                                                                      client_auth=[
+                                                                          {
+                                                                              "client_id": "rocinate",
+                                                                              "official": False,
+                                                                              "origin": True
+                                                                          },
+                                                                          {
+                                                                              "client_id": "official",
+                                                                              "official": True,
+                                                                              "origin": False,
+                                                                              "mock_official": True
+                                                                          }
+                                                                      ])
+            rel_not_exist = lambda: []
+            v1_steps = {
+                1: rel_not_exist,
+            }
+            v1_controller = StepConnector(v1_steps)
+            # Pretend that the user exists
+            fake_request = mock_request(auth=hook_auth)
+            # Mock a session to return that the relationship does not exist
+            mock_session(side_effect=v1_controller.mock, hook_side_effect=hook_controller_instance.mock)
+            fake_response = MagicMock()
+            self.instance.on_delete(fake_request, fake_response)
+            # Check the result from the request object
+            self.assertEqual(fake_response.status, falcon.HTTP_NOT_FOUND)
+            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USER_CLIENT_REL_NOT_FOUND")
+        else:
+            self.assert_(True)
 
 
 class Oauth2AccessTokenTests(Oauth2StepTests):
@@ -248,16 +285,13 @@ class Oauth2AccessTokenTests(Oauth2StepTests):
         # Timestamp sign the user token_
         signed_mock_user_token = timestamp_signer.sign(mock_user_token).decode('utf-8')
         # Password is the hash of 'tachi'
-        user_exists = lambda: [{"username": "holden",
-                                "password": "$2b$12$ICD1Tzv2oFBWXLphBEhIO.PKm3VxxJxSPTCkMHMAQUPwei.IOMLJS"}]
         rel_exists = lambda: [{"user_token": mock_user_token, "scope": "command"}]
         add_token = lambda: []
         # Use the StepConnector class to assign the lambdas to the relevant mocking steps
         v1_steps = {
-            1: user_exists,
-            2: rel_exists,
-            3: add_token,
-            4: add_token
+            1: rel_exists,
+            2: add_token,
+            3: add_token
         }
         hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
                                                                   client_auth=[
@@ -287,6 +321,142 @@ class Oauth2AccessTokenTests(Oauth2StepTests):
         self.assertEqual(fake_request.context["result"]["data"]["id"], "CLIENT_ACCESS_TOKEN")
         self.assert_("token" in fake_request.context["result"]["data"].keys())
 
+    def test_post_mismatched_access_token(self):
+        """
+        Submit a request with an incorrect access token, and assert that the correct error is thrown
+        :return:
+        """
+        mock_user_token = "aa5cacc7-9d91-471a-a5ac-aebc2c30a9d2"
+        # Timestamp sign the user token_
+        signed_mock_user_token = timestamp_signer.sign(mock_user_token).decode('utf-8')
+        # Password is the hash of 'tachi'
+        rel_exists = lambda: [{"user_token": "not-the-user-token", "scope": "command"}]
+        add_token = lambda: []
+        # Use the StepConnector class to assign the lambdas to the relevant mocking steps
+        v1_steps = {
+            1: rel_exists,
+            2: add_token,
+            3: add_token
+        }
+        hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
+                                                                  client_auth=[
+                                                                      {
+                                                                          "client_id": "rocinate",
+                                                                          "official": False,
+                                                                          "origin": True
+                                                                      },
+                                                                      {
+                                                                          "client_id": "official",
+                                                                          "official": True,
+                                                                          "origin": False,
+                                                                          "mock_official": True
+                                                                      }
+                                                                  ])
+        v1_controller_instance = StepConnector(v1_steps)
+        # Set a session mock, with the controller instances as the side effects
+        mock_session(side_effect=v1_controller_instance.mock, hook_side_effect=hook_controller_instance.mock)
+        # Mock authentication
+        auth = {
+            "user_token": signed_mock_user_token,
+        }
+        auth.update(hook_auth)
+        fake_request = mock_request(auth=auth)
+        # Submit a request to the instance, and assert that the correct data is returned
+        fake_response = MagicMock()
+        self.instance.on_post(fake_request, fake_response)
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "AUTH_TOKEN_MISMATCHED")
+        self.assertEqual(fake_response.status, falcon.HTTP_FORBIDDEN)
+
+    def test_bad_signature_token(self):
+        """
+        Submit a request with a token that's not signed and assert that the correct error is raised. The behavior
+        should be identical for an expired token
+        """
+        mock_user_token = "aa5cacc7-9d91-471a-a5ac-aebc2c30a9d2"
+        # Password is the hash of 'tachi'
+        rel_exists = lambda: [{"user_token": "not-the-user-token", "scope": "command"}]
+        add_token = lambda: []
+        # Use the StepConnector class to assign the lambdas to the relevant mocking steps
+        v1_steps = {
+            1: rel_exists,
+            2: add_token,
+            3: add_token
+        }
+        hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
+                                                                  client_auth=[
+                                                                      {
+                                                                          "client_id": "rocinate",
+                                                                          "official": False,
+                                                                          "origin": True
+                                                                      },
+                                                                      {
+                                                                          "client_id": "official",
+                                                                          "official": True,
+                                                                          "origin": False,
+                                                                          "mock_official": True
+                                                                      }
+                                                                  ])
+        v1_controller_instance = StepConnector(v1_steps)
+        # Set a session mock, with the controller instances as the side effects
+        mock_session(side_effect=v1_controller_instance.mock, hook_side_effect=hook_controller_instance.mock)
+        # Mock authentication without signing the token
+        auth = {
+            "user_token": mock_user_token,
+        }
+        auth.update(hook_auth)
+        fake_request = mock_request(auth=auth)
+        # Submit a request to the instance, and assert that the correct data is returned
+        fake_response = MagicMock()
+        self.instance.on_post(fake_request, fake_response)
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "AUTH_TOKEN_INVALID")
+        self.assertEqual(fake_response.status, falcon.HTTP_FORBIDDEN)
+
+    def test_no_rel_found(self):
+        """
+        Submit a seemingly valid request, but don't mock the db returning a valid relationship, and assert that
+        the correct error ris raised.
+        """
+        mock_user_token = "aa5cacc7-9d91-471a-a5ac-aebc2c30a9d2"
+        # No point signing the user token when the signature won't be tested in the scope of this request
+        # Password is the hash of 'tachi'
+        user_exists = lambda: [{"username": "holden",
+                                "password": "$2b$12$ICD1Tzv2oFBWXLphBEhIO.PKm3VxxJxSPTCkMHMAQUPwei.IOMLJS"}]
+        rel_not_exists = lambda: []
+        add_token = lambda: []
+        # Use the StepConnector class to assign the lambdas to the relevant mocking steps
+        v1_steps = {
+            1: rel_not_exists,
+            2: add_token,
+            3: add_token
+        }
+        hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
+                                                                  client_auth=[
+                                                                      {
+                                                                          "client_id": "rocinate",
+                                                                          "official": False,
+                                                                          "origin": True
+                                                                      },
+                                                                      {
+                                                                          "client_id": "official",
+                                                                          "official": True,
+                                                                          "origin": False,
+                                                                          "mock_official": True
+                                                                      }
+                                                                  ])
+        v1_controller_instance = StepConnector(v1_steps)
+        # Set a session mock, with the controller instances as the side effects
+        mock_session(side_effect=v1_controller_instance.mock, hook_side_effect=hook_controller_instance.mock)
+        # Mock authentication without signing the token
+        auth = {
+            "user_token": mock_user_token,
+        }
+        auth.update(hook_auth)
+        fake_request = mock_request(auth=auth)
+        # Submit a request to the instance, and assert that the correct data is returned
+        fake_response = MagicMock()
+        self.instance.on_post(fake_request, fake_response)
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USER_NOT_AUTHORIZED")
+        self.assertEqual(fake_response.status, falcon.HTTP_UNAUTHORIZED)
 
 
 class Oauth2UserTokenTests(Oauth2StepTests):
@@ -321,6 +491,77 @@ class Oauth2UserTokenTests(Oauth2StepTests):
         fake_request = mock_request(auth=hook_auth, doc={"scope": "command"})
         # Submit a request to the instance, and assert that the correct data is returned
         self.instance.on_post(fake_request, MagicMock())
-        print (fake_request.context["result"])
         self.assertEqual(fake_request.context["result"]["data"]["id"], "USER_AUTHORIZATION_TOKEN")
         self.assert_("token" in fake_request.context["result"]["data"].keys())
+
+    def test_origin_client_not_found(self):
+        """
+        Submit a request where the method can't find the origin client in the database, and assert that the correct
+        error is raised
+        """
+        client_exists = lambda: []
+        token_data = lambda: []
+        v1_steps = {
+            1: client_exists,
+            2: token_data
+        }
+        hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
+                                                                  client_auth=[
+                                                                      {
+                                                                          "client_id": "rocinate",
+                                                                          "official": False,
+                                                                          "origin": True,
+                                                                          "callback_url": "http://random_url"
+                                                                      },
+                                                                      {
+                                                                          "client_id": "official",
+                                                                          "official": True,
+                                                                          "origin": False,
+                                                                          "mock_official": True
+                                                                      }
+                                                                  ])
+
+        v1_controller_instance = StepConnector(v1_steps)
+        # Set a session mock, with the controller instances as the side effects
+        mock_session(side_effect=v1_controller_instance.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc={"scope": "command"})
+        # Submit a request to the instance, and assert that the correct data is returned
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_ID_INVALID")
+
+    def test_missing_scope(self):
+        """
+        Submit a request without a scope attached, and assert that the correct error is raised
+        :return:
+        """
+        client_exists = lambda: [{"client_id": "rocinate", "callback_url": "http://random_url"}]
+        token_data = lambda: []
+        v1_steps = {
+            1: client_exists,
+            2: token_data
+        }
+        hook_controller_instance, hook_auth = standard_hooks_mock(user_auth=True,
+                                                                  client_auth=[
+                                                                      {
+                                                                          "client_id": "rocinate",
+                                                                          "official": False,
+                                                                          "origin": True,
+                                                                          "callback_url": "http://random_url"
+                                                                      },
+                                                                      {
+                                                                          "client_id": "official",
+                                                                          "official": True,
+                                                                          "origin": False,
+                                                                          "mock_official": True
+                                                                      }
+                                                                  ])
+
+        v1_controller_instance = StepConnector(v1_steps)
+        # Set a session mock, with the controller instances as the side effects
+        mock_session(side_effect=v1_controller_instance.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth)
+        # Submit a request to the instance, and assert that the correct data is returned
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_NOT_FOUND")
+
+
