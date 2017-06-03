@@ -121,10 +121,8 @@ def session_auth(req, resp, resource, params):
     """
     # Check if the session id is present
     auth = req.context["auth"]
-    signed_session_id = None
     if "session_id" in auth.keys():
         signed_session_id = auth["session_id"]
-    if signed_session_id:
         # Unsign the session id
         try:
             session_id = signer.unsign(signed_session_id).decode('utf-8')

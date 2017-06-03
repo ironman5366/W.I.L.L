@@ -328,19 +328,74 @@ class UserToken(Oauth2Step):
                                            "status": resp.status}]}
 
 
-
 class Users:
+
     @falcon.before(hooks.session_auth)
     @falcon.before(hooks.client_can_change_settings)
     def on_put(self, req, resp):
         """
-        Change user settings
+        Change user settings.
+        Clients that have the settings_change hook can change any settings in the noncritical
+        settings dictionary within a users profile
+
+        All settings that can be changed with this request are NON-SENSITIVE!
+
+        See the arguments.Setting class for how they are used
         
         :param req: 
         :param resp: 
         :return: 
         """
-        pass
+        doc = req.context["doc"]
+        # Pull the session and the username from the request context, inserted by the session_auth hook
+        session = req.context["session"]
+        username = session.username
+        # Assert that the "settings" key is included in the doc
+        if "settings" in doc.keys():
+            log.debug("Updating settings for user {}".format(username))
+            change_settings = doc["settings"]
+            # Find the user in the database
+            session = db.session()
+            user = session.run("MATCH (u:User {username: {username}})"
+                               "return (u)",
+                               {"username": username})
+            user_settings = user["settings"]
+            updated_settings = user_settings
+            changed_settings = 0
+            new_settings = 0
+            for setting, setting_value in change_settings.items():
+                if setting in user_settings.keys():
+                    changed_settings += 1
+                    log.debug("Updating setting {0} for user {1} from {2} to {3}".format(
+                        setting, username, user_settings[setting], setting_value
+                    ))
+                    updated_settings[setting] = setting_value
+                else:
+                    new_settings += 1
+                    log.debug("Creating setting {0} with value {1} for user {2}".format(
+                        setting, setting_value, username
+                    ))
+                    updated_settings.update({setting: setting_value})
+            # Persist the settings into the database
+            log.info("Updating settings for user {0}. Changing {1} settings and creating {2} for a total of {3} "
+                     "changes".format(username, changed_settings, new_settings, changed_settings+new_settings
+            ))
+            session.run("MATCH (u:User {username: {username}})"
+                        "SET u.settings={settings}",
+                        {"username": username,
+                         "settings": updated_settings})
+            session.close()
+        else:
+            resp.status = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
+                "errors":
+                    [{
+                        "type": "error",
+                        "id": "SETTINGS_KEY_NOT_FOUND",
+                        "text": "The settings data key must be included in a request to this method",
+                        "status": resp.status
+                    }]
+            }
 
     @falcon.before(hooks.session_auth)
     @falcon.before(hooks.client_can_read_settings)
@@ -362,7 +417,7 @@ class Users:
         session.close()
         # We know the user exists because they passed the client user auth hook
         user = matching_users[0]
-        user_fields = ["first_name", "last_name", "username", "settings"]
+        user_fields = ["first_name", "last_name", "username", "email", "settings"]
         user_data = {}
         # Put the users data into a dictionary that will be returned in a "data" key
         for d in user_fields:
@@ -476,7 +531,7 @@ class Users:
                 client_id = auth["client_id"]
                 # Use oauth code to generate a access token for the official client.
                 # Generate a secure token, sign it, and encrypt it in the database
-                final_token = uuid.uuid4()
+                final_token = str(uuid.uuid4())
                 # Sign the unencrypted version for the client
                 signed_final_token = signer.sign(final_token)
                 # Encrypt it and put in the database
@@ -793,7 +848,7 @@ class Clients:
                             id, scope
                         ))
                         # Generate the key. Nobody will see the unsigned unhashed version
-                        raw_secret_key = uuid.uuid4()
+                        raw_secret_key = str(uuid.uuid4())
                         # Hash the key. This version will be put in the database
                         hashed_secret_key = bcrypt.hashpw(raw_secret_key, bcrypt.gensalt())
                         # Sign the key. This version will be returned to the user

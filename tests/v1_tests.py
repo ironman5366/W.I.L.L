@@ -74,7 +74,7 @@ class StepConnector:
         self.check = check
 
 
-def standard_hooks_mock(user_auth=False, client_auth=None):
+def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
     """
     Mock out standard hooks for the scope of the test
 
@@ -82,6 +82,7 @@ def standard_hooks_mock(user_auth=False, client_auth=None):
     :param client_auth: A list of dictionaries. Each dictionary should contain the `official` and `origin` keys,
                         defining respectively whether the client should be denoted as official, and whether the client
                         is the origin of the request.
+    :param session_auth: A bool defining whether to automatically pass the session based authentication tests
     :return (connector_instance, linked_auth):
             Connector instance is an instance of the StepConnector class defining the appropriate session mocks for the
             hooks. Linked auth is the authentication data that nees to be appended to the fake request
@@ -145,6 +146,8 @@ def standard_hooks_mock(user_auth=False, client_auth=None):
             "password": "tachi"
         })
         hook_steps.update({new_key(): user_exists})
+    if session_auth:
+        pass
     print ("Creating step connector with hook steps {}".format(hook_steps))
     connector_instance = StepConnector(hook_steps)
     return (connector_instance, linked_auth)
@@ -563,5 +566,3 @@ class Oauth2UserTokenTests(Oauth2StepTests):
         # Submit a request to the instance, and assert that the correct data is returned
         self.instance.on_post(fake_request, MagicMock())
         self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_NOT_FOUND")
-
-
