@@ -149,6 +149,17 @@ def session_auth(req, resp, resource, params):
                                 }]
                         }
                         raise falcon.HTTPError(resp.status, "Session client mismatch")
+                else:
+                    resp.status = falcon.HTTP_UNAUTHORIZED
+                    req.context["result"] = {
+                        "errors":
+                            [{
+                                "type": "error",
+                                "id": "CLIENT_ID_NOT_FOUND",
+                                "text": "A client_id must be provided for requests to this method",
+                                "status": resp.status
+                            }]
+                    }
             else:
                 resp.status = falcon.HTTP_UNAUTHORIZED
                 req.context["result"] = {

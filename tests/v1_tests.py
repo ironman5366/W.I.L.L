@@ -1,6 +1,7 @@
 # Builtin imports
 from unittest.mock import *
 import unittest
+import uuid
 
 # External imports
 import falcon
@@ -9,6 +10,7 @@ from itsdangerous import TimestampSigner, Signer
 
 # Internal imports
 from will.API import v1, hooks
+from will.userspace import sessions
 
 timestamp_signer = None
 signer = None
@@ -85,7 +87,7 @@ def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
     :param session_auth: A bool defining whether to automatically pass the session based authentication tests
     :return (connector_instance, linked_auth):
             Connector instance is an instance of the StepConnector class defining the appropriate session mocks for the
-            hooks. Linked auth is the authentication data that nees to be appended to the fake request
+            hooks. Linked auth is the authentication data that needs to be appended to the fake request
     """
     if client_auth:
         assert type(client_auth) == list
@@ -147,8 +149,23 @@ def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
         })
         hook_steps.update({new_key(): user_exists})
     if session_auth:
-        pass
-    print ("Creating step connector with hook steps {}".format(hook_steps))
+        # Generate a random session id for this mock, so I don't have to worry about removing mocks from
+        # the sessions.sessions dict after the scope of the test is finished
+        session_id = str(uuid.uuid4())
+        # Sign the session id
+        signed_session_id = signer.sign(session_id.encode('utf-8'))
+        linked_auth.update({"session_id": signed_session_id})
+        # Create a mock session instance that provides the same keys as it
+        session_instance_mock = MagicMock()
+        session_instance_mock.username = "holden"
+        session_instance_mock.client = "rocinate"
+        # Check whether the client and user also need to be explicitly mocked in the auth
+        if not client_auth:
+            linked_auth.update({"client_id": "rocinate"})
+        if not user_auth:
+            linked_auth.update({"username": "holden"})
+        # Insert the session into the sessions.sessions dict
+        sessions.sessions.update({session_id: session_instance_mock})
     connector_instance = StepConnector(hook_steps)
     return (connector_instance, linked_auth)
 
@@ -566,3 +583,37 @@ class Oauth2UserTokenTests(Oauth2StepTests):
         # Submit a request to the instance, and assert that the correct data is returned
         self.instance.on_post(fake_request, MagicMock())
         self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_NOT_FOUND")
+
+
+class UsersTests(unittest.TestCase):
+    instance = v1.Users()
+
+    def setUp(self):
+        global signer
+        global timestamp_signer
+        if not signer:
+            signer = Signer("super-secret")
+            hooks.signer = signer
+        if not timestamp_signer:
+            timestamp_signer = TimestampSigner("super-secret")
+            v1.timestampsigner = timestamp_signer
+
+    def on_put_success_test(self):
+        """
+        Submit a successful mocked request to change the settings, and assert that it passes
+        """
+        # Mock out session auth and and client that can change settings
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": False,
+                "scope": "settings_change"
+            }
+        ], session_auth=True)
+        mock_session(hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc={})
+        fake_response = MagicMock()
+        # Assert that the correct error is thrown for the doc not including a settings key
+        self.instance.on_put(fake_request, fake_response)
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SETTINGS_KEY_NOT_FOUND")
