@@ -204,7 +204,7 @@ class AccessToken(Oauth2Step):
                                             "the token provided by the user."
                                 }]
                         }
-                # The timestamp or the signature was invalild
+                # The timestamp or the signature was invalid
                 except (BadSignature, BadTimeSignature):
                     log.debug("Client connection for user {0} and client {1} failed because of a bad or "
                               "expired signature. Deleting inapplicable relation")
@@ -356,9 +356,10 @@ class Users:
             change_settings = doc["settings"]
             # Find the user in the database
             session = db.session()
-            user = session.run("MATCH (u:User {username: {username}})"
-                               "return (u)",
+            users = session.run("MATCH (u:User {username: {username}})"
+                                "return (u)",
                                {"username": username})
+            user = users[0]
             user_settings = user["settings"]
             updated_settings = user_settings
             changed_settings = 0
@@ -397,8 +398,8 @@ class Users:
                     }]
             }
 
-    @falcon.before(hooks.session_auth)
     @falcon.before(hooks.client_can_read_settings)
+    @falcon.before(hooks.session_auth)
     def on_get(self, req, resp):
         """
         Get information about a user

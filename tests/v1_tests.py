@@ -60,7 +60,7 @@ class StepConnector:
     step = 1
 
     def mock(self, *args):
-        print (args)
+        print(args)
         if self.check:
             self.check(args)
         if self.step in self.step_mappings.keys():
@@ -195,7 +195,7 @@ class Oauth2StepTests(unittest.TestCase):
 
     def test_successful_delete(self):
         """
-        Test a sucessful delete call to remove authentication between a user and client
+        Test a successful delete call to remove authentication between a user and client
         """
         # If the Oauth2Step has a step id, assert that it passes correctly.
         if self.instance._step_id:
@@ -598,9 +598,10 @@ class UsersTests(unittest.TestCase):
             timestamp_signer = TimestampSigner("super-secret")
             v1.timestampsigner = timestamp_signer
 
-    def on_put_success_test(self):
+    def test_on_put_settings_not_found(self):
         """
-        Submit a successful mocked request to change the settings, and assert that it passes
+        Submit a request to change the settings without a settings key in the request data, and assert that the correct
+        error is thrown
         """
         # Mock out session auth and and client that can change settings
         hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
@@ -617,3 +618,60 @@ class UsersTests(unittest.TestCase):
         # Assert that the correct error is thrown for the doc not including a settings key
         self.instance.on_put(fake_request, fake_response)
         self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SETTINGS_KEY_NOT_FOUND")
+
+    def test_on_put_success(self):
+        """
+        Submit a successful mocked request to change the settings, and assert that it passes
+        """
+        # Mock out session auth and and client that can change settings
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": False,
+                "scope": "settings_change"
+            }
+        ], session_auth=True)
+        user_exists = lambda: [{"username": "holden", "settings": {"thing1": "value1"}}]
+        settings_change_confirmation = lambda: []
+        # Mock that the user exists in a v1 session
+        v1_steps = {
+            1: user_exists,
+            2: settings_change_confirmation
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc={"settings":
+                                                             {"thing1": "newvalueforthing1",
+                                                              "new_setting": "newsettinvalue"}})
+        fake_response = MagicMock()
+        self.instance.on_put(fake_request, fake_response)
+        self.assert_(True)
+
+    def test_on_get_success(self):
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": False,
+                "scope": "settings_read"
+            }
+        ], session_auth=True)
+        user_exists = lambda: [
+            {
+                "first_name": "james",
+                "last_name": "holden",
+                "email": "holden@rocinate.opa",
+                "username": "holden",
+                "settings": {"thing1": "value1"}}]
+        settings_change_confirmation = lambda: []
+        # Mock that the user exists in a v1 session
+        v1_steps = {
+            1: user_exists
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth)
+        fake_response = MagicMock()
+        self.instance.on_get(fake_request, fake_response)
+        self.assert_(True)
