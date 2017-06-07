@@ -649,6 +649,11 @@ class UsersTests(unittest.TestCase):
         self.assert_(True)
 
     def test_on_get_success(self):
+        """
+        Test a successful request to read a users settings.
+        Note: This method does not require any other tests, because all mitigating conditions and factors are removed
+        by the hooks and middleware before it
+        """
         hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
             {
                 "client_id": "rocinate",
@@ -667,7 +672,8 @@ class UsersTests(unittest.TestCase):
         settings_change_confirmation = lambda: []
         # Mock that the user exists in a v1 session
         v1_steps = {
-            1: user_exists
+            1: user_exists,
+            2: settings_change_confirmation
         }
         v1_step_connector = StepConnector(v1_steps)
         mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hook_controller_instance.mock)
@@ -675,3 +681,37 @@ class UsersTests(unittest.TestCase):
         fake_response = MagicMock()
         self.instance.on_get(fake_request, fake_response)
         self.assert_(True)
+
+    def test_on_delete_success(self):
+        """
+        Test a successful request to delete a user from the database.
+        Note: This method does nto require any other tests, because all mitigating conditions and factors are removed
+        by the hooks and middleware before it
+        """
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": True,
+                "origin": False,
+                "scope": "official",
+                "mock_official": True
+            }
+        ], session_auth=True)
+        # Create a mock session with the username and assert that it's logout method is called
+        session_instance_mock = MagicMock()
+        session_instance_mock.username = "holden"
+        session_instance_mock.logout = MagicMock()
+        session_id = str(uuid.uuid4())
+        sessions.sessions.update({session_id: session_instance_mock})
+        # A blank array that will be returned when the user delete is called
+        user_delete_confirmation = lambda: []
+        v1_steps = {
+            1: user_delete_confirmation
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth)
+        # Call the method
+        self.instance.on_delete(fake_request, MagicMock())
+        # Assert that the logout() method was called of the fake session
+        session_instance_mock.logout.assert_called_once()

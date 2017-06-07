@@ -432,7 +432,6 @@ class Users:
                 }
         }
 
-
     @falcon.before(hooks.session_auth)
     @falcon.before(hooks.client_is_official)
     def on_delete(self, req, resp):
@@ -450,7 +449,8 @@ class Users:
         session = db.session()
         # Delete the user in the database
         session.run("MATCH (u:User {username: {username}})"
-                    "DETACH DELETE (u)")
+                    "DETACH DELETE (u)",
+                    {"username": username})
         session.close()
         req.context["result"] = {
             "data":
