@@ -467,10 +467,9 @@ class Users:
         Create a new user
         
         :param req: 
-        :param resp: 
-        :return: 
+        :param resp:
         """
-        doc = req.context["data"]
+        doc = req.context["doc"]
         data_keys = doc.keys()
         required_fields = {
             "username": str,
@@ -480,6 +479,8 @@ class Users:
             "settings": dict
         }
         field_errors = []
+        # Required settings
+        required_settings = ["location", "email"]
         # TODO: validate settings
         for field, field_type in required_fields.items():
             if field in data_keys:
@@ -527,16 +528,16 @@ class Users:
             else:
                 log.info("Creating user {}".format(doc["username"]))
                 # Hash the users password
-                hashed_password = bcrypt.hashpw(doc["password"], bcrypt.gensalt())
+                hashed_password = bcrypt.hashpw(doc["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 auth = req.context["auth"]
                 client_id = auth["client_id"]
                 # Use oauth code to generate a access token for the official client.
                 # Generate a secure token, sign it, and encrypt it in the database
                 final_token = str(uuid.uuid4())
                 # Sign the unencrypted version for the client
-                signed_final_token = signer.sign(final_token)
+                signed_final_token = signer.sign(final_token.encode('utf-8'))
                 # Encrypt it and put in the database
-                encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt())
+                encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt()).decode('utf-8')
                 session.run(
                     "MATCH (c:Client {client_id: {client_id})"
                     "CREATE (u:User {"
@@ -612,15 +613,15 @@ class Sessions:
     def on_delete(self, req, resp, session_id):
         """
         Logout a session
-        The session auth hook already confirms it exists, and the assert param hook 
+        The session auth hook already confirms it exists
         :param req: 
         :param resp: 
         :param session_id:
-        :return: 
         """
         # The session auth hook put this into req.context
         session = req.context["session"]
         session.logout()
+
 
 class Commands:
     @falcon.before(hooks.session_auth)

@@ -66,7 +66,7 @@ class StepConnector:
         if self.step in self.step_mappings.keys():
             step_callable = self.step_mappings[self.step]
             self.step += 1
-            return step_callable()
+            return step_callable(args)
         else:
             raise NotImplementedError("No mapping found for step {}".format(self.step))
 
@@ -133,7 +133,7 @@ def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
             for k,v in client.items():
                 if k not in raw_client_attrs.keys():
                     raw_client_attrs.update({k:v})
-            client_attrs = lambda: [raw_client_attrs]
+            def client_attrs(x): return [raw_client_attrs]
             # If the client is official, optionally add it twice, so the official hook will also pass
             hook_steps.update({new_key(): client_attrs})
             if client["official"]:
@@ -141,7 +141,7 @@ def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
                     hook_steps.update({new_key(): client_attrs})
     if user_auth:
         # Password is hash of 'tachi'
-        user_exists = lambda: [{"username": "holden",
+        def user_exists(x): return [{"username": "holden",
                                 "password": "$2b$12$ICD1Tzv2oFBWXLphBEhIO.PKm3VxxJxSPTCkMHMAQUPwei.IOMLJS"}]
         linked_auth.update({
             "username": "holden",
@@ -275,7 +275,7 @@ class Oauth2StepTests(unittest.TestCase):
                                                                               "mock_official": True
                                                                           }
                                                                       ])
-            rel_not_exist = lambda: []
+            def rel_not_exist(x): return []
             v1_steps = {
                 1: rel_not_exist,
             }
@@ -305,8 +305,8 @@ class Oauth2AccessTokenTests(Oauth2StepTests):
         # Timestamp sign the user token_
         signed_mock_user_token = timestamp_signer.sign(mock_user_token).decode('utf-8')
         # Password is the hash of 'tachi'
-        rel_exists = lambda: [{"user_token": mock_user_token, "scope": "command"}]
-        add_token = lambda: []
+        def rel_exists(x): return [{"user_token": mock_user_token, "scope": "command"}]
+        def add_token(x): return []
         # Use the StepConnector class to assign the lambdas to the relevant mocking steps
         v1_steps = {
             1: rel_exists,
@@ -350,9 +350,9 @@ class Oauth2AccessTokenTests(Oauth2StepTests):
         # Timestamp sign the user token_
         signed_mock_user_token = timestamp_signer.sign(mock_user_token).decode('utf-8')
         # Password is the hash of 'tachi'
-        rel_exists = lambda: [{"user_token": "not-the-user-token", "scope": "command"}]
-        add_token = lambda: []
-        # Use the StepConnector class to assign the lambdas to the relevant mocking steps
+        def rel_exists(x): return [{"user_token": "not-the-user-token", "scope": "command"}]
+        def add_token(x): return []
+        # Use the StepConrnector class to assign the lambdas to the relevant mocking steps
         v1_steps = {
             1: rel_exists,
             2: add_token,
@@ -394,8 +394,10 @@ class Oauth2AccessTokenTests(Oauth2StepTests):
         """
         mock_user_token = "aa5cacc7-9d91-471a-a5ac-aebc2c30a9d2"
         # Password is the hash of 'tachi'
-        rel_exists = lambda: [{"user_token": "not-the-user-token", "scope": "command"}]
-        add_token = lambda: []
+
+        def rel_exists(x): return [{"user_token": "not-the-user-token", "scope": "command"}]
+
+        def add_token(x): return []
         # Use the StepConnector class to assign the lambdas to the relevant mocking steps
         v1_steps = {
             1: rel_exists,
@@ -439,10 +441,10 @@ class Oauth2AccessTokenTests(Oauth2StepTests):
         mock_user_token = "aa5cacc7-9d91-471a-a5ac-aebc2c30a9d2"
         # No point signing the user token when the signature won't be tested in the scope of this request
         # Password is the hash of 'tachi'
-        user_exists = lambda: [{"username": "holden",
+        def user_exists(x): return [{"username": "holden",
                                 "password": "$2b$12$ICD1Tzv2oFBWXLphBEhIO.PKm3VxxJxSPTCkMHMAQUPwei.IOMLJS"}]
-        rel_not_exists = lambda: []
-        add_token = lambda: []
+        def rel_not_exists(x): return []
+        def add_token(x): return []
         # Use the StepConnector class to assign the lambdas to the relevant mocking steps
         v1_steps = {
             1: rel_not_exists,
@@ -483,8 +485,8 @@ class Oauth2UserTokenTests(Oauth2StepTests):
     instance = v1.UserToken()
 
     def test_post(self):
-        client_exists = lambda: [{"client_id": "rocinate", "callback_url": "http://random_url"}]
-        token_data = lambda: []
+        def client_exists(x): return [{"client_id": "rocinate", "callback_url": "http://random_url"}]
+        def token_data(x): return []
         v1_steps = {
             1: client_exists,
             2: token_data
@@ -519,8 +521,8 @@ class Oauth2UserTokenTests(Oauth2StepTests):
         Submit a request where the method can't find the origin client in the database, and assert that the correct
         error is raised
         """
-        client_exists = lambda: []
-        token_data = lambda: []
+        def client_exists(x): return []
+        def token_data(x): return []
         v1_steps = {
             1: client_exists,
             2: token_data
@@ -554,8 +556,8 @@ class Oauth2UserTokenTests(Oauth2StepTests):
         Submit a request without a scope attached, and assert that the correct error is raised
         :return:
         """
-        client_exists = lambda: [{"client_id": "rocinate", "callback_url": "http://random_url"}]
-        token_data = lambda: []
+        def client_exists(x): return [{"client_id": "rocinate", "callback_url": "http://random_url"}]
+        def token_data(x): return []
         v1_steps = {
             1: client_exists,
             2: token_data
@@ -632,8 +634,8 @@ class UsersTests(unittest.TestCase):
                 "scope": "settings_change"
             }
         ], session_auth=True)
-        user_exists = lambda: [{"username": "holden", "settings": {"thing1": "value1"}}]
-        settings_change_confirmation = lambda: []
+        def user_exists(x):return [{"username": "holden", "settings": {"thing1": "value1"}}]
+        def settings_change_confirmation(x): return []
         # Mock that the user exists in a v1 session
         v1_steps = {
             1: user_exists,
@@ -662,14 +664,14 @@ class UsersTests(unittest.TestCase):
                 "scope": "settings_read"
             }
         ], session_auth=True)
-        user_exists = lambda: [
+        def user_exists(x): return [
             {
                 "first_name": "james",
                 "last_name": "holden",
                 "email": "holden@rocinate.opa",
                 "username": "holden",
                 "settings": {"thing1": "value1"}}]
-        settings_change_confirmation = lambda: []
+        def settings_change_confirmation(x): return []
         # Mock that the user exists in a v1 session
         v1_steps = {
             1: user_exists,
@@ -704,7 +706,7 @@ class UsersTests(unittest.TestCase):
         session_id = str(uuid.uuid4())
         sessions.sessions.update({session_id: session_instance_mock})
         # A blank array that will be returned when the user delete is called
-        user_delete_confirmation = lambda: []
+        def user_delete_confirmation(x): return []
         v1_steps = {
             1: user_delete_confirmation
         }
@@ -714,4 +716,62 @@ class UsersTests(unittest.TestCase):
         # Call the method
         self.instance.on_delete(fake_request, MagicMock())
         # Assert that the logout() method was called of the fake session
-        session_instance_mock.logout.assert_called_once()
+        session_instance_mock.logout.assert_any_call()
+
+    def test_on_post_success(self):
+        """
+        Test a successful request to create a user
+        """
+        # Mock an official client
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": True,
+                "origin": False,
+                "scope": "official",
+                "mock_official": True
+            }
+        ])
+        # The required information to create a user
+        doc = {
+            "username": "holden",
+            "password": "nagata",
+            "first_name": "James",
+            "last_name": "holden",
+            "settings":
+                {
+                    "location": "Minnesota, Earth",
+                    "email": "holden@rocinate.opa"
+                }
+        }
+        # Mock no users with that username already found
+
+        def no_users_found(x): return []
+
+        def validate_user_info(a):
+            """
+            Validate the received data about the user
+
+            :param a: The arguments, in an arr
+            :return []: A blank array indicating that the request was processed
+            """
+            q, u = a
+            # Go through all the values in doc and make sure they're the same
+            for k,v in doc.items():
+                # The password will be hashed. Everything else should be validated
+                if k != "password":
+                    print("Validating {}".format(k))
+                    self.assertEqual(v, u[k])
+            self.assertEqual(u["client_id"], "rocinate")
+            return []
+
+        v1_steps = {
+            1: no_users_found,
+            2: validate_user_info
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc=doc)
+        # Call the method
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["data"]["id"], "USER_CREATED")

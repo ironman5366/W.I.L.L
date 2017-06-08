@@ -110,6 +110,7 @@ def assert_param(req, resp, resource, params):
         }
         raise falcon.HTTPError(resp.status, "Paramater required")
 
+
 def session_auth(req, resp, resource, params):
     """
     Checks an active session id
