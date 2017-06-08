@@ -32,4 +32,4 @@ jobs:
       script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
     - stage: Docker Push
       script: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-      script: docker push willassistant/core:"$TRAVIS_BRANCH"before_install:
+      script: docker push willassistant/core:"$TRAVIS_BRANCH"
