@@ -20,15 +20,13 @@ services:
 script: nosetests --with-coverage tests
 
 after_success:
-  - coverage combine .coverage_data
+  - coverage combine .coveragec
   - codecov
 
 jobs:
   include:
-    - stage: Docker Build
+    - stage: Docker
       script: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-    - stage: Docker Tests
       script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
-    - stage: Docker Push
       script: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
       script: docker push willassistant/core:"$TRAVIS_BRANCH"

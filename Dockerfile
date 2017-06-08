@@ -1,4 +1,3 @@
-FROM ubuntu:xenial
 FROM python:3
 MAINTAINER Will Beddow
 ADD . /W.I.L.L
