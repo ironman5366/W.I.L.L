@@ -44,9 +44,9 @@ class Argument:
         """
         Instantiate an argument and start a build
         
-        :param user_data: 
-        :param client: 
-        :param session: 
+        :param user_data: The users database entry
+        :param client: The client that started the session
+        :param session: The instantiated session object that the commiserate commands will run through
         """
         self._graph = graph
         self._user_data = user_data
@@ -70,11 +70,11 @@ class Argument:
                 }
             ]
 
-# TODO: passive method of argument error
 
 class SessionData(Argument):
     def value(self, command_obj):
         return self._session
+
 
 class APIKey(Argument):
     """
@@ -149,6 +149,7 @@ class CommandObject(Argument):
     def value(self, command_obj):
         return command_obj
 
+
 class CommandText(Argument):
     """
     The plain text of the command, what the user submitted
@@ -184,6 +185,7 @@ class CommandUID(Argument):
     def value(self, command_obj):
         return command_obj.uid
 
+
 class UserData(Argument):
     """
     The users node in the database
@@ -191,6 +193,7 @@ class UserData(Argument):
     """
     def value(self, command_obj):
         return self._user_data
+
 
 class ClientID(Argument):
     """
@@ -225,6 +228,7 @@ class Location(Argument):
             pass
         # Regardless, close the session
         session.close()
+
     def value(self, command_obj):
         """
         Return the built location
@@ -233,8 +237,11 @@ class Location(Argument):
         """
         return self._location
 
-class Setting(Argument):
 
+class Setting(Argument):
+    """
+    A base class that pulls a setting defined by self.setting_name from the user
+    """
     setting_name = None
     _setting_value = None
 
@@ -256,8 +263,10 @@ class Setting(Argument):
     def value(self, command_obj):
         return self._setting_value
 
+
 class TempUnit(Setting):
     setting_name = "temp_unit"
+
 
 class TimeZone(Setting):
     setting_name = "timezone"
@@ -279,9 +288,9 @@ class TimeZone(Setting):
                 "id": "SETTING_ARGUMENT_INVALID"
             })
 
-
     def value(self, command_obj):
         return datetime.datetime.now(self._timezone_obj)
+
 
 class Site(Argument):
     """
@@ -391,8 +400,11 @@ class Site(Argument):
             })
             return False
 
+
 class News(Site):
     site_type = "news"
+
+
 # Build a list of argument classes in the file
 # Iterate through the classes
 for c in inspect.getmembers(sys.modules[__name__], inspect.isclass):

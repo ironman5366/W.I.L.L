@@ -166,7 +166,7 @@ class AccessToken(Oauth2Step):
                         # Generate a secure token, sign it, and encrypt it in the database
                         final_token = str(uuid.uuid4())
                         # Sign the unencrypted version for the client
-                        signed_final_token = signer.sign(final_token.encode('utf-8')).decode('utf-8')
+                        signed_final_token = (final_token.encode('utf-8')).decode('utf-8')
                         # Encrypt it and put in the database
                         encrypted_final_token = bcrypt.hashpw(
                             signed_final_token.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
@@ -290,7 +290,7 @@ class UserToken(Oauth2Step):
                 # Use uuid4 for a random id.
                 unsigned_id = str(uuid.uuid4())
                 # Sign the id with a timestamp. When checking the key we'll check for a max age of 5 minutes
-                signed_id = timestampsigner.sign(unsigned_id.encode('utf-8')).decode('utf-8')
+                signed_id = timestampsigner.sign(unsigned_id.encode('utf-8'))
                 # Put the unsigned id and the scope in the database connected to the user
                 # Once the client resubmits the access token, the AUTHORIZED relationship will be destroyed and
                 # Replaced with a permanent USED one
@@ -492,6 +492,18 @@ class Users:
                         "status": falcon.HTTP_BAD_REQUEST
                     }
                     field_errors.append(field_error)
+                # After validating that settings exist in the doc and is a dict, validate that
+                # the required settings exist
+                elif field == "settings":
+                    for setting in required_settings:
+                        # If it doesn't exist, create the requisite error, and add it to field_errors
+                        if setting not in doc["settings"].keys():
+                            field_error = {
+                                "type": "error",
+                                "id": "REQUIRED_SETTING_{}_NOT_FOUND".format(setting.upper()),
+                                "text": "A setting for {} must be provided for user creation".format(setting)
+                            }
+                            field_errors.append(field_error)
             else:
                 field_error = {
                     "type": "error",
@@ -547,7 +559,7 @@ class Users:
                     "first_name: {first_name}, "
                     "last_name: {last_name},"
                     "settings:  {settings}"
-                    "created: {created}})-[:USES {scope: 'official', access_token: {access_token}})->(c)",
+                    "created: {created}})-[:USES {scope: 'admin', access_token: {access_token}})->(c)",
                     {
                         "client_id": client_id,
                         "username": doc["username"],
@@ -597,8 +609,8 @@ class Sessions:
             log.debug("Starting session for user {0} on client {1}".format(username, client))
             session_class = sessions.Session(username, client)
             # Sign the session id
-            unsigned_session_id = session_class.session_id
-            session_id = signer.sign(unsigned_session_id)
+            unsigned_session_id = session_class.session_id.encode('utf-8')
+            session_id = signer.sign(unsigned_session_id).decode('utf-8')
             req.context["result"] = {
                 "data":
                     {
@@ -621,6 +633,14 @@ class Sessions:
         # The session auth hook put this into req.context
         session = req.context["session"]
         session.logout()
+        req.context["result"] = {
+            "data":
+                {
+                    "type": "success",
+                    "id": "SESSION_LOGGED_OUT",
+                    "text": "Session {} has been ended".format(session.session_id)
+                }
+        }
 
 
 class Commands:
@@ -634,77 +654,50 @@ class Commands:
         """
         auth = req.context["auth"]
         doc = req.context["doc"]
-        signed_session_id = auth["session_id"]
+        session = req.context["session"]
         # Try to unsign the session is, throw an error if it's invalid
-        try:
-            session_id = signer.unsign(signed_session_id)
-            # Check to see if the session id is valid
-            if session_id in sessions.sessions.keys():
-                session = sessions.sessions[session_id]
-                if "command" in doc.keys():
-                    command = doc["command"]
-                    try:
-                        # Let the command return the direct result dictionary
-                        result = session.command(command)
-                        log.debug("Got result {0} from command {1}".format(
-                            result, command
-                        ))
-                        req.context["result"] = result
-                    except Exception as ex:
-                        exception_type, exception_args = (type(ex).__name__, ex.args)
-                        command_error_string = "Error of type {error_type} with arguments {error_args} occurred while " \
-                                               "running command {command} in session {session_id} owned by user " \
-                                               "{username}".format(
-                            error_type=exception_type,
-                            error_args=exception_args,
-                            command=command,
-                            session_id=session.session_id,
-                            username=session.username)
-                        log.warning(command_error_string)
-                        resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
-                        req.context["result"] = {
-                            "errors":
-                                [{
-                                    "type": "error",
-                                    "id": "COMMAND_ERROR",
-                                    "status": resp.status,
-                                    "text": "An internal error occurred while parsing command {0}".format(
-                                        command
-                                    )
-                                }]
-                        }
-                else:
-                    resp.status = falcon.HTTP_BAD_REQUEST
-                    req.context["result"] = {
-                        "errors":
-                            [{
-                                "type": "error",
-                                "status": resp.status,
-                                "text": "To use this method you must submit a command parameter in the request",
-                                "id": "COMMAND_NOT_FOUND"
-                            }]
-                    }
-            else:
-                resp.status = falcon.HTTP_UNAUTHORIZED
+        # Check to see if the session id is valid
+        if "command" in doc.keys():
+            command = doc["command"]
+            try:
+                # Let the command return the direct result dictionary
+                result = session.command(command)
+                log.debug("Got result {0} from command {1}".format(
+                    result, command
+                ))
+                req.context["result"] = result
+            except Exception as ex:
+                exception_type, exception_args = (type(ex).__name__, ex.args)
+                command_error_string = "Error of type {error_type} with arguments {error_args} occurred while " \
+                                       "running command {command} in session {session_id} owned by user " \
+                                       "{username}".format(
+                    error_type=exception_type,
+                    error_args=exception_args,
+                    command=command,
+                    session_id=session.session_id,
+                    username=session.username)
+                log.warning(command_error_string)
+                resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
                 req.context["result"] = {
                     "errors":
                         [{
                             "type": "error",
-                            "text": "Session id {} is invalid. If it was previously valid, "
-                                    "it might have expired. Please request a new one.".format(signed_session_id),
-                            "id": "SESSION_ID_INVALID",
-                            "status": resp.status
+                            "id": "COMMAND_ERROR",
+                            "status": resp.status,
+                            "text": "An internal error occurred while parsing command {0}".format(
+                                command
+                            )
                         }]
                 }
-        except BadSignature:
-            resp.status = falcon.HTTP_UNAUTHORIZED
-            req.context['result'] = {
+        else:
+            resp.status = falcon.HTTP_BAD_REQUEST
+            req.context["result"] = {
                 "errors":
                     [{
                         "type": "error",
-                        "text": "Session id {} had an invalid signature".format(signed_session_id),
                         "status": resp.status,
-                        "id": "SESSION_ID_BAD_SIGNATURE"
+                        "text": "To use this method you must submit a command parameter in the request",
+                        "id": "COMMAND_NOT_FOUND"
                     }]
             }
 
@@ -715,7 +708,7 @@ class Clients:
     def on_get(self, req, resp):
         """
         On a request from an official client, return data about the client.
-        :param req: , 
+        :param req:
         :param resp:  
         """
         auth = req.context["auth"]
@@ -779,6 +772,7 @@ class Clients:
                 {
                     "id": new_client_id,
                     "scope": new_client_scope,
+                }
         }
         
         Scope and client id will be validated and if it's successful, the response will include a client secret
@@ -850,17 +844,17 @@ class Clients:
                             id, scope
                         ))
                         # Generate the key. Nobody will see the unsigned unhashed version
-                        raw_secret_key = str(uuid.uuid4())
+                        raw_secret_key = str(uuid.uuid4()).encode('utf-8')
                         # Hash the key. This version will be put in the database
                         hashed_secret_key = bcrypt.hashpw(raw_secret_key, bcrypt.gensalt())
                         # Sign the key. This version will be returned to the user
-                        signed_secret_key = signer.sign(raw_secret_key)
+                        signed_secret_key = signer.sign(raw_secret_key).decode('utf-8')
                         # Put the client in the database
                         session.run("CREATE (c:Client "
                                     "{client_id: {client_id}, "
                                     "official: false, "
                                     "secret_key: {hashed_secret}, "
-                                    "scope: {scope}",
+                                    "scope: {scope}})",
                                     {
                                         "client_id": id,
                                         "hashed_secret": hashed_secret_key,
@@ -902,16 +896,16 @@ class Clients:
                                 "text": "Unrecognized scope {0}".format(scope)
                             }]
                     }
-            # No matter what, close the session
+            #fake No matter what, close the session
             session.close()
         else:
             resp.status = falcon.HTTP_BAD_REQUEST
             req.context["result"] = {
                 "errors":
                     [{
-                        "id": "DATA_NOT_FOUND",
+                        "id": "NEW_CLIENT_NOT_FOUND",
                         "status": resp.status,
                         "type": "error",
-                        "text": '"data" key with client information not found'
+                        "text": '"new_client" key with client information not found'
                     }]
             }

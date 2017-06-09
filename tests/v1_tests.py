@@ -76,7 +76,7 @@ class StepConnector:
         self.check = check
 
 
-def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
+def standard_hooks_mock(user_auth=False, client_auth=None, client_user_auth=False, session_auth=None, session_command=None):
     """
     Mock out standard hooks for the scope of the test
 
@@ -148,6 +148,15 @@ def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
             "password": "tachi"
         })
         hook_steps.update({new_key(): user_exists})
+    if client_user_auth:
+        # Generate an access token
+        # The encrypted value of token
+        def access_token_exists(x):
+            return [{"access_token": "$2b$12$g59RaPDZRoIMV/cpnaElOOqi37vPCeeyxe5GQX7gDpLPhRZZ3vsYG"}]
+        signed_token = signer.sign("token".encode('utf-8'))
+        linked_auth.update({"access_token": signed_token})
+        hook_steps.update({new_key(): access_token_exists})
+
     if session_auth:
         # Generate a random session id for this mock, so I don't have to worry about removing mocks from
         # the sessions.sessions dict after the scope of the test is finished
@@ -159,6 +168,12 @@ def standard_hooks_mock(user_auth=False, client_auth=None, session_auth=None):
         session_instance_mock = MagicMock()
         session_instance_mock.username = "holden"
         session_instance_mock.client = "rocinate"
+        if not callable(session_command):
+            s = session_command
+
+            def session_command(x):
+                return s
+        session_instance_mock.command = MagicMock(side_effect=session_command)
         # Check whether the client and user also need to be explicitly mocked in the auth
         if not client_auth:
             linked_auth.update({"client_id": "rocinate"})
@@ -775,3 +790,560 @@ class UsersTests(unittest.TestCase):
         # Call the method
         self.instance.on_post(fake_request, MagicMock())
         self.assertEqual(fake_request.context["result"]["data"]["id"], "USER_CREATED")
+
+    def test_on_post_required_setting_not_found(self):
+        """
+        Submit an otherwise correct request to create a new user that does not include one of the required settings
+        defined in the method (e.g. location or email). Assert that the proper error is part of the field errors
+        raised
+        """
+        # Mock an official client
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": True,
+                "origin": False,
+                "scope": "official",
+                "mock_official": True
+            }
+        ])
+        # The required information to create a user, minus the "email" key in settings
+        doc = {
+            "username": "holden",
+            "password": "nagata",
+            "first_name": "James",
+            "last_name": "holden",
+            "settings":
+                {
+                    "location": "Minnesota, Earth"
+                }
+        }
+
+        mock_session(hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc=doc)
+        # Call the method
+        self.instance.on_post(fake_request, MagicMock())
+        # Confirm that an error was raised by the method
+        self.assertIn("errors", fake_request.context["result"].keys())
+        error_id = "REQUIRED_SETTING_EMAIL_NOT_FOUND"
+        # Confirm that one of the errors raised by the method is the one we're looking for
+        error_found = any([i["id"] == error_id for i in fake_request.context["result"]["errors"]])
+        self.assertTrue(error_found)
+
+    def test_post_invalid_field_type(self):
+        """
+        Submit an otherwise valid request to the method that has an invalid type for one of the required fields.
+        Assert that the correct errors is among the errors raised
+        """
+        # Mock an official client
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": True,
+                "origin": False,
+                "scope": "official",
+                "mock_official": True
+            }
+        ])
+        # The required information to create a user, but with an invalid settings key
+        doc = {
+            "username": "holden",
+            "password": "nagata",
+            "first_name": "James",
+            "last_name": "holden",
+            "settings": "settings_str"
+        }
+
+        mock_session(hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc=doc)
+        # Call the method
+        self.instance.on_post(fake_request, MagicMock())
+        # Confirm that an error was raised by the method
+        self.assertIn("errors", fake_request.context["result"].keys())
+        error_id = "FIELD_SETTINGS_INVALID_TYPE"
+        # Confirm that one of the errors raised by the method is the one we're looking for
+        error_found = any([i["id"] == error_id for i in fake_request.context["result"]["errors"]])
+        self.assertTrue(error_found)
+
+    def test_post_field_not_found(self):
+        """
+        Submit an otherwise valid request to the method, but don't include one of the required fields
+        """
+        # Mock an official client
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": True,
+                "origin": False,
+                "scope": "official",
+                "mock_official": True
+            }
+        ])
+        # The required information to create a user, minus the settings key
+        doc = {
+            "username": "holden",
+            "password": "nagata",
+            "first_name": "James",
+            "last_name": "holden"
+        }
+
+        mock_session(hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc=doc)
+        # Call the method
+        self.instance.on_post(fake_request, MagicMock())
+        # Confirm that an error was raised by the method
+        self.assertIn("errors", fake_request.context["result"].keys())
+        error_id = "FIELD_SETTINGS_NOT_FOUND"
+        # Confirm that one of the errors raised by the method is the one we're looking for
+        error_found = any([i["id"] == error_id for i in fake_request.context["result"]["errors"]])
+        self.assertTrue(error_found)
+
+    def test_post_user_already_exists(self):
+        """
+        Submit a valid post request, but mock that the user already exists, and assert that the correct error is raised
+        """
+        """
+                Test a successful request to create a user
+                """
+        # Mock an official client
+        hook_controller_instance, hook_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": True,
+                "origin": False,
+                "scope": "official",
+                "mock_official": True
+            }
+        ])
+        # The required information to create a user
+        doc = {
+            "username": "holden",
+            "password": "nagata",
+            "first_name": "James",
+            "last_name": "holden",
+            "settings":
+                {
+                    "location": "Minnesota, Earth",
+                    "email": "holden@rocinate.opa"
+                }
+        }
+
+        # Mock no users with that username already found
+
+        def user_found(x):
+            return [{
+                "username": "holden",
+                "first_name": "Clarissa",
+                "last_name": "Mao"
+            }]
+
+
+        v1_steps = {
+            1: user_found
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hook_controller_instance.mock)
+        fake_request = mock_request(auth=hook_auth, doc=doc)
+        # Call the method
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "USERNAME_ALREADY_EXISTS")
+
+
+class SessionTests(unittest.TestCase):
+    """
+    Tests for the v1/sessions method
+    """
+    instance = v1.Sessions()
+    _session_instance_copy = None
+
+
+    # Mock out the session class for the course of this
+    def setUp(self):
+        self._session_instance_copy = sessions.Session
+
+    def tearDown(self):
+        sessions.Session = self._session_instance_copy
+
+    def test_on_post_success(self):
+        """
+        Test a successful request to create a session, and assert that it passes
+        """
+        hooks_controller_instance, hook_auth = standard_hooks_mock(user_auth=True, client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": False
+            }
+        ], client_user_auth=True)
+        # Mock sessions.Session
+
+        def session_test(username, client_id):
+            # Check the username and client_id and create a MagicMock
+            self.assertEqual(username, "holden")
+            self.assertEqual(client_id, "rocinate")
+            session_instance = MagicMock()
+            session_instance.username = username
+            session_instance.client_id = client_id
+            session_instance.session_id = "my-session-id"
+            return session_instance
+        sessions.Session = MagicMock(side_effect=session_test)
+        fake_request = mock_request(auth=hook_auth)
+        mock_session(hook_side_effect=hooks_controller_instance.mock)
+        # Send the request
+        self.instance.on_post(fake_request, MagicMock(), null_session_id=None)
+        self.assertIn("my-session-id", fake_request.context["result"]["data"]["session_id"])
+
+    def test_session_id_on_post(self):
+        """
+        Test a post request that incorrectly submitted a session id, and assert that the correct erro is raised
+        """
+        hooks_controller_instance, hook_auth = standard_hooks_mock(user_auth=True, client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": False
+            }
+        ], client_user_auth=True)
+
+        # Mock sessions.Session
+
+        def session_test(username, client_id):
+            # Check the username and client_id and create a MagicMock
+            self.assertEqual(username, "holden")
+            self.assertEqual(client_id, "rocinate")
+            session_instance = MagicMock()
+            session_instance.username = username
+            session_instance.client_id = client_id
+            session_instance.session_id = "my-session-id"
+            return session_instance
+
+        sessions.Session = MagicMock(side_effect=session_test)
+        fake_request = mock_request(auth=hook_auth)
+        mock_session(hook_side_effect=hooks_controller_instance.mock)
+        # Send the request, incorrectly including a sesion id
+        self.instance.on_post(fake_request, MagicMock(), null_session_id="my-session-id")
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "NO_SESSION_ID_ON_CREATE")
+
+    def test_session_id_on_delete(self):
+        """
+        Test the basic session delete method
+        """
+        hooks_controller_instance, hook_auth = standard_hooks_mock(session_auth=True)
+        fake_request = mock_request(auth=hook_auth)
+        mock_session(hook_side_effect=hooks_controller_instance.mock)
+        self.instance.on_delete(fake_request, MagicMock(), session_id=hook_auth["session_id"])
+        self.assertEqual(fake_request.context["result"]["data"]["id"], "SESSION_LOGGED_OUT")
+
+
+class CommandTests(unittest.TestCase):
+    """
+    Test the /v1/commands methods
+    """
+    instance = v1.Commands()
+
+    def setUp(self):
+        global signer
+        global timestamp_signer
+        if not signer:
+            signer = Signer("super-secret")
+            hooks.signer = signer
+        if not timestamp_signer:
+            timestamp_signer = TimestampSigner("super-secret")
+            v1.timestampsigner = timestamp_signer
+
+    def test_post_success(self):
+        """
+        Test a successful basic command request, mocking out the session command behaivor
+        """
+        hooks_controller_instance, hook_auth = standard_hooks_mock(session_auth=True, session_command={
+            "data":
+                {
+                    "type":  "success",
+                    "id": "GENERIC_COMMAND_SUCCESSFUL",
+                    "text": "command result!"
+                }
+        })
+        doc = {
+            "command": "my_command"
+        }
+        fake_request = mock_request(auth=hook_auth, doc=doc)
+        mock_session(hook_side_effect=hooks_controller_instance.mock)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["data"]["id"], "GENERIC_COMMAND_SUCCESSFUL")
+
+    def test_post_no_command(self):
+        """
+        Submit a request without a command in the doc, and assert that the correct error is raised
+        """
+        hooks_controller_instance, hook_auth = standard_hooks_mock(session_auth=True, session_command={
+            "data":
+                {
+                    "type": "success",
+                    "id": "GENERIC_COMMAND_SUCCESSFUL",
+                    "text": "command result!"
+                }
+        })
+        fake_request = mock_request(auth=hook_auth)
+        mock_session(hook_side_effect=hooks_controller_instance.mock)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "COMMAND_NOT_FOUND")
+
+
+class ClientTests(unittest.TestCase):
+    """
+    Tests for /v1/clients
+    """
+    instance = v1.Clients()
+
+    def setUp(self):
+        global signer
+        global timestamp_signer
+        if not signer:
+            signer = Signer("super-secret")
+            hooks.signer = signer
+        if not timestamp_signer:
+            timestamp_signer = TimestampSigner("super-secret")
+            v1.timestampsigner = timestamp_signer
+
+    def test_on_get_success(self):
+        """
+        Test a successful request to the on_get method
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": True
+            },
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+
+        def client_data(x):
+            return [{"client_id": "rocinate", "callback_url": "http://random_url"}]
+
+        def client_users(x):
+            return [{"username": "user1"}, {"username": "user2"}]
+
+        v1_steps = {
+            1: client_data,
+            2: client_users
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth)
+        self.instance.on_get(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["data"]["user_num"], 2)
+        self.assertEqual(fake_request.context["result"]["data"]["id"], "CLIENT_DATA_FETCHED")
+
+    def test_on_delete_success(self):
+        """
+        Test a successful request t the on_delete method
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "rocinate",
+                "official": False,
+                "origin": True
+            },
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+
+        def delete_client_confirmation(x):
+            return []
+        v1_steps = {
+            1: delete_client_confirmation
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth)
+        self.instance.on_delete(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["data"]["id"], "CLIENT_DELETED")
+
+    def test_on_post_success(self):
+        """
+        Test the successful creation of a client
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+        doc = {
+            "new_client": {
+                "id": "rocinate",
+                "scope": "command"
+            }
+        }
+        def client_not_already_exists(x):
+            return []
+        def client_creation_confirmation(x):
+            _, query_data = x
+            # Validate the query data
+            self.assertEqual(query_data["client_id"], "rocinate")
+            self.assertEqual(query_data["scope"], "command")
+            return []
+        v1_steps = {
+            1: client_not_already_exists,
+            2: client_creation_confirmation
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth, doc=doc)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["data"]["id"], "CLIENT_CREATED")
+
+    def test_post_unauthorized_scope(self):
+        """
+        Test an otherwise successful post request that tries to use a scope that it's not authorized too, and assert
+        that the correct error is raised
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+        doc = {
+            "new_client": {
+                "id": "rocinate",
+                "scope": "admin"
+            }
+        }
+
+        def client_not_already_exists(x):
+            return []
+
+        v1_steps = {
+            1: client_not_already_exists
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth, doc=doc)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_NOT_AUTHORIZED")
+
+    def test_post_client_already_exists(self):
+        """
+        Test an otherwise correct request to the on_post method, but mock that a client with that id already exists
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+        doc = {
+            "new_client": {
+                "id": "rocinate",
+                "scope": "command"
+            }
+        }
+
+        def client_not_already_exists(x):
+            return [{"client_id": "rocinate"}]
+
+        v1_steps = {
+            1: client_not_already_exists
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth, doc=doc)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_ID_ALREADY_EXISTS")
+
+    def test_post_invalid_data_type(self):
+        """
+        Submit a post request with an incorrect data type for one of the required keys, and assert that the correct
+        error is raised
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+        doc = {
+            "new_client": {
+                "id": 1,
+                "scope": "command"
+            }
+        }
+
+        def client_not_already_exists(x):
+            return []
+
+        v1_steps = {
+            1: client_not_already_exists
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth, doc=doc)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "ID_INVALID")
+
+    def test_post_no_client_information(self):
+        """
+        Test a request with no client information and assert that the correct error is raised
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+        mock_session(hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "NEW_CLIENT_NOT_FOUND")
+
+    def test_post_invalid_scope(self):
+        """
+        Test a request with an invalid scope and assert that the correct error is raised
+        """
+        hooks_controller_instance, hooks_auth = standard_hooks_mock(client_auth=[
+            {
+                "client_id": "web-official",
+                "official": True,
+                "mock_official": True,
+                "origin": False
+            }
+        ])
+        doc = {
+            "new_client": {
+                "id": "rocinate",
+                "scope": "definitely_not_vaild"
+            }
+        }
+
+        def client_not_already_exists(x):
+            return []
+
+        v1_steps = {
+            1: client_not_already_exists
+        }
+        v1_step_connector = StepConnector(v1_steps)
+        mock_session(side_effect=v1_step_connector.mock, hook_side_effect=hooks_controller_instance.mock)
+        fake_request = mock_request(auth=hooks_auth, doc=doc)
+        self.instance.on_post(fake_request, MagicMock())
+        self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_INVALID")

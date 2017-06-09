@@ -31,6 +31,7 @@ def key_cache():
                         {"value": key["value"]})
     session.close()
 
+
 def start(configuration_data, plugins):
     global graph
     sessions.plugins = plugins
@@ -69,6 +70,8 @@ def start(configuration_data, plugins):
     # Refresh the API keys
     key_cache()
     session_class = session_manager.SessionManager(graph)
+    # Put the session manager into the sessions file
+    sessions.session_manager = session_class
     # Load caches for all datastores, public and private
     log.debug("Started event loop thread")
     return session_class

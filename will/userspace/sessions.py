@@ -22,6 +22,8 @@ plugins = []
 
 ended_sessions = []
 
+session_manager = None
+
 # Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
 
@@ -91,6 +93,8 @@ class Command:
 
 
 class Session:
+
+    instantiated = False
     _user_data = None
     commands = {}
     arguments = {}
@@ -170,7 +174,8 @@ class Session:
                         "text": "Command id {0} does not exist in this session".format(command_id)
                     }]
             }
-    def notification(self, message, trigger_time ,title="", scope="all"):
+
+    def notification(self, message, trigger_time, title="", scope="all"):
         # TODO: check scope
         not_object = Notification(message, title, trigger_time, scope)
         self.notifications.put(not_object)
@@ -262,50 +267,65 @@ class Session:
         :param command_str: The raw command 
         :return result: The result of the command 
         """
-        command_obj = self._make_command(command_str)
-        # See which plugins match
-        matching_plugins = []
-        for plugin in plugins:
-            # Call the plugins check function to see if it matches the command
-            if plugin.check(command_obj):
-                matching_plugins.append(plugin)
-        match_len = len(matching_plugins)
-        log.debug("Found {0} matching plugins for command {1}".format(match_len, command_obj.uid))
-        final_plugin = None
-        # If exactly 1 plugin was found
-        if match_len == 1:
-            final_plugin = matching_plugins[0]
-        elif match_len >= 2:
-            command_obj.allow_response = True
-            return {
-                "data":
-                    {
-                        "type": "response",
-                        "id": "PLUGIN_RESPONSE_REQUIRED",
-                        "text": "Which plugin would you like to run?",
-                        "options": [p.name for p in matching_plugins]
-                    }
-            }
-        # If no plugins were found
-        # TODO: use the chatbot or implement search or both using a setting
-        else:
-            if "default_plugin" in self._user_data["settings"].keys():
-                pass
-            else:
+        if self.instantiated:
+            command_obj = self._make_command(command_str)
+            # See which plugins match
+            matching_plugins = []
+            for plugin in plugins:
+                # Call the plugins check function to see if it matches the command
+                if plugin.check(command_obj):
+                    matching_plugins.append(plugin)
+            match_len = len(matching_plugins)
+            log.debug("Found {0} matching plugins for command {1}".format(match_len, command_obj.uid))
+            final_plugin = None
+            # If exactly 1 plugin was found
+            if match_len == 1:
+                final_plugin = matching_plugins[0]
+            elif match_len >= 2:
+                command_obj.allow_response = True
                 return {
-                    "errors": [{
-                        "type": "error",
-                        "status": falcon.HTTP_INTERNAL_SERVER_ERROR,
-                        "text": "Settings for user {0} didn't contain a default plugin"
-                    }]
+                    "data":
+                        {
+                            "type": "response",
+                            "id": "PLUGIN_RESPONSE_REQUIRED",
+                            "text": "Which plugin would you like to run?",
+                            "options": [p.name for p in matching_plugins]
+                        }
                 }
-        return self._call_plugin(final_plugin, command_obj)
+            # If no plugins were found
+            # TODO: use the chatbot or implement search or both using a setting
+            else:
+                if "default_plugin" in self._user_data["settings"].keys():
+                    pass
+                else:
+                    return {
+                        "errors": [{
+                            "type": "error",
+                            "status": falcon.HTTP_INTERNAL_SERVER_ERROR,
+                            "text": "Settings for user {0} didn't contain a default plugin"
+                        }]
+                    }
+            return self._call_plugin(final_plugin, command_obj)
+
+        # If the plugin hasn't been built yet, wait until it has been
+        else:
+            log.debug("Session {} was called before it was ready".format(self.session_id))
+            return {
+                "errors":
+                    [{
+                        "type": "error",
+                        "status": falcon.HTTP_SERVICE_UNAVAILABLE,
+                        "text": "Session {} has not yet finished building required arguments. Please wait before "
+                                "submitting commands".format(self.session_id),
+                        "id": "SESSION_NOT_READY"
+                    }]
+            }
 
     def logout(self):
         """
         Finish the session
 
-        :return bool: a bool indicating whether the logout was sucessful 
+        :return bool: a bool indicating whether the logout was successful
         """
         # Determine whether the user has any other active sessions
         user_still_online = False
@@ -337,6 +357,11 @@ class Session:
     @property
     def age(self):
         return (datetime.datetime.now()-self.created).total_seconds()
+
+    @property
+    def stale(self):
+        return ((datetime.datetime.now()-self.last_reloaded).total_seconds >= 900)
+
     @property
     def report(self):
         """
@@ -351,6 +376,10 @@ class Session:
             created=self.created
         )
         return report_string
+
+    def __str__(self):
+        session_data = "Session {0}:\n\n{1}".format(self.session_id, self.report)
+        return session_data
 
     @property
     def user_data(self):
@@ -374,23 +403,22 @@ class Session:
                 return user_data
             return False
 
-
     def reload(self):
         """
         Recache data for the user
 
         """
-        log.debug("Reloading data for session belonging to user {0}".format(self.username))
+        log.debug("Reloading data for session {0} belonging to user {1}".format(self.session_id, self.username))
         # Next time user_data and authentication are accessed they'll be reloaded
         self._user_data = None
-        self._auth_done = False
         self.last_reloaded = datetime.datetime.now()
 
-    def _build_arguments(self):
+    def build_arguments(self):
         for argument in arguments.argument_list:
             # Build the argument
             instantiated_argument = argument(self.user_data, self.client_id, self, graph)
             self.arguments.update({type(instantiated_argument).__name__, instantiated_argument})
+        self.instantiated = True
 
     def __init__(self, username, client_id):
         """
@@ -404,11 +432,12 @@ class Session:
         self.username = username
         self.client_id = client_id
         self.created = datetime.datetime.now()
-        self.last_reloaded = self.created
+        self.last_reloaded = datetime.datetime.now()
         # Generate a session id and add self to the sessions dictionary
-        self.session_id = uuid.uuid4()
-        # Build arguments
-        self._build_arguments()
+        self.session_id = str(uuid.uuid4())
+        # Add the argument builder to the build queue in the session manager class
+        session_manager.build_queue.put(self)
+        # Update the sessions dictionary with the instance, keyed by the session id
         sessions.update({
             self.session_id: self
         })
