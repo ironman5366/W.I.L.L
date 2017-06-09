@@ -1,24 +1,31 @@
 language: python
 sudo: required
 cache: pip
-
 python:
   - "3.5"
   - "3.5-dev" # 3.5 development branch
   - "3.6"
   - "3.6-dev" # 3.6 development branch
 
+# command to install dependencies
+install:
+  - pip install -r requirements.txt
+  - python -m spacy.en.download
+
 services:
   - docker
   - neo4j
 
-jobs:
-  include:
-    stage: Unit Testing
-    install:
-      - scripts/build.sh "$TRAVIS_BRANCH"
-    script: scripts/test.sh "$TRAVIS_BRANCH"
-    deploy:
-      skip_cleanup: true
-      provider: script
-      script: scripts/deploy.sh "$DOCKER_USERNAME" "$DOCKER_PASSWORD" "$TRAVIS_BRANCH"
+before_install:
+  # Build the API from the Dockerfile
+  - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+  # Test run the instance in docker. These tests are the most important, as they're running closer to the prod conf
+  - docker run -d willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd/W.I.L.L/tests; nosetests *.py;"
+
+# Rerun the tests out of the container to get coverage data
+script: nosetests --with-coverage tests
+
+after_success:
+  - codecov
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - docker push willassistant/core:"$TRAVIS_BRANCH"
