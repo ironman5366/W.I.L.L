@@ -16,16 +16,16 @@ services:
   - docker
   - neo4j
 
-before_install:
-  # Build the API from the Dockerfile
-  - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-  # Test run the instance in docker. These tests are the most important, as they're running closer to the prod conf
-  - docker run -d willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd/W.I.L.L/tests; nosetests *.py;"
-
 # Rerun the tests out of the container to get coverage data
 script: nosetests --with-coverage tests
 
 after_success:
+  - coverage combine .coveragec
   - codecov
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - docker push willassistant/core:"$TRAVIS_BRANCH"
+
+jobs:
+  include:
+    - stage: Deploy
+      install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+      script: deploy.sh "$TRAVIS_BRANCH" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+
