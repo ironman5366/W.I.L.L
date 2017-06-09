@@ -22,10 +22,16 @@ class PluginLoadTests(unittest.TestCase):
         """
         Send the plugin loader correct configuration data and assert that the correct plugins are loaded
         """
+        if os.path.isdir("core"):
+            plugin_dir = "core/plugins"
+        elif os.path.isdir("will"):
+            plugin_dir = "will/core/plugins"
+        elif os.path.isfile("core_tests.py"):
+            plugin_dir = "{}/will/core/plugins".format(os.path.dirname(os.getcwd()))
         configuration_data = {
             "plugins":
                 {
-                    "dir": "{}/will/core/plugins".format(os.path.dirname(os.getcwd()))
+                    "dir": plugin_dir
                 }
         }
         core_instance = core.Core(configuration_data=configuration_data)
@@ -33,5 +39,5 @@ class PluginLoadTests(unittest.TestCase):
         core_plugins = core_instance.plugins
         # Assert that all of the plugins are getting loaded
         correct_plugin_num = len([
-            i for i in os.listdir("../will/core/plugins") if i.endswith(".py") and not i.startswith("__")])
+            i for i in os.listdir(plugin_dir) if i.endswith(".py") and not i.startswith("__")])
         self.assertEqual(len(core_plugins), correct_plugin_num)
