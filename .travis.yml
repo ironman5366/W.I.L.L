@@ -10,7 +10,7 @@ python:
 # command to install dependencies
 install:
   - pip install -r requirements.txt
-  - python -m spacy.en.download
+  - python -m spacy download en
 
 services:
   - docker
@@ -20,12 +20,11 @@ services:
 script: nosetests --with-coverage tests
 
 after_success:
-  - coverage combine .coveragec
   - codecov
 
 jobs:
   include:
     - stage: Deploy
       install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-      script: deploy.sh "$TRAVIS_BRANCH" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+      script: sh deploy.sh "$TRAVIS_BRANCH" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
 
