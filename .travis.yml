@@ -7,6 +7,9 @@ python:
   - "3.6"
   - "3.6-dev" # 3.6 development branch
 
+before_install:
+  - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+
 # command to install dependencies
 install:
   - pip install -r requirements.txt
@@ -18,15 +21,10 @@ services:
 
 # Rerun the tests out of the container to get coverage data
 script: nosetests --with-coverage tests
+script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
 
 after_success:
   - coverage combine .coveragec
   - codecov
-
-jobs:
-  include:
-    - stage: Docker
-      script: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-      script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
-      script: docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-      script: docker push willassistant/core:"$TRAVIS_BRANCH"
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - docker push willassistant/core:"$TRAVIS_BRANCH"

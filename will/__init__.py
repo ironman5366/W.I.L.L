@@ -11,7 +11,7 @@ from will.core import core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+35"
+version = "4.0-alpha+36"
 author = "Will Beddow"
 
 log = None
