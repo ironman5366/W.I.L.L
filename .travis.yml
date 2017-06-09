@@ -12,22 +12,13 @@ services:
   - docker
   - neo4j
 
-# Rerun the tests out of the container to get coverage data
-script: nosetests --with-coverage tests
-script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
-
 jobs:
   include:
     stage: Unit Testing
     install:
-      - pip install -r requirements.txt
-      - python -m spacy.en.download
-    script: nosetests --with-coverage tests
-    stage: Integration Testing
-    install:
-      - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-    script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
+      - scripts/build.sh "$TRAVIS_BRANCH"
+    script: scripts/test.sh "$TRAVIS_BRANCH"
     deploy:
       skip_cleanup: true
       provider: script
-      script: deploy.sh
+      script: scripts/deploy.sh "$DOCKER_USERNAME" "$DOCKER_PASSWORD" "$TRAVIS_BRANCH"
