@@ -23,7 +23,8 @@ jobs:
       - python -m spacy.en.download
     script: nosetests --with-coverage tests
     stage: Integration Testing
-      install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+      install:
+        - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
       script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
     deploy:
       skip_cleanup: true
