@@ -17,7 +17,7 @@ services:
   - neo4j
 
 # Rerun the tests out of the container to get coverage data
-script: nosetests --with-coverage tests
+script: nosetests --with-coverage unit_tests
 
 after_success:
   - codecov

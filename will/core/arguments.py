@@ -18,6 +18,7 @@ log = logging.getLogger()
 
 argument_list = []
 
+
 class Argument:
 
     _build_status = "successful"
@@ -118,6 +119,7 @@ class APIKey(Argument):
                             {"value": key_value})
                 session.close()
                 self._loaded_keys.put(key_value)
+                return True
             else:
                 session.close()
                 self._build_status = "No valid API keys found of type {0}".format(self.key_name)
@@ -127,7 +129,7 @@ class APIKey(Argument):
         """
         Increment the usage of the api key in the database and return it to the plugin
         
-        :param command_obj: 
+        :param command_obj:
         :return api_key: The api key 
         """
         return self._key

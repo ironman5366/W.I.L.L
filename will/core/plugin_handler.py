@@ -54,6 +54,7 @@ class Plugin:
                 return True
         return True
 
+
 class PythonLoader:
     '''The class that loads the plugins'''
 
@@ -117,6 +118,7 @@ class PythonLoader:
             os.sep.join(os.path.normpath(self.file_path).split(os.sep)[:-1])
         )
 
+
 def subscribe(f):
     """
     Provides a decorator for subscribing plugin to commands
@@ -149,6 +151,7 @@ def process_plugin(path):
         python_loader.load()
     except IOError:
         return
+
 
 def load(dir_path):
     """

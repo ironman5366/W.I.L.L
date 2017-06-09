@@ -21,6 +21,7 @@ easter_eggs = {
     "Who is your master?": "I was created by Will Beddow (will@willbeddow.com)"
 }
 
+
 @subscribe
 class EasterEggs(Plugin):
     name = "eastereggs"

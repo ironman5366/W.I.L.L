@@ -7,11 +7,11 @@ import os
 
 # Internal imports
 from will.userspace import sessions
-from will.core import core
+from will.core import Core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+45"
+version = "4.0-alpha+46"
 author = "Will Beddow"
 
 log = None
@@ -156,7 +156,7 @@ class will:
         else:
             tools.load()
         log.info("Loading core...")
-        self.core = core(configuration_data=self.configuration_data)
+        self.core = Core(configuration_data=self.configuration_data)
         plugins = self.core.plugins
         log.info("Loading userspace...")
         self.session_manager = userspace.start(configuration_data=self.configuration_data, plugins=plugins)

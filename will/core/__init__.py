@@ -8,7 +8,8 @@ from will.exceptions import *
 
 log = logging.getLogger()
 
-class core:
+
+class Core:
     def __init__(self, configuration_data):
         self.configuration_data = configuration_data
         plugin_configuration = self.configuration_data["plugins"]

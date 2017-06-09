@@ -4,7 +4,6 @@ import time
 import traceback
 
 # Internal imports
-from will import core
 from will.core.plugin_handler import *
 from will.core import arguments
 
@@ -14,6 +13,7 @@ import falcon
 
 log = logging.getLogger()
 
+@subscribe
 class Reminders(Plugin):
     name = "reminders"
     arguments = [arguments.CommandObject, arguments.TimeZone, arguments.SessionData]
