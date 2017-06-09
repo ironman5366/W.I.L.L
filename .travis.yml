@@ -1,19 +1,6 @@
 language: python
 sudo: required
 cache: pip
-python:
-  - "3.5"
-  - "3.5-dev" # 3.5 development branch
-  - "3.6"
-  - "3.6-dev" # 3.6 development branch
-
-before_install:
-  - docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-
-# command to install dependencies
-install:
-  - pip install -r requirements.txt
-  - python -m spacy.en.download
 
 services:
   - docker
@@ -23,8 +10,22 @@ services:
 script: nosetests --with-coverage tests
 script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
 
-after_success:
-  - coverage combine .coveragec
-  - codecov
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - docker push willassistant/core:"$TRAVIS_BRANCH"
+jobs:
+  include:
+    stage: Unit Testing
+    python:
+      - "3.5"
+      - "3.5-dev" # 3.5 development branch
+      - "3.6"
+      - "3.6-dev" # 3.6 development branch
+    install:
+      - pip install -r requirements.txt
+      - python -m spacy.en.download
+    script: nosetests --with-coverage tests
+    stage: Integration Testing
+      install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+      script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/tests; nosetests *.py;"
+    deploy:
+      skip_cleanup: true
+      provider: script
+      script: deploy.sh
