@@ -25,7 +25,7 @@ class PluginLoadTests(unittest.TestCase):
         configuration_data = {
             "plugins":
                 {
-                    "dir": "../will/core/plugins"
+                    "dir": "{}/will/core/plugins".format(os.path.dirname(os.getcwd()))
                 }
         }
         core_instance = core.Core(configuration_data=configuration_data)
