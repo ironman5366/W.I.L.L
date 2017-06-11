@@ -13,6 +13,9 @@ from will import tools
 import falcon
 import newspaper
 from pytz import timezone
+from geopy import Nominatim, exc
+
+geocoder = Nominatim()
 
 log = logging.getLogger()
 
@@ -49,6 +52,7 @@ class Argument:
         :param client: The client that started the session
         :param session: The instantiated session object that the commiserate commands will run through
         """
+        self.errors = []
         self._graph = graph
         self._user_data = user_data
         self._client = client
@@ -59,7 +63,7 @@ class Argument:
         if not build_valid:
             # Raise an argument error
             # Inject the error into the session
-            self.errors = [
+            self.errors.append(
                 {
                     "type": "error",
                     "id": "ARGUMENT_BUILD_FAILED",
@@ -69,7 +73,7 @@ class Argument:
                     ),
                     "status": falcon.HTTP_CONFLICT
                 }
-            ]
+            )
 
 
 class SessionData(Argument):
@@ -122,8 +126,10 @@ class APIKey(Argument):
                 return True
             else:
                 session.close()
-                self._build_status = "No valid API keys found of type {0}".format(self.key_name)
+                self._build_status = "No valid API keys found of type {}".format(self.key_name)
                 return False
+        else:
+            return True
 
     def value(self, command_obj):
         """
@@ -205,47 +211,17 @@ class ClientID(Argument):
         return self._client
 
 
-class Location(Argument):
-
-    def build(self):
-        """
-        Determine the users best method of getting the location, and add to the cache queue
-        
-        
-        """
-        # Check if the client provides a location
-        # TODO: standardized location form
-        # TODO: a recaching queue for currently online clients
-        client_id = self._client
-        session = self._graph.session()
-        client_node = session.run("MATCH (c:Client {client_id: {client_id}}) return (c)",
-                                  {"client_id": client_id})
-        # The client the user is currently using provides a location, and that should be used
-        if client_node and "location" in client_node.keys():
-            location = client_node["location"]
-            self._location = location
-            return True
-        # The client doesn't provide a location, check for other clients and run accuracy calculations
-        else:
-            pass
-        # Regardless, close the session
-        session.close()
-
-    def value(self, command_obj):
-        """
-        Return the built location
-        
-        :return self._location: 
-        """
-        return self._location
-
-
 class Setting(Argument):
     """
     A base class that pulls a setting defined by self.setting_name from the user
     """
     setting_name = None
+    _setting_raw_value = None
     _setting_value = None
+
+    def setting_modifier(self):
+        self._setting_value = self._setting_raw_value
+        return True
 
     def build(self):
         # Load the setting from the database
@@ -253,6 +229,8 @@ class Setting(Argument):
         user_settings = user_data["settings"]
         if self.setting_name in user_settings.keys():
             self._setting_value = user_settings[self.setting_name]
+            setting_passed = self.setting_modifier()
+            return setting_passed
         else:
             error_string = "Couldn't find setting {} for user".format(self.setting_name)
             self._build_status = error_string
@@ -261,9 +239,43 @@ class Setting(Argument):
                 "text": error_string,
                 "id": "SETTING_ARGUMENT_INVALID"
             })
+            return False
 
     def value(self, command_obj):
         return self._setting_value
+
+
+class Location(Setting):
+    setting_name = "location"
+
+    def setting_modifier(self):
+        """
+        Try to build a geopy object out of the setting
+        """
+        # Check if location is provided by the dynamic data submitted to settings
+        if "location" in self._session.dynamic.keys():
+            location = self._session.dynamic["location"]
+        else:
+            location = self._setting_raw_value
+        try:
+            # Reverse the coordinates
+            time_started = time.time()
+            loc_object = geocoder.reverse((location["latitude"], location["longitude"]))
+            time_finished = time.time()
+            time_delta = round(time_finished-time_started, 2)
+            log.debug("Built location object in {} seconds".format(time_delta))
+            self._setting_value = loc_object
+            return True
+        except exc.GeopyError as loc_exception:
+            log.info("Geopy exception {0} with location {1}".format(loc_exception.args, location))
+            error_string = "Failed to build a location from coordinates {}".format(location)
+            self._build_status = error_string
+            self.errors.append({
+                "type": "error",
+                "text": error_string,
+                "id": "LOCATION_BUILD_FAILED"
+            })
+            return False
 
 
 class TempUnit(Setting):
@@ -273,25 +285,11 @@ class TempUnit(Setting):
 class TimeZone(Setting):
     setting_name = "timezone"
 
-    # Use most of the build code from the Settings parent, but also build a timezone object
-    def build(self):
-        # Load the setting from the database
-        user_data = self._user_data
-        user_settings = user_data["settings"]
-        if self.setting_name in user_settings.keys():
-            self._setting_value = user_settings[self.setting_name]
-            self._timezone_obj = timezone(self._setting_value)
-        else:
-            error_string = "Couldn't find setting {} for user".format(self.setting_name)
-            self._build_status = error_string
-            self.errors.append({
-                "type": "error",
-                "text": error_string,
-                "id": "SETTING_ARGUMENT_INVALID"
-            })
+    def setting_modifier(self):
+        self._setting_value = timezone(self._setting_raw_value)
 
     def value(self, command_obj):
-        return datetime.datetime.now(self._timezone_obj)
+        return datetime.datetime.now(self._setting_value)
 
 
 class Site(Argument):

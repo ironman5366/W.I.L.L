@@ -41,16 +41,17 @@ routes = {
     "clients": {
         "routes": ["/clients"],
         "versions": {
-            "v1": v1.Sessions()
+            "v1": v1.Clients()
         }
     },
     "commands": {
         "routes": ["/commands"],
         "versions": {
-            "v1": v1.Sessions()
+            "v1": v1.Commands()
         }
     }
 }
+
 
 def process_routes(app):
     """

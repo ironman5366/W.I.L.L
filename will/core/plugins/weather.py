@@ -10,6 +10,7 @@ import pyowm
 
 log = logging.getLogger()
 
+
 @subscribe
 class Weather(Plugin):
 
@@ -22,7 +23,7 @@ class Weather(Plugin):
         api_key = kwargs["WeatherAPI"]
         temp_unit = kwargs["TempUnit"]
         owm = pyowm.OWM(api_key)
-        observation = owm.weather_at_place(location)
+        observation = owm.weather_at_coords(location.lattiude, location.longitude)
         w = observation.get_weather()
         status = w.get_detailed_status()
         temperature = w.get_temperature(temp_unit)

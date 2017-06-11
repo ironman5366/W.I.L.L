@@ -139,6 +139,30 @@ class Session:
     arguments = {}
     notifications = queue.Queue()
 
+    def __init__(self, username, client_id, dynamic):
+        """
+        Instantiate a session and add metadata
+
+        :param username:
+        :param client_id:
+        :param dynamic: A dict of dynamic variables
+        """
+        # Make sure the graph has been loaded before the class is instantiated
+        assert graph
+        self.username = username
+        self.dynamic = dynamic
+        self.client_id = client_id
+        self.created = datetime.datetime.now()
+        self.last_reloaded = datetime.datetime.now()
+        # Generate a session id and add self to the sessions dictionary
+        self.session_id = str(uuid.uuid4())
+        # Add the argument builder to the build queue in the session manager class
+        session_manager.build_queue.put(self)
+        # Update the sessions dictionary with the instance, keyed by the session id
+        sessions.update({
+            self.session_id: self
+        })
+
     @property
     def argument_errors(self):
         """
@@ -459,24 +483,3 @@ class Session:
             self.arguments.update({type(instantiated_argument).__name__, instantiated_argument})
         self.instantiated = True
 
-    def __init__(self, username, client_id):
-        """
-        Instantiate a session and add metadata
-
-        :param username: 
-        :param client_id: 
-        """
-        # Make sure the graph has been loaded before the class is instantiated
-        assert graph
-        self.username = username
-        self.client_id = client_id
-        self.created = datetime.datetime.now()
-        self.last_reloaded = datetime.datetime.now()
-        # Generate a session id and add self to the sessions dictionary
-        self.session_id = str(uuid.uuid4())
-        # Add the argument builder to the build queue in the session manager class
-        session_manager.build_queue.put(self)
-        # Update the sessions dictionary with the instance, keyed by the session id
-        sessions.update({
-            self.session_id: self
-        })

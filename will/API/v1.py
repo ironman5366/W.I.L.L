@@ -6,11 +6,13 @@ import time
 # Internal imports
 from will.API import hooks
 from will.userspace import sessions
+from will import tools
 
 # External imports
 import falcon
 from itsdangerous import BadSignature, BadTimeSignature
 import bcrypt
+import validators
 
 log = logging.getLogger()
 
@@ -173,7 +175,7 @@ class AccessToken(Oauth2Step):
                         session.run(
                             "MATCH (u:User {username:{username}})"
                             "MATCH (c:Client {client_id:{client_id}})"
-                            "CREATE (u)-[:USES {scope: {scope}, {access_token: {access_token}}]->(c)",
+                            "MERGE (u)-[:USES {scope: {scope}, {access_token: {access_token}}]->(c)",
                             {
                                 "username": username,
                                 "client_id": auth["client_id"],
@@ -297,7 +299,7 @@ class UserToken(Oauth2Step):
                 # TODO: do this in a transaction
                 session.run("MATCH (u:User {username: {username}})"
                             "MATCH (c:Client {client_id: {client_id}})"
-                            "CREATE (u)-[:AUTHORIZED {scope: {scope}, user_token: {auth_token}}]->(c)",
+                            "MERGE (u)-[:AUTHORIZED {scope: {scope}, user_token: {auth_token}}]->(c)",
                             {
                                 "username": username,
                                 "client_id": client_id,
@@ -364,8 +366,34 @@ class Users:
             updated_settings = user_settings
             changed_settings = 0
             new_settings = 0
+
+            def throw_validation_error(s):
+                resp.status = falcon.HTTP_BAD_REQUEST
+                req.context["result"] = {
+                    "errors": [{
+                        "type": "error",
+                        "id": "SETTING_{}_INVALID".format(s.upper()),
+                        "text": "Submitted setting {} failed validation".format(s),
+                        "status": resp.status
+                    }]
+                }
+                # Close the DB session before exiting the method
+                session.close()
+                return
             for setting, setting_value in change_settings.items():
                 if setting in user_settings.keys():
+                    if setting == "location":
+                        if not tools.location_validator(setting_value):
+                            # Throw a validation error
+                            throw_validation_error(setting)
+                    elif setting == "sites":
+                        if not tools.sites_validator(setting_value):
+                            # Throw a validation error
+                            throw_validation_error(setting)
+                    elif setting == "email":
+                        if not validators.url(setting_value):
+                            # Throw a validation error
+                            throw_validation_error(setting)
                     changed_settings += 1
                     log.debug("Updating setting {0} for user {1} from {2} to {3}".format(
                         setting, username, user_settings[setting], setting_value
@@ -480,7 +508,11 @@ class Users:
         }
         field_errors = []
         # Required settings
-        required_settings = ["location", "email"]
+        required_settings = {
+            "location": tools.location_validator,
+            "email": validators.email,
+            "sites": tools.sites_validator
+        }
         # TODO: validate settings
         for field, field_type in required_fields.items():
             if field in data_keys:
@@ -502,6 +534,13 @@ class Users:
                                 "type": "error",
                                 "id": "REQUIRED_SETTING_{}_NOT_FOUND".format(setting.upper()),
                                 "text": "A setting for {} must be provided for user creation".format(setting)
+                            }
+                            field_errors.append(field_error)
+                        elif not required_settings[setting](doc["settings"][setting]):
+                            field_error = {
+                                "type": "error",
+                                "id": "REQUIRED_SETTING_{}_INVALID".format(setting.upper()),
+                                "text": "The {} setting failed the validation process".format(setting)
                             }
                             field_errors.append(field_error)
             else:
@@ -602,12 +641,38 @@ class Sessions:
                     }]
             }
         else:
+            # Doc will be used for dynamic variables
+            doc = req.context["doc"]
             auth = req.context["auth"]
             username = auth["username"]
             client = auth["client_id"]
             # Instantiate a session class
-            log.debug("Starting session for user {0} on client {1}".format(username, client))
-            session_class = sessions.Session(username, client)
+            log.debug("Starting session for user {0} on client {1}, with dynamic data {2}"
+                      "".format(username, client, doc))
+            dynamic_acceptable = {"location": tools.location_validator}
+            d_keys = dynamic_acceptable.keys()
+            if doc:
+                doc_errors = []
+                for k,v in doc.items():
+                    if k in d_keys:
+                        if not dynamic_acceptable[k](v):
+                            error = {
+                                        "type": "error",
+                                        "id": "DYNAMIC_{}_INVALID".format(k.upper()),
+                                        "text": "Submitted value for dynamic setting {} failed validation".format(k)
+                                    }
+                            doc_errors.append(error)
+                    else:
+                        error = {
+                            "type": "error",
+                            "id": "DYNAMIC_{}_NOT_FOUND".format(k.upper()),
+                            "text": "Could not find a dynamic setting that matched {}".format(k)
+                        }
+                        doc_errors.append(error)
+                if doc_errors:
+                    req.context["result"] = {"errors": doc_errors}
+                    return
+            session_class = sessions.Session(username, client, doc)
             # Sign the session id
             unsigned_session_id = session_class.session_id.encode('utf-8')
             session_id = signer.sign(unsigned_session_id).decode('utf-8')

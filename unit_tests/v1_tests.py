@@ -755,8 +755,15 @@ class UsersTests(unittest.TestCase):
             "last_name": "holden",
             "settings":
                 {
-                    "location": "Minnesota, Earth",
-                    "email": "holden@rocinate.opa"
+                    "location":
+                        {
+                            "latitude": 44.970468,
+                            "longitude": -93.262148
+                        },
+                    "email": "holden@rocinate.opa",
+                    "sites": {
+                        "news": "https://reuters.com"
+                    }
                 }
         }
         # Mock no users with that username already found
@@ -815,7 +822,11 @@ class UsersTests(unittest.TestCase):
             "last_name": "holden",
             "settings":
                 {
-                    "location": "Minnesota, Earth"
+                    "location":
+                        {
+                            "latitude": 44.970468,
+                            "longitude": -93.262148
+                        }
                 }
         }
 
@@ -923,8 +934,14 @@ class UsersTests(unittest.TestCase):
             "last_name": "holden",
             "settings":
                 {
-                    "location": "Minnesota, Earth",
-                    "email": "holden@rocinate.opa"
+                    "location":
+                        {
+                            "latitude": 44.970468,
+                            "longitude": -93.262148
+                        },
+                    "email": "holden@rocinate.opa",
+                    "sites":
+                        {"news": "https://reuters.com"}
                 }
         }
 
@@ -977,7 +994,7 @@ class SessionTests(unittest.TestCase):
         ], client_user_auth=True)
         # Mock sessions.Session
 
-        def session_test(username, client_id):
+        def session_test(username, client_id, _):
             # Check the username and client_id and create a MagicMock
             self.assertEqual(username, "holden")
             self.assertEqual(client_id, "rocinate")

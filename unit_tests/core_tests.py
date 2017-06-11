@@ -22,6 +22,7 @@ class PluginLoadTests(unittest.TestCase):
         """
         Send the plugin loader correct configuration data and assert that the correct plugins are loaded
         """
+        plugin_dir = None
         if os.path.isdir("core"):
             plugin_dir = "core/plugins"
         elif os.path.isdir("will"):
