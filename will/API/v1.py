@@ -386,10 +386,6 @@ class Users:
                         if not tools.location_validator(setting_value):
                             # Throw a validation error
                             throw_validation_error(setting)
-                    elif setting == "sites":
-                        if not tools.sites_validator(setting_value):
-                            # Throw a validation error
-                            throw_validation_error(setting)
                     elif setting == "email":
                         if not validators.url(setting_value):
                             # Throw a validation error
@@ -510,8 +506,7 @@ class Users:
         # Required settings
         required_settings = {
             "location": tools.location_validator,
-            "email": validators.email,
-            "sites": tools.sites_validator
+            "email": validators.email
         }
         # TODO: validate settings
         for field, field_type in required_fields.items():

@@ -28,9 +28,8 @@ class BaseArgumentTests(unittest.TestCase):
                             "longitude": -93.262148
                         },
                     "email": "holden@rocinate.opa",
-                    "sites":
-                        {"news": "https://reuters.com"},
-                    "temp_unit": "C"
+                    "temp_unit": "C",
+                    "timezone": "US/Eastern"
                 }}
 
     def load_graph(self):
@@ -54,7 +53,6 @@ class BaseArgumentTests(unittest.TestCase):
             self._user_data, self._client, self._session, self._graph)
         # If the class being tested is a parent class, it may not be necessary to have a build pass
         self.assertEqual(self._instance._build_status, self._desired_build_status)
-        print (self._instance.errors)
         if self._check_no_errors:
             self.assertEqual(self._instance.errors, [])
 
@@ -210,3 +208,39 @@ class SettingTests(BaseArgumentTests):
     def test_value(self):
         v = self._instance.value(MagicMock())
         self.assertIsNone(v)
+
+
+class TempUnitTests(SettingTests):
+    base_class = arguments.TempUnit
+    _check_no_errors = True
+    _desired_build_status = "successful"
+
+    def test_value(self):
+        v = self._instance.value(MagicMock())
+        self.assertEqual(v, "C")
+
+
+class LocationTests(SettingTests):
+    base_class = arguments.Location
+    _desired_build_status = "successful"
+    _check_no_errors = True
+
+    def test_value(self):
+        v = self._instance.value(MagicMock())
+        print(v)
+        # Check the latitude and longitude of the returned geopy object
+        user_data = self.load_user_data()
+        latitude = user_data["settings"]["location"]["latitude"]
+        longitude = user_data["settings"]["location"]["longitude"]
+        self.assertEqual(round(v.latitude, 2), round(latitude, 2))
+        self.assertEqual(round(v.longitude, 2), round(longitude, 2))
+
+
+class TimeZoneTests(SettingTests):
+    base_class = arguments.TimeZone
+    _desired_build_status = "successful"
+    _check_no_errors = True
+
+    def test_value(self):
+        v = self._instance.value(MagicMock())
+        self.assertEqual(v.tzinfo._tzname, "EDT")

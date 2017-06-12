@@ -760,10 +760,7 @@ class UsersTests(unittest.TestCase):
                             "latitude": 44.970468,
                             "longitude": -93.262148
                         },
-                    "email": "holden@rocinate.opa",
-                    "sites": {
-                        "news": "https://reuters.com"
-                    }
+                    "email": "holden@rocinate.opa"
                 }
         }
         # Mock no users with that username already found
@@ -939,9 +936,7 @@ class UsersTests(unittest.TestCase):
                             "latitude": 44.970468,
                             "longitude": -93.262148
                         },
-                    "email": "holden@rocinate.opa",
-                    "sites":
-                        {"news": "https://reuters.com"}
+                    "email": "holden@rocinate.opa"
                 }
         }
 

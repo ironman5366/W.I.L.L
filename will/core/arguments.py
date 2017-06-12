@@ -228,7 +228,7 @@ class Setting(Argument):
         user_data = self._user_data
         user_settings = user_data["settings"]
         if self.setting_name in user_settings.keys():
-            self._setting_value = user_settings[self.setting_name]
+            self._setting_raw_value = user_settings[self.setting_name]
             setting_passed = self.setting_modifier()
             return setting_passed
         else:
@@ -287,123 +287,10 @@ class TimeZone(Setting):
 
     def setting_modifier(self):
         self._setting_value = timezone(self._setting_raw_value)
+        return True
 
     def value(self, command_obj):
         return datetime.datetime.now(self._setting_value)
-
-
-class Site(Argument):
-    """
-    A standardized site caching argument for a site that releases articles
-    """
-
-    site_type = None
-    _site_url = None
-    _site_cache = None
-    # The time in seconds before a site needs to be recached
-    cache_time = 43200
-    num_articles = 5
-
-    def _compile_site(self):
-        session = self._graph.session()
-        log.debug("Compiling site {0}".format(self._site_url))
-        try:
-            site_object = newspaper.build(self._site_url, memoize_articles=False)
-            articles_index = self.num_articles-1
-            top_articles = site_object.articles[0:articles_index]
-            output_strs = []
-            for article in top_articles:
-                article_url = article.url
-                log.debug("Building article object")
-                article_object = newspaper.Article(article_url)
-                log.debug("Downloading the article")
-                article_object.download()
-                log.debug("Parsing the article")
-                article.parse()
-                article.nlp()
-                article_str = "{0} ({1})\n{2}\n".format(
-                    tools.ascii_encode(article.title),
-                    tools.ascii_encode(article_url),
-                    tools.ascii_encode(article.summary))
-                output_strs.append(article_str)
-            final_output = "\n--\n".join(output_strs)
-            # Save the final output before returning it
-            session.run("MATCH (s:Site {url: {site_url}})"
-                        "SET s.value = {output}"
-                        "SET s.timestamp = {timestamp}",
-                        {"site_url": self._site_url,
-                         "output": final_output,
-                         "timestamp": time.time()}
-                        )
-            return final_output
-        except Exception as ex:
-            exception_args, exception_type = (ex.args, type(ex).__name__)
-            error_string = "Attempted compilation of site {0} raised a {1} error with arguments {2}".format(
-                self._site_url, exception_type, exception_args
-            )
-            self._build_status = error_string
-            self.errors.append({
-                "type": "error",
-                "id": "ARGUMENT_SITE_COMPILE_FAIL",
-                "text": error_string,
-                "status": falcon.HTTP_INTERNAL_SERVER_ERROR
-            })
-            return False
-        finally:
-            session.close()
-
-    def _cache(self):
-        """
-        Cache a site
-        """
-        log.debug("Caching articles from site {0} for user {1}".format(self._site_url, self._user_data["username"]))
-        # Check to see if the site has been recently cached
-        session = self._graph.session()
-        site_caches = session.run("MATCH (s:Site {url: {site_url}}) RETURN (s)",
-                                  {"site_url": self._site_url})
-        session.close()
-        # If the site has been cached
-        if site_caches:
-            cache = site_caches[0]
-            # Check the timestamp of the cache
-            cache_timestamp = cache["timestamp"]
-            current_time = time.time()
-            # Check if it was cached within the cache interval
-            time_delta = current_time-cache_timestamp
-            # The cache is expired, reload the cache
-            if time_delta >= self.cache_time:
-                self._site_cache = self._compile_site()
-            # If everything is in order, return the cached site
-            else:
-                self._site_cache = cache["value"]
-        # Create the cache
-        else:
-            self._site_cache = self._compile_site()
-        return self._site_cache
-
-    def value(self, command_obj):
-        return self._site_cache
-
-    def build(self):
-        user_data = self._user_data
-        user_sites = user_data["sites"]
-        if self.site_type in user_sites.keys():
-            self._site_url = user_sites[self.site_type]
-            return self._cache
-        else:
-            error_string = "Couldn't a {} site within user saved sites".format(self.site_type)
-            self._build_status = error_string
-            self.errors.append({
-                "type": "error",
-                "text": error_string,
-                "id": "SITE_ARGUMENT_INVALID"
-            })
-            return False
-
-
-class News(Site):
-    site_type = "news"
-
 
 # Build a list of argument classes in the file
 # Iterate through the classes

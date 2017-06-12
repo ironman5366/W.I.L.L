@@ -50,14 +50,3 @@ def location_validator(l):
             return False
     else:
         return False
-
-
-def sites_validator(s):
-    if type(s) == dict:
-        validations = []
-        for k, v in s.items():
-            validations.append(type(k) == str)
-            validations.append(sites_validator(v))
-        return all(validations)
-    else:
-        return validators.url(s)
