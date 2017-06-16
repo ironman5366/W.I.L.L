@@ -1,14 +1,8 @@
 # Builtin imports
 import logging
 
-try:
-    import queue as Queue
-except ImportError:
-    import Queue
-
 # External imports
 import spacy
-import validators
 
 log = logging.getLogger()
 
@@ -50,3 +44,30 @@ def location_validator(l):
             return False
     else:
         return False
+
+
+def load_key(key_name, graph, load_url=False):
+    """
+    Load an API key from the database
+
+    :param key_name: The name of the key to load
+    :param graph: The datbase instance
+    :param load_url: A bool defining whether to load the key
+    :return key_value, key_url: The API key and optionally a url
+    """
+    with graph.session() as session:
+        valid_keys = session.run("MATCH (a:APIKey {name: {name}) WHERE a.usages < a.max_usages or a.max_usages is "
+                                 "null",
+                                 {"name": key_name})
+        if valid_keys:
+            key = valid_keys[0]
+            # Increment the key usage
+            key_value = key["value"]
+            session.run("MATCH (a:APIKey {value: {value}}) SET a.usages = a.usages+1",
+                        {"value": key_value})
+            key_url = None
+            if load_url:
+                key_url = key["url"]
+            return key_value, key_url
+        else:
+            return False, False

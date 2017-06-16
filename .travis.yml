@@ -14,7 +14,6 @@ install:
 
 services:
   - docker
-  - neo4j
 
 # Rerun the tests out of the container to get coverage data
 script: nosetests --with-coverage unit_tests
@@ -27,4 +26,5 @@ jobs:
     - stage: Deploy
       install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
       script: sh deploy.sh "$TRAVIS_BRANCH" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
+      after_success: true
 

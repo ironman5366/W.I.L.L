@@ -28,59 +28,6 @@ session_manager = None
 # Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
 
-class Notification:
-
-    # TODO: check the users notification preferences
-
-    def email(self, mailgun_key, mailgun_url):
-        """
-        Send an email to the user
-
-        :param mailgun_key:
-        :param mailgun_url:
-        """
-        email = self.user_data["settings"]["email"]
-        first_name = self.user_data["first_name"]
-        last_name = self.user_data["last_name"]
-        return requests.post(
-            mailgun_url,
-            auth=("api", mailgun_key),
-            data={"from": "will <postmaster@willbeddow.com>",
-                  "to": "{0} {1} <{2}>".format(first_name, last_name, email),
-                  "subject": self.summary,
-                  "text": self.message})
-
-    @property
-    def time_reached(self):
-        return time.time() >= self.trigger_time
-
-    @property
-    def summary(self):
-        if not self._summary:
-            # Use the first 5 words of the message for a summary
-            if " " in self.message:
-                message_words = self.message.split(" ")
-                if len(message_words) >= 5:
-                    self._summary = message_words[0:4]
-                else:
-                    self._summary = self.message
-            else:
-                self._summary = self.message
-            self._summary = tools.ascii_encode(self._summary)
-        return self._summary
-
-    def __init__(self, message, title, trigger_time, scope, user_data, summary=None):
-        # Decode the message and the title into ascii for maximum compatibility
-        self.title = tools.ascii_encode("W.I.L.L - "+title)
-        self.message = tools.ascii_encode(message)
-        self.scope = scope
-        self._summary = summary
-        self.created = datetime.datetime.now()
-        self.uid = uuid.uuid1()
-        self.trigger_time = trigger_time
-        self.user_data = user_data
-
-
 class Command:
 
     parent = None
@@ -156,8 +103,9 @@ class Session:
         self.last_reloaded = datetime.datetime.now()
         # Generate a session id and add self to the sessions dictionary
         self.session_id = str(uuid.uuid4())
-        # Add the argument builder to the build queue in the session manager class
-        session_manager.build_queue.put(self)
+        log.debug("Building arguments for newly created session {}".format(self.session_id))
+        self.build_arguments()
+        log.debug("Finished building arguments")
         # Update the sessions dictionary with the instance, keyed by the session id
         sessions.update({
             self.session_id: self
@@ -423,7 +371,7 @@ class Session:
 
     @property
     def stale(self):
-        return ((datetime.datetime.now()-self.last_reloaded).total_seconds >= 900)
+        return (datetime.datetime.now()-self.last_reloaded).total_seconds >= 900
 
     @property
     def report(self):

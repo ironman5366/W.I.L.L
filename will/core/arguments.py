@@ -59,7 +59,11 @@ class Argument:
         self._session = session
         self.name = type(self).__name__
         # If _build returns false, there's an error, and the user should be notified
-        build_valid = self.build()
+        try:
+            build_valid = self.build()
+        except Exception as e:
+            log.error("Argument {0} raised an unhandled error with args {1}!".format(self, e.args))
+            build_valid = False
         if not build_valid:
             # Raise an argument error
             # Inject the error into the session
@@ -89,6 +93,8 @@ class APIKey(Argument):
 
     key_name = None
     _loaded_keys = queue.Queue(maxsize=1)
+    load_url = False
+    _url = None
 
     @property
     def _key(self):
@@ -110,22 +116,13 @@ class APIKey(Argument):
 
     def build(self):
         if self._loaded_keys.empty():
-            session = self._graph.session()
-            valid_keys = session.run("MATCH (a:APIKey {name: {name}) WHERE a.usages < a.max_usages or a.max_usages is "
-                                     "null",
-                                     {"name": self.key_name})
-            if valid_keys:
-                session.close()
-                key = valid_keys[0]
-                # Increment the key usage
-                key_value = key["value"]
-                session.run("MATCH (a:APIKey {value: {value}}) SET a.usages = a.usages+1",
-                            {"value": key_value})
-                session.close()
-                self._loaded_keys.put(key_value)
+            key, url = tools.load_key(self.key_name, self._graph, load_url=self.load_url)
+            if key:
+                if self.load_url:
+                    self._url = url
+                self._loaded_keys.put(key)
                 return True
             else:
-                session.close()
                 self._build_status = "No valid API keys found of type {}".format(self.key_name)
                 return False
         else:
@@ -134,11 +131,14 @@ class APIKey(Argument):
     def value(self, command_obj):
         """
         Increment the usage of the api key in the database and return it to the plugin
-        
+
         :param command_obj:
         :return api_key: The api key 
         """
-        return self._key
+        if self.load_url:
+            return self._key, self._url
+        else:
+            return self._key
 
 
 class WeatherAPI(APIKey):
@@ -147,7 +147,6 @@ class WeatherAPI(APIKey):
 
 class WolframAPI(APIKey):
     key_name = "wolfram"
-
 
 class CommandObject(Argument):
     """

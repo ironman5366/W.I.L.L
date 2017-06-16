@@ -20,6 +20,8 @@ db = None
 timestampsigner = None
 signer = None
 
+# TODO: use the db with transactions!
+
 
 class Oauth2Step:
     """
@@ -807,7 +809,7 @@ class Clients:
         # Start a neo4j session
         session = db.session()
         try:
-            session.run("MATCH (c:Client {client_id: {client_id}},"
+            session.run("MATCH (c:Client {client_id: {client_id}}),"
                         "detach"
                         "delete (c)",
                         {"client_id": client_id})
@@ -837,6 +839,7 @@ class Clients:
         
         Scope and client id will be validated and if it's successful, the response will include a client secret
         """
+        reserved_client_ids = ["internal"]
         doc = req.context["doc"]
         auth = req.context["auth"]
         if "new_client" in doc.keys():
@@ -871,93 +874,106 @@ class Clients:
                 return
             # Data was validated successfully, fetch it from the document
             id = data["id"]
-            scope = data["scope"]
-            # Check if the submitted id is already in the database
-            session = db.session()
-            matching_clients = session.run("MATCH (c:Client {client_id:{id}})",
-                                           {"id": id})
-            # If a client with that name already exists:
-            if matching_clients:
-                resp.status = falcon.HTTP_CONFLICT
-                req.context["result"] = {
-                    "errors":
-                        [{
-                            "type": "error",
-                            "id": "CLIENT_ID_ALREADY_EXISTS",
-                            "status":  resp.status,
-                            "text": "A client with client id {0} already exists".format(
-                                id
-                            )
-                        }]
-                }
-            else:
-                # The id is unused
-                # Check to see if the scope is valid
-                if scope in hooks.scopes.keys():
-                    # The highest level that can be automatically created is a level of 2, settings_change
-                    scope_level = hooks.scopes[scope]
-                    # The client requested a valid scope that they're authorized to use
-                    # A scope of level 2 is settings_change which is the highest scope that non official
-                    # Clients are allowed to use
-                    if scope_level >= 2:
-                        log.debug("Adding client {0} with scope {1} to database, and generating secret key".format(
-                            id, scope
-                        ))
-                        # Generate the key. Nobody will see the unsigned unhashed version
-                        raw_secret_key = str(uuid.uuid4()).encode('utf-8')
-                        # Hash the key. This version will be put in the database
-                        hashed_secret_key = bcrypt.hashpw(raw_secret_key, bcrypt.gensalt())
-                        # Sign the key. This version will be returned to the user
-                        signed_secret_key = signer.sign(raw_secret_key).decode('utf-8')
-                        # Put the client in the database
-                        session.run("CREATE (c:Client "
-                                    "{client_id: {client_id}, "
-                                    "official: false, "
-                                    "secret_key: {hashed_secret}, "
-                                    "scope: {scope}})",
-                                    {
-                                        "client_id": id,
-                                        "hashed_secret": hashed_secret_key,
-                                        "scope": scope
-                                    })
-                        log.debug("Created client {} in database".format(id))
-                        # Return the data to the user
-                        req.context["result"] = {
-                            "data":{
-                                "id": "CLIENT_CREATED",
-                                "status": resp.status,
-                                "type": "success",
-                                "secret_key": signed_secret_key,
-                                "client_id": id,
-                                "scope": scope
-                            }
-                        }
-
-                    else:
-                        resp.status = falcon.HTTP_UNAUTHORIZED
-                        req.context["result"] = {
-                            "errors":
-                                [{
-                                    "id": "SCOPE_NOT_AUTHORIZED",
-                                    "status": resp.status,
-                                    "type": "error",
-                                    "text": "The client does not have authorization to create a new client with a "
-                                            "scope of {0}".format(scope)
-                                }]
-                        }
-                else:
-                    resp.status = falcon.HTTP_BAD_REQUEST
+            if id not in reserved_client_ids:
+                scope = data["scope"]
+                # Check if the submitted id is already in the database
+                session = db.session()
+                matching_clients = session.run("MATCH (c:Client {client_id:{id}})",
+                                               {"id": id})
+                # If a client with that name already exists:
+                if matching_clients:
+                    resp.status = falcon.HTTP_CONFLICT
                     req.context["result"] = {
                         "errors":
                             [{
-                                "id": "SCOPE_INVALID",
-                                "status": resp.status,
                                 "type": "error",
-                                "text": "Unrecognized scope {0}".format(scope)
+                                "id": "CLIENT_ID_ALREADY_EXISTS",
+                                "status":  resp.status,
+                                "text": "A client with client id {0} already exists".format(
+                                    id
+                                )
                             }]
                     }
-            #fake No matter what, close the session
-            session.close()
+                else:
+                    # The id is unused
+                    # Check to see if the scope is valid
+                    if scope in hooks.scopes.keys():
+                        # The highest level that can be automatically created is a level of 2, settings_change
+                        scope_level = hooks.scopes[scope]
+                        # The client requested a valid scope that they're authorized to use
+                        # A scope of level 2 is settings_change which is the highest scope that non official
+                        # Clients are allowed to use
+                        if scope_level >= 2:
+                            log.debug("Adding client {0} with scope {1} to database, and generating secret key".format(
+                                id, scope
+                            ))
+                            # Generate the key. Nobody will see the unsigned unhashed version
+                            raw_secret_key = str(uuid.uuid4()).encode('utf-8')
+                            # Hash the key. This version will be put in the database
+                            hashed_secret_key = bcrypt.hashpw(raw_secret_key, bcrypt.gensalt())
+                            # Sign the key. This version will be returned to the user
+                            signed_secret_key = signer.sign(raw_secret_key).decode('utf-8')
+                            # Put the client in the database
+                            session.run("CREATE (c:Client "
+                                        "{client_id: {client_id}, "
+                                        "official: false, "
+                                        "secret_key: {hashed_secret}, "
+                                        "scope: {scope}})",
+                                        {
+                                            "client_id": id,
+                                            "hashed_secret": hashed_secret_key,
+                                            "scope": scope
+                                        })
+                            log.debug("Created client {} in database".format(id))
+                            # Return the data to the user
+                            req.context["result"] = {
+                                "data":{
+                                    "id": "CLIENT_CREATED",
+                                    "status": resp.status,
+                                    "type": "success",
+                                    "secret_key": signed_secret_key,
+                                    "client_id": id,
+                                    "scope": scope
+                                }
+                            }
+
+                        else:
+                            resp.status = falcon.HTTP_UNAUTHORIZED
+                            req.context["result"] = {
+                                "errors":
+                                    [{
+                                        "id": "SCOPE_NOT_AUTHORIZED",
+                                        "status": resp.status,
+                                        "type": "error",
+                                        "text": "The client does not have authorization to create a new client with a "
+                                                "scope of {0}".format(scope)
+                                    }]
+                            }
+                    else:
+                        resp.status = falcon.HTTP_BAD_REQUEST
+                        req.context["result"] = {
+                            "errors":
+                                [{
+                                    "id": "SCOPE_INVALID",
+                                    "status": resp.status,
+                                    "type": "error",
+                                    "text": "Unrecognized scope {0}".format(scope)
+                                }]
+                        }
+                # No matter what, close the session
+                session.close()
+            else:
+                resp.status = falcon.HTTP_BAD_REQUEST
+                req.context["result"] = {
+                    "errors":
+                        [{
+                            "id": "CLIENT_ID_RESERVED",
+                            "status": resp.status,
+                            "type": "error",
+                            "text": "Client id {0} is used in examples or internal functions "
+                                    "and cannot be registered".format(id)
+                        }]
+                }
         else:
             resp.status = falcon.HTTP_BAD_REQUEST
             req.context["result"] = {

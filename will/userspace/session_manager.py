@@ -28,28 +28,10 @@ class SessionManager:
         # State thread monitors the age of sessions and determines whether they need to be rebuilt or logged out
         state_thread = threading.Thread(target=self.state_monitor)
         cache_thread = threading.Thread(target=self.cache_manager)
-        build_thread = threading.Thread(target=self.build_worker)
         state_thread.start()
         cache_thread.start()
-        build_thread.start()
         self._cache_threads.append(state_thread)
         self._cache_threads.append(cache_thread)
-        self._cache_threads.append(build_thread)
-
-    def build_worker(self):
-        """
-        The high priority thread that builds the arguments for new sessions
-        """
-        while self.running:
-            while self.build_queue.not_empty():
-                session = self.build_queue.get()
-                log.debug("Building session {}".format(session.session_id))
-                time_started = time.time()
-                session.build_arguments()
-                time_finished = time.time()
-                time_delta = round(time_finished-time_started)
-                log.debug("Built session {0} in {1} seconds".format(session.session_id, time_delta))
-            time.sleep(0.2)
 
     def cache_manager(self):
         """
@@ -77,16 +59,21 @@ class SessionManager:
             time.sleep(10)
             # Go through all the active sessions
             for session in sessions.sessions:
-                # Determine how long it's been since the last command was run
-                last_command = session.commands[-1]
-                # If it's been more than 15 minutes since it was run, end the session
-                if last_command.age >= 900:
-                    session.logout()
-                # If the session is still valid, check if it's been more than 15 minutes since it was loaded,
-                # and if it is, add it to the reloading queue
-                else:
-                    if session.stale:
-                        self._cache_queue.put(session)
+                try:
+                    # Determine how long it's been since the last command was run
+                    last_command = session.commands[-1]
+                    # If it's been more than 15 minutes since it was run, end the session
+                    if last_command.age >= 900:
+                        session.logout()
+                    # If the session is still valid, check if it's been more than 15 minutes since it was loaded,
+                    # and if it is, add it to the reloading queue
+                    else:
+                        if session.stale:
+                            self._cache_queue.put(session)
+                except IndexError:
+                    # No commands have been run
+                    if session.age >= 900:
+                        session.logout()
 
     @property
     def report(self):
