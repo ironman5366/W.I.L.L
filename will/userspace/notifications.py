@@ -3,12 +3,14 @@ import logging
 import time
 import uuid
 import datetime
+import threading
 
 # External imports
 import requests
 
 # Internal imports
 from will import tools
+from will import transactions
 
 log = logging.getLogger()
 
@@ -50,11 +52,11 @@ class Notification:
 
     def send(self):
         """
-        Check the users notification preferences and send the notification in the corresponding way
+        Check the scope of the notification and send the notification in the corresponding way
         """
         log.info("Sending notification to user {}".format(self.user_data["username"]))
         # Check the users notification preferences
-        not_method = self.user_data["setting"]["notifications"]
+        not_method = self.scope
         mappings = {
             "email": self.email
         }
@@ -62,7 +64,7 @@ class Notification:
             not_callable = mappings[not_method]
             not_callable()
         else:
-            log.error("Couldn't find a notification method for user preference {}".format(not_method))
+            log.error("Couldn't find a notification method for notification scope {}".format(not_method))
 
     def email(self):
         """
@@ -102,15 +104,54 @@ class Notification:
 
 class NotificationHandler:
     running = True
-    notifications = {}
+    _notifications = {}
 
-    def pull_notificatons(self):
+    def __init__(self, graph):
+        """
+        :param graph: The DB instance
+        """
+        self.graph = graph
+        # Pull the notifications from the database
+        self._pull_notificatons()
+        # Start the notification monitoring thread
+        wait_thread = threading.Thread(target=self._wait_notifications)
+        wait_thread.start()
+
+    def notify(self, not_object):
+        """
+        Put a newly created notification in the internal notifications dict, and update the db
+
+        :param not_object: An instantiated Notification class
+        """
+        not_uid = not_object.uid
+        self._notifications.update({not_uid: not_object})
+        # If the notification is due for less than 5 minutes, don't bother putting it into the database
+        if not_object.trigger_time - time.time() > 300:
+            # Pull the necessary information out of the notification and format it accordingly
+            not_user = not_object.user_data["username"]
+            not_created = not_object.created
+            not_created_timestamp = not_created.timestamp()
+            # Insert the notification into the db
+            with self.graph.session() as session:
+                session.write_transaction(
+                    transactions.create_notification,
+                    not_user,
+                    not_object.message,
+                    not_object.title,
+                    not_object.trigger_time,
+                    not_object.scope,
+                    not_created_timestamp,
+                    not_object.summary,
+                    not_object.uid
+                    )
+
+    def _pull_notificatons(self):
         """
         Pull all notifications for each user
         """
         session = self.graph.session()
         notifications = session.run("MATCH (u:User)-[:SET]->(n:Notification)"
-                                    "return (u,n)")
+                                    "return u,n")
         if notifications:
             for notification in notifications:
                 user_set = notification["u"]
@@ -125,38 +166,36 @@ class NotificationHandler:
                     not_object.summary,
                     not_object.uid,
                     datetime_instance)
-                self.notifications.update({not_object.uid: not_class})
+                self._notifications.update({not_object.uid: not_class})
             # Instantiate a `Notification` class for each one
         else:
             log.info("No notifications found from DB")
         session.close()
 
-    def wait_notifications(self):
+    def _wait_notifications(self):
         """
         Thread that iterates through queued notifications
         """
         while self.running:
-            if self.notifications:
-                for not_uid, notification in self.notifications.items():
+            if self._notifications:
+                for not_uid, notification in self._notifications.items():
                     # Check if the notification is ready to send
                     if notification.time_reached:
                         # If it is, send it and remove it from the list
                         log.info("Sending notification for user {}".format(notification.user_data["username"]))
                         try:
                             notification.send()
-
                         except Exception as e:
                             log.error(
                                 "Couldn't send notification to user {0}. Send method raised error with args {1}".format(
                                     notification.user_data["username"], e.args
                             ))
-                        del self.notifications[not_uid]
+                        del self._notifications[not_uid]
+                        # Remove the notification from the database
+                        with self.graph.session() as session:
+                            session.write_transaction(transactions.delete_notification, notification.uid)
                 time.sleep(0.2)
             else:
                 time.sleep(1)
 
-    def __init__(self, graph):
-        """
-        :param graph: The DB instance
-        """
-        self.graph = graph
+

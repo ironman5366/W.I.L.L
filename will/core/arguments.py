@@ -11,7 +11,6 @@ from will import tools
 
 # External imports
 import falcon
-import newspaper
 from pytz import timezone
 from geopy import Nominatim, exc
 

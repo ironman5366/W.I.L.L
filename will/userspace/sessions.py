@@ -3,7 +3,6 @@ import logging
 import uuid
 import datetime
 import queue
-import time
 
 # Internal imports
 from will.core import arguments
@@ -11,7 +10,6 @@ from will import tools
 
 # External imports
 import falcon
-import requests
 
 log = logging.getLogger()
 
@@ -25,8 +23,11 @@ ended_sessions = []
 
 session_manager = None
 
+notification_manager = None
+
 # Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
+# TODO: use notification manager
 
 class Command:
 
@@ -189,7 +190,7 @@ class Session:
     def notification(self, message, trigger_time, title="", scope="all"):
         # TODO: check scope
         not_object = Notification(message, title, trigger_time, scope)
-        self.notifications.put(not_object)
+        notification_manager.notify(not_object)
 
     def _call_plugin(self, plugin, command_obj, method="exec"):
         """

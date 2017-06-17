@@ -16,11 +16,12 @@ log = logging.getLogger()
 
 
 class RequireJSON:
+
     def process_request(self, req, resp):
         if not req.client_accepts_json:
             raise falcon.HTTPNotAcceptable(
                 'This API only supports responses encoded as JSON.')
-        if req.method in ("POST", "PUT", "DELETE"):
+        if req.method != "GET":
             if not req.content_type or 'application/json' not in req.content_type:
                 resp.status = falcon.HTTP_UNSUPPORTED_MEDIA_TYPE
                 req.context["result"] = {
@@ -36,6 +37,7 @@ class RequireJSON:
 
 
 class JSONTranslator:
+
     def process_request(self, req, resp):
         # req.stream corresponds to the WSGI wsgi.input environ variable,
         # and allows you to read bytes from the request body.
@@ -43,7 +45,7 @@ class JSONTranslator:
         # See also: PEP 3333
 
         body = req.stream.read()
-        if not body:
+        if not body and req.method != "GET":
             resp.status = falcon.HTTP_BAD_REQUEST
             req.context["result"] = {
                 "errors":
@@ -314,7 +316,7 @@ class MonitoringMiddleware:
                         self._banned_silent[ip] += 1
                         # The ip has been silent for more than 15 minutes and is suitable for unbanning
                         if self._banned_silent[ip] >= 180:
-                            # Check to see if it's a permanently banned ip
+                            # Check to see if it's a permanently ("POST", "PUT", "DELETE")banned ip
                             if ip not in self._default_banned:
                                 log.debug("Unbanning ip {0}".format(ip))
                                 self.banned_ips.remove(ip)

@@ -44,16 +44,24 @@ def mock_session(return_value=None, side_effect=None, hook_return_value=None, ho
     if hook_side_effect:
         assert not hook_return_value
         hooks.graph.session.run = MagicMock(side_effect=hook_side_effect)
+        hooks.graph.session.read_transaction = MagicMock(side_effect=hook_side_effect)
+        hooks.graph.session.write_transaction = MagicMock(side_effect=hook_side_effect)
     elif hook_return_value:
         hooks.graph.session.run = MagicMock(return_value=hook_return_value)
+        hooks.graph.session.read_transaction = MagicMock(return_value=hook_return_value)
+        hooks.graph.session.write_transaction = MagicMock(return_value=hook_return_value)
     v1.db = MagicMock()
     v1.db.session = MagicMock
     if side_effect:
         # Give an option to return it with a side effect instead of a return value
         assert not return_value
         v1.db.session.run = MagicMock(side_effect=side_effect)
+        v1.db.session.write_transaction = MagicMock(side_effect=side_effect)
+        v1.db.session.read_transaction = MagicMock(side_effect=side_effect)
     elif return_value:
         v1.db.session.run = MagicMock(return_value=return_value)
+        v1.db.session.write_transaction = MagicMock(return_value=return_value)
+        v1.db.session.read_transaction = MagicMock(return_value=return_value)
 
 
 class StepConnector:
@@ -236,12 +244,13 @@ class Oauth2StepTests(unittest.TestCase):
             rel_mock = MagicMock()
             rel_mock.id = "1"
 
-            def check_rel(_, r):
+            def check_rel(tx_func, *args):
+                step_rel = args[-1]
                 correct_rel = self.instance._step_id
                 if correct_rel == "user_token":
-                    self.assertEqual(r["step_rel"], "AUTHORIZED")
+                    self.assertEqual(step_rel, "AUTHORIZED")
                 else:
-                    self.assertEqual(r["step_rel"], "USES")
+                    self.assertEqual(step_rel, "USES")
                 return [rel_mock]
             # The session mock should assert that the correct step relationship was used
             mock_session(

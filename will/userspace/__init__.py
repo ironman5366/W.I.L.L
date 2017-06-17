@@ -1,15 +1,13 @@
-#Builtin imports
+# Builtin imports
 import logging
-import threading
 import time
 
 # Internal imports
 from will.exceptions import *
-from will.userspace import sessions, session_manager
+from will.userspace import sessions, session_manager, notifications
 
 # External imports
 from neo4j.v1 import GraphDatabase, basic_auth
-
 
 log = logging.getLogger()
 
@@ -24,7 +22,7 @@ def key_cache():
     session = graph.session()
     for key in session.run("MATCH (k:APIKey) return (k)"):
         # Check if it's been more than the refresh value of the key since it's been refreshe
-        if time.time()-key["timestamp"] >= key["refresh"]:
+        if time.time() - key["timestamp"] >= key["refresh"]:
             session.run("MATCH (k:APIKey {value: {value}})"
                         "set k.usages=0"
                         "set k.timestamp=timestamp();",
@@ -57,21 +55,33 @@ def start(configuration_data, plugins):
     )
     log.debug("Connecting to database at {}".format(connection_url))
     graph = GraphDatabase.driver(connection_url,
-        auth=basic_auth(
-            db_configuration["user"],
-            db_configuration["password"]
-        )
-    )
+                                 auth=basic_auth(
+                                     db_configuration["user"],
+                                     db_configuration["password"]
+                                 )
+                                 )
     log.debug("Successfully connected to database at {0}:{1} with username {2}".format(
         db_configuration["host"],
         db_configuration["port"],
         db_configuration["user"]
     ))
+    # Check whether the database is initialized, and initialize it if it isn't
+    with graph.session() as session:
+        # The db can be assumed to be initialized if there are official clients
+        official_clients = session.run("MATCH (c:Client {official: true})"
+                                       "return (c)")
+        if not official_clients:
+            # Throw an error
+            raise DBNotInitializedError("Connected to database at {0}:{1}, but couldn't find any official clients.")
+
     # Refresh the API keys
     key_cache()
     session_class = session_manager.SessionManager(graph)
     # Put the session manager into the sessions file
     sessions.session_manager = session_class
-    # Load caches for all datastores, public and private
-    log.debug("Started event loop thread")
+    # Instantiate the notifcation manager
+    log.debug("Pulling cached notifications from database...")
+    not_mangaer = notifications.NotificationHandler(graph)
+    sessions.notification_manager = not_mangaer
+    log.debug("Finished loading userspace")
     return session_class

@@ -7,6 +7,7 @@ import time
 from will.API import hooks
 from will.userspace import sessions
 from will import tools
+from will import transactions
 
 # External imports
 import falcon
@@ -19,6 +20,7 @@ log = logging.getLogger()
 db = None
 timestampsigner = None
 signer = None
+
 
 # TODO: use the db with transactions!
 
@@ -50,10 +52,6 @@ class Oauth2Step:
     def on_delete(self, req, resp):
         """
         As an authenticated user, terminate a relationship with a client
-
-        :param req: 
-        :param resp: 
-
         """
         step_rels = {
             "user_token": "AUTHORIZED",
@@ -64,44 +62,39 @@ class Oauth2Step:
             auth = req.context["auth"]
             if "client_id" in auth.keys():
                 client_id = auth["client_id"]
-                session = db.session()
-                user_rels = session.run("MATCH (c:Client {client_id: {client_id})"
-                                        "MATCH (u:User {username: {username}})"
-                                        "MATCH (u)-[r:{step_rel}]->(c)"
-                                        "return (r)",
-                                        {"client_id": client_id,
-                                         "username": auth["username"],
-                                         "step_rel": step_rel})
-                if user_rels:
-                    # Delete the relationship
-                    rel = user_rels[0]
-                    session.run("MATCH [r:{step_rel}] WHERE ID(r) = {rel_id}"
-                                "DETACH DELETE (r)",
+                with db.session() as session:
+                    user_rels = session.read_transaction(
+                        transactions.get_user_client_rels,
+                        client_id,
+                        auth["username"],
+                        step_rel)
+                    if user_rels:
+                        # Delete the relationship
+                        rel = user_rels[0]
+                        session.write_transaction(transactions.delete_rel, rel.id, step_rel)
+                        req.context["result"] = {
+                            "data":
                                 {
-                                    "step_rel": step_rel,
-                                    "rel_id": rel.id})
-                    req.context["result"] = {
-                        "data":
-                            {
-                                "type": "success",
-                                "text": "Deleted relationship between user {0} and client {1}".format(auth["username"],
-                                                                                                      client_id)
-                            }
-                    }
-                else:
-                    resp.status = falcon.HTTP_NOT_FOUND
-                    req.context["result"] = {
-                        "errors":
-                            [{
-                                "type": "error",
-                                "text": "Couldn't find a relationship between user {0} and client {1}".format(
-                                    auth["username"], client_id
-                                ),
-                                "id": "USER_CLIENT_REL_NOT_FOUND",
-                                "status": resp.status
-                            }]
-                    }
-                session.close()
+                                    "type": "success",
+                                    "text": "Deleted relationship between user {0} and client {1}".format(
+                                        auth["username"],
+                                        client_id),
+                                    "id": "USER_CLIENT_REL_DELETED"
+                                }
+                        }
+                    else:
+                        resp.status = falcon.HTTP_NOT_FOUND
+                        req.context["result"] = {
+                            "errors":
+                                [{
+                                    "type": "error",
+                                    "text": "Couldn't find a relationship between user {0} and client {1}".format(
+                                        auth["username"], client_id
+                                    ),
+                                    "id": "USER_CLIENT_REL_NOT_FOUND",
+                                    "status": resp.status
+                                }]
+                        }
             else:
                 resp.status = falcon.HTTP_NOT_FOUND
                 req.context["result"] = {
@@ -136,9 +129,6 @@ class AccessToken(Oauth2Step):
     def on_post(self, req, resp):
         """
         The access token component of the oauth authentication
-        :param req: 
-        :param resp: 
-        :return: 
         """
         auth = req.context["auth"]
         if "user_token" in auth.keys():
@@ -333,7 +323,6 @@ class UserToken(Oauth2Step):
 
 
 class Users:
-
     @falcon.before(hooks.session_auth)
     @falcon.before(hooks.client_can_change_settings)
     def on_put(self, req, resp):
@@ -347,8 +336,7 @@ class Users:
         See the arguments.Setting class for how they are used
         
         :param req: 
-        :param resp: 
-        :return: 
+        :param resp:
         """
         doc = req.context["doc"]
         # Pull the session and the username from the request context, inserted by the session_auth hook
@@ -362,7 +350,7 @@ class Users:
             session = db.session()
             users = session.run("MATCH (u:User {username: {username}})"
                                 "return (u)",
-                               {"username": username})
+                                {"username": username})
             user = users[0]
             user_settings = user["settings"]
             updated_settings = user_settings
@@ -382,6 +370,7 @@ class Users:
                 # Close the DB session before exiting the method
                 session.close()
                 return
+
             for setting, setting_value in change_settings.items():
                 if setting in user_settings.keys():
                     if setting == "location":
@@ -405,13 +394,24 @@ class Users:
                     updated_settings.update({setting: setting_value})
             # Persist the settings into the database
             log.info("Updating settings for user {0}. Changing {1} settings and creating {2} for a total of {3} "
-                     "changes".format(username, changed_settings, new_settings, changed_settings+new_settings
-            ))
+                     "changes".format(username, changed_settings, new_settings, changed_settings + new_settings
+                                      ))
             session.run("MATCH (u:User {username: {username}})"
                         "SET u.settings={settings}",
                         {"username": username,
                          "settings": updated_settings})
             session.close()
+            # Rebuild session
+            user_session = req.context["session"]
+            user_session.reload()
+            req.context["result"] = {
+                "data":
+                    {
+                        "id": "SETTINGS_CHANGE_SUCCESSFUL",
+                        "type": "success",
+                        "text": "Successfully changed settings for user {}".format(username)
+                    }
+            }
         else:
             resp.status = falcon.HTTP_BAD_REQUEST
             req.context["result"] = {
@@ -650,14 +650,14 @@ class Sessions:
             d_keys = dynamic_acceptable.keys()
             if doc:
                 doc_errors = []
-                for k,v in doc.items():
+                for k, v in doc.items():
                     if k in d_keys:
                         if not dynamic_acceptable[k](v):
                             error = {
-                                        "type": "error",
-                                        "id": "DYNAMIC_{}_INVALID".format(k.upper()),
-                                        "text": "Submitted value for dynamic setting {} failed validation".format(k)
-                                    }
+                                "type": "error",
+                                "id": "DYNAMIC_{}_INVALID".format(k.upper()),
+                                "text": "Submitted value for dynamic setting {} failed validation".format(k)
+                            }
                             doc_errors.append(error)
                     else:
                         error = {
@@ -824,7 +824,7 @@ class Clients:
             session.close()
 
     @falcon.before(hooks.client_is_official)
-    def on_post(self,req, resp):
+    def on_post(self, req, resp):
         """
         Create a client.
          The hooks before the function makes sure that the client has permission to do this
@@ -863,7 +863,7 @@ class Clients:
                     "errors":
                         [{
                             "id": "{0}_INVALID".format(error_cause.upper()),
-                            "status":  resp.status,
+                            "status": resp.status,
                             "text": "Please check the {0} field and resubmit. {0} was either missing, or wasn't of "
                                     "required type {1}".format(
                                 error_cause, required_fields[error_cause]
@@ -888,7 +888,7 @@ class Clients:
                             [{
                                 "type": "error",
                                 "id": "CLIENT_ID_ALREADY_EXISTS",
-                                "status":  resp.status,
+                                "status": resp.status,
                                 "text": "A client with client id {0} already exists".format(
                                     id
                                 )
@@ -927,7 +927,7 @@ class Clients:
                             log.debug("Created client {} in database".format(id))
                             # Return the data to the user
                             req.context["result"] = {
-                                "data":{
+                                "data": {
                                     "id": "CLIENT_CREATED",
                                     "status": resp.status,
                                     "type": "success",
