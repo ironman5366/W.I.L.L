@@ -25,6 +25,10 @@ jobs:
   include:
     - stage: Deploy
       install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-      script: sh deploy.sh "$TRAVIS_BRANCH" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
-      after_success: true
+      # Unit testing
+      script: docker run willassistant/core:"$1" /bin/sh -c "cd /W.I.L.L/unit_tests; nosetests *.py;"
+      # Integration testing
+      script: sh create_tests.sh "$DB_PASSWORD" "$TRAVIS_BRANCH"
+      # If both stages, pass, push the newly built image to docker hub
+      after_success: sh deploy.sh "$TRAVIS_BRANCH" "$DOCKER_USERNAME" "$DOCKER_PASSWORD"
 

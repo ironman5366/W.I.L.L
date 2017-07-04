@@ -1,12 +1,13 @@
 # Builtin imports
 import logging
+import datetime
 
 # External imports
 import falcon
 
 # Internal imports
 from will.exceptions import *
-from will.API import hooks, middleware,v1,router
+from will.API import hooks, middleware, v1 ,router
 from will.userspace import sessions
 from itsdangerous import Signer, TimestampSigner
 
@@ -21,21 +22,24 @@ class App:
     signer = None
     timestampsigner = None
     monitor_instance = None
+    versions = [v1]
 
-    def __init__(self, configuration_data, session_manager, graph, app_callable=falcon.API):
+    def __init__(self, configuration_data, session_manager, db, app_callable=falcon.API):
         """
         Instantiate and build various components of the API and create the app object
         
         :param configuration_data: The loaded data from will.conf 
         :param session_manager: The session manager thread that is running curating sessions. Will be used by API 
         components
-        :param graph: The connection to neo4j.
+        :param db: The connection to mysql.
         :param app_callable: The WSGI instance to pass the middleware to. Adding it as a parameter allows things like
         mocking within unit testing, and other customization.
         """
         self.configuration_data = configuration_data
         self.session_manager = session_manager
-        self.graph = graph
+        self.db = db
+        hooks.db = db
+
         # Process the API settings
         self._load_configuration()
         # Build the middleware classes
@@ -44,6 +48,13 @@ class App:
         self.app = app_callable(
             middleware=self.middleware
         )
+        router.process_routes(self.app)
+        start_time = datetime.datetime.now()
+        log.debug("Starting API at {}".format(start_time.strftime("%c")))
+        for version in self.versions:
+            version.db = db
+            version.start_time = start_time
+
 
     def _load_middleware(self):
         """
@@ -74,6 +85,7 @@ class App:
             self.signer = Signer(secret_key)
             self.timestampsigner = TimestampSigner(secret_key)
             hooks.signer = self.signer
+
             v1.signer = self.signer
             v1.timestampsigner = self.timestampsigner
             error_cause = "banned-ips"

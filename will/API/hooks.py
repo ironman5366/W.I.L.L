@@ -8,8 +8,9 @@ import bcrypt
 
 #Internal imports
 from will.userspace import sessions
+from will.schema import *
 
-graph = None
+db = None
 signer = None
 
 log = logging.getLogger()
@@ -39,17 +40,13 @@ def user_auth(req, resp, resource, params):
         username = auth["username"]
         password = auth["password"]
         # Connect to the db
-        session = graph.session()
+        session = db()
         # Search for the user in the database
-        user_search = session.run("MATCH (u:User {username: {username}})"
-                                  "return (u)",
-                                  {"username": username})
-        session.close()
+        user_node = session.query(User).filter_by(username=username).one_or_none()
         # If the user exists
-        if user_search:
-            user_node = user_search[0]
+        if user_node:
             # Check the pw against the hash
-            auth = bcrypt.checkpw(password.encode('utf-8'), user_node["password"].encode('utf-8'))
+            auth = bcrypt.checkpw(password.encode('utf-8'), user_node.password.encode('utf-8'))
             # If the password is incorrect, through an unauthorized error
             if not auth:
                 resp.status = falcon.HTTP_UNAUTHORIZED
@@ -108,7 +105,15 @@ def assert_param(req, resp, resource, params):
                     "status": resp.status
                 }]
         }
-        raise falcon.HTTPError(resp.status, "Paramater required")
+        raise falcon.HTTPError(resp.status, "Parameter required")
+
+
+def param_username_decode(req, resp, resource, params):
+    """
+    Put a parametrized username into the request context
+    """
+    assert_param(req, resp, resource, params)
+    req.context["auth"].update({"username": params["username"]})
 
 
 def session_auth(req, resp, resource, params):
@@ -134,7 +139,7 @@ def session_auth(req, resp, resource, params):
                 if "client_id" in auth.keys():
                     client_id = auth["client_id"]
                     # The session is correct, add data to req.context
-                    if session.client == client_id:
+                    if session.client_id == client_id:
                         req.context["session"] = session
                     else:
                         resp.status = falcon.HTTP_UNAUTHORIZED
@@ -161,6 +166,7 @@ def session_auth(req, resp, resource, params):
                                 "status": resp.status
                             }]
                     }
+                    raise falcon.HTTPError(resp.status, "No client id found")
             else:
                 resp.status = falcon.HTTP_UNAUTHORIZED
                 req.context["result"] = {
@@ -226,59 +232,65 @@ def _scope_check(req, resp, resource, params, level):
     """
     session_auth(req, resp, resource, params)
     # Check the client scope, letting session_auth do validation
-    session = graph.session()
+    session = db()
     auth = req.context["auth"]
     if "username" in auth.keys():
         username = auth["username"]
         client_id = auth["client_id"]
         # Fetch the user node and the client relation node from the graph, and close the session
-        rel_data = session.run("MATCH (u:User {username: {username}})"
-                               "MATCH (c:Client {client_id: {client_id}})"
-                               "MATCH (u)-[r:USES]->(c)"
-                               "return (r)",
-                               {"username": username,
-                                "client_id": client_id})
-        session.close()
-        rel = rel_data[0]
-        # Check the scope of the relationship
-        scope = rel["scope"]
-        if scope in scopes.keys():
-            # See if the scope meets the required privileges
-            scope_met = calculate_scope(scope, level)
-            if scope_met:
-                log.debug("Client {0} provided a sufficient scope for the request resource {1}".format(
-                    client_id, resource
-                ))
+        rel = session.query(Association).filter_by(username=username, client_id=client_id).one_or_none()
+        if rel:
+            # Check the scope of the relationship
+            scope = rel.scope
+            if scope in scopes.keys():
+                # See if the scope meets the required privileges
+                scope_met = calculate_scope(scope, level)
+                if scope_met:
+                    log.debug("Client {0} provided a sufficient scope for the request resource {1}".format(
+                        client_id, resource
+                    ))
+                else:
+                    resp.status = falcon.HTTP_UNAUTHORIZED
+                    req.context["result"] = {
+                        "errors":
+                            [{
+                                "id": "SCOPE_INSUFFICIENT",
+                                "type": "error",
+                                "text": "Your clients scope {0} does not meet the required scope admin for this method".format(
+                                    scope
+                                ),
+                                "status": resp.status
+                            }]
+                    }
+                    raise falcon.HTTPError(resp.status, "Insufficient")
             else:
-                resp.status = falcon.HTTP_UNAUTHORIZED
+                log.error("Invalid scope in database! Unrecognized scope {0} appeared in database between user {1} and "
+                          "client {2}".format(scope, username, client_id))
+                # Throw an error because there's invalid data
+                resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
                 req.context["result"] = {
                     "errors":
                         [{
-                            "id": "SCOPE_INSUFFICIENT",
                             "type": "error",
-                            "text": "Your clients scope {0} does not meet the required scope admin for this method".format(
-                                scope
-                            ),
-                            "status": resp.status
+                            "id": "SCOPE_INTERNAL_ERROR",
+                            "status": resp.status,
+                            "text": "The database provided an invalid scope. Please contact will@willbeddow.com to "
+                                    "submit a bug report."
                         }]
                 }
-                raise falcon.HTTPError(resp.status, "Insufficient")
+                raise falcon.HTTPError(resp.status, title="Internal scope error")
         else:
-            log.error("Invalid scope in database! Unrecognized scope {0} appeared in database between user {1} and client "
-                      "{2}".format(scope, username, client_id))
-            # Throw an error because there's invalid data
-            resp.status = falcon.HTTP_INTERNAL_SERVER_ERROR
+            resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
                 "errors":
                     [{
                         "type": "error",
-                        "id": "SCOPE_INTERNAL_ERROR",
+                        "id": "REL_NOT_FOUND",
                         "status": resp.status,
-                        "text": "The database provided an invalid scope. Please contact will@willbeddow.com to submit a "
-                                "bug report."
+                        "text": "Couldn't find a relationship between user {0} and client {1}".format(username, client_id)
                     }]
             }
-            raise falcon.HTTPError(resp.status, title="Internal scope error")
+            raise falcon.HTTPError(resp.status, "Rel not found")
     else:
         resp.status = falcon.HTTP_UNAUTHORIZED
         req.context["result"] = {
@@ -301,13 +313,10 @@ def client_is_official(req, resp, resource, params):
     client_auth(req, resp, resource, params)
     auth = req.context["auth"]
     client_id = auth["client_id"]
-    session = graph.session()
-    clients = session.run("MATCH (c:Client {client_id: {client_id}}) return (c)",
-                {"client_id": client_id})
-    session.close()
-    client = clients[0]
+    session = db()
+    client = session.query(Client).filter_by(client_id=client_id).one_or_none()
     # Check if the client is an official client provided by myself
-    if client["official"]:
+    if client.official:
         log.debug("Client {0} is an official client".format(client_id))
     else:
         resp.status = falcon.HTTP_UNAUTHORIZED
@@ -323,8 +332,6 @@ def client_is_official(req, resp, resource, params):
         raise falcon.HTTPError(resp.status, "Client unofficial")
 
 
-
-
 def user_is_admin(req, resp, resource, params):
     """
     Simple scope hook for admin prviliges
@@ -335,12 +342,10 @@ def user_is_admin(req, resp, resource, params):
     auth = req.context["auth"]
     username = auth["username"]
     # Run a graph session and check if the user is an admin
-    session = graph.session()
-    users = session.run("MATCH (u:User {username:{username}}) return(u)",
-                            {"username": username})
+    session = db()
+    user_node = session.query(User).filter_by(username=username).one_or_none()
     session.close()
-    user_node = users[0]
-    if user_node["admin"]:
+    if user_node.admin:
         log.debug("User {0} is an administrator and passed all layers of authentication".format(
             username
         ))
@@ -390,28 +395,17 @@ def client_user_auth(req, resp, resource, params):
         if "username" in auth.keys():
             username = auth["username"]
             # Check that the username exists
-            session = graph.session()
-            users = session.run("MATCH (u:User {username: {username}}) return (u)",
-                                {"username": username})
-            session.close()
-            if users:
+            session = db()
+            user = session.query(User).filter_by(username=username).one_or_none()
+            if user:
                 # Unsign the access token
-                session = graph.session()
                 try:
                     unsigned_access_token = signer.unsign(access_token).decode('utf-8')
                     # Check the access token against the database using bcrypt
-                    session = graph.session()
-                    rels = session.run(
-                                        "MATCH (u:User {username:{username}})"
-                                        "MATCH (c:Client {client_id: {client_id}})"
-                                        "MATCH (u)-[r:USES]->(c)"
-                                        "return (r)",
-                                        {"username": username,
-                                         "client_id": auth["client_id"]})
+                    rel = session.query(Association).filter_by(username=username, client_id=auth["client_id"]).one_or_none()
                     # If the relationship exists
-                    if rels:
-                        rel = rels[0]
-                        encrypted_access_token = rel["access_token"]
+                    if rel:
+                        encrypted_access_token = rel.access_token
                         if bcrypt.checkpw(unsigned_access_token.encode('utf-8'),
                                           encrypted_access_token.encode('utf-8')):
                             log.debug("Successful authentication from client {0} on behalf of user {1}".format(
@@ -529,13 +523,10 @@ def _generic_client_auth(client_id_type, client_secret_type, req, resp, resource
                     }]
             }
             raise falcon.HTTPError(resp.status, "Bad signature")
-        session = graph.session()
-        clients = session.run("MATCH (c:Client {name: {client_id}}) return (c)",
-                              {"client_id": client_id})
-        session.close()
-        if clients:
-            client = clients[0]
-            secret_key_hash = client["client_secret"]
+        session = db()
+        client = session.query(Client).filter_by(client_id=client_id).one_or_none()
+        if client:
+            secret_key_hash = client.client_secret
             if bcrypt.checkpw(secret_key.encode('utf-8'), secret_key_hash.encode('utf-8')):
                 log.debug("Successful authentication for client {0}".format(client_id))
             else:
@@ -575,8 +566,6 @@ def _generic_client_auth(client_id_type, client_secret_type, req, resp, resource
                 }]
         }
         raise falcon.HTTPError(resp.status, title="Client info not found")
-
-# TODO: have a client_auth and origin_client_auth method, both testing against _generic_client_auth
 
 def client_auth(req, resp, resource, params):
     """

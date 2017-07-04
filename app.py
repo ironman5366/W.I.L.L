@@ -28,13 +28,14 @@ def load_templates(
     """
     Process templates from configs/*.conf, using environment variables to fill in sensitive data
     
-    :param db_url: The url of the neo4j instance
-    :param db_username: The neo4j username
-    :param db_password: The neo4j password
+    :param db_url: The url of the mysql instance
+    :param db_username: The mysql username
+    :param db_password: The mysql password
     :param secret_key: The key that will be used for itsdangerous HMAC signing in the API
     :return file_templates: A dictionary of the configuration templates, structured like so -
     {"prod": '{"db": "username": "neo4j"...}, "dev": {...}}
     """
+    print ("Got db url {}".format(db_url))
     files = [f for f in os.listdir("configs") if f.endswith(".conf")]
     file_templates = {}
     for conf_file in files:

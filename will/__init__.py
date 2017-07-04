@@ -11,7 +11,7 @@ from will.core import Core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+53"
+version = "4.0-alpha+54"
 author = "Will Beddow"
 
 log = None
@@ -77,12 +77,13 @@ class will:
                                      "file is in JSON format")
 
     def kill(self):
-        """
+        """uniquuniquuniquununiquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquiqu
         Kill all running parts of W.I.L.L. For each individual components this usually consists of setting variables
         which threads monitor to false, and ending running services.
         """
         self.running = False
         self.API.kill()
+        self.session_manager.running = False
 
     def configure_logging(self):
         """
@@ -98,13 +99,14 @@ class will:
             "filemode": "w",
             "format": "%(asctime)s %(name)-12s %(levelname)-8s %(message)s",
             "maxBytes": 10000000,
-            "backupCount": 5,
-            "consoleLevel": logging.INFO
+            "backupCount": 5
         }
         if self.configuration_data["debug"]:
             log_data.update({"level": logging.DEBUG})
+            log_data.update({"consoleLevel": logging.DEBUG})
         else:
             log_data.update({"level": logging.INFO})
+            log_data.update({"consoleLevel": logging.INFO})
         # If relevant, override presets with user preferences
         # Define logging settings in the configuration by logging_{mysetting}: setting_value
         # Example: logging_filename: "will.log"
@@ -136,9 +138,6 @@ class will:
         log = logging.getLogger()
         log.addHandler(ch)
         log.addHandler(fh)
-        # Silence noisy loggers from external libraries
-        logging.getLogger('neo4j').setLevel(logging.CRITICAL)
-        logging.getLogger('neo4j.bolt').setLevel(logging.CRITICAL)
 
     def load_modules(self):
         """
@@ -161,6 +160,6 @@ class will:
         log.info("Loading userspace...")
         self.session_manager = userspace.start(configuration_data=self.configuration_data, plugins=plugins)
         log.info("Loading API...")
-        self.API = API.App(self.configuration_data, self.session_manager, userspace.graph)
+        self.API = API.App(self.configuration_data, self.session_manager, userspace.db)
         self.app = self.API.app
         log.info("Loaded W.I.L.L")

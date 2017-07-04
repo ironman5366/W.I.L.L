@@ -86,20 +86,6 @@ class RequireJSONTests(unittest.TestCase):
 class JSONTranslatorTests(unittest.TestCase):
     instance = middleware.JSONTranslator()
 
-    def test_empty_body(self):
-        """
-        Test that a request with an empty body raises the correct type of error
-        """
-        fake_request = mock_request()
-        try:
-            self.instance.process_request(fake_request, MagicMock())
-            # Fail if an HTTPError isn't raised with a status of bad request
-            self.fail("JSON translator middleware failed to raise an exception with a status of bad request when "
-                      "a request with an empty body was submitted")
-        except falcon.HTTPError as exception:
-            self.assertEqual(exception.status, falcon.HTTP_BAD_REQUEST)
-            self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "REQUEST_EMPTY")
-
     def test_malformed_json(self):
         """
         Submit malformed json in the request body and assert that the correct type of HttpError is raised

@@ -43,6 +43,9 @@ class JSONTranslator:
         # and allows you to read bytes from the request body.
         #
         # See also: PEP 3333
+        if req.content_length in (None, 0):
+            # Nothing to do
+            return
 
         body = req.stream.read()
         if not body and req.method != "GET":
@@ -185,6 +188,10 @@ class AuthTranslator:
                 - Required: True
                 - Form: Plaintext
                 - Post equivalent: auth/client_id
+            - X-Session-Id
+                - Required: False:
+                - Form: Plaintext
+                - Post equivalent: auth/session_id
             - X-Client-Secret
                 - Required: False
                 - Form: Plaintext
@@ -193,6 +200,10 @@ class AuthTranslator:
                 - Required: False
                 - Form: Plaintext
                 - Post equivalent: auth/access_token
+            - X-Username
+                - Required: False
+                - Form: Plaintext
+                -
             - Authorization
                 - Required: False
                 - Form: Base64
@@ -217,6 +228,9 @@ class AuthTranslator:
             access_token = req.get_header("X-Access-Token")
             if access_token:
                 auth.update({"access_token": access_token})
+            session_id = req.get_header("X-Session-Id")
+            if session_id:
+                auth.update({"session_id": session_id})
             # Allow http basic auth
             authorization = req.get_header("Authorization")
             # Assume that it's a basic http authorization header with base64 encoded username:password
@@ -244,7 +258,6 @@ class AuthTranslator:
                                     "status": resp.status
                                 }]
                         }
-                        print (req.context)
                         raise falcon.HTTPError(resp.status, "Incomplete header")
                 # Error decoding the authorization header from base64
                 except binascii.Error:
@@ -316,7 +329,7 @@ class MonitoringMiddleware:
                         self._banned_silent[ip] += 1
                         # The ip has been silent for more than 15 minutes and is suitable for unbanning
                         if self._banned_silent[ip] >= 180:
-                            # Check to see if it's a permanently ("POST", "PUT", "DELETE")banned ip
+                            # Check to see if it's a permanently banned ip
                             if ip not in self._default_banned:
                                 log.debug("Unbanning ip {0}".format(ip))
                                 self.banned_ips.remove(ip)
@@ -335,5 +348,5 @@ class MonitoringMiddleware:
         self.banned_ips = banned_ips
         self._default_banned = banned_ips
         # Start a thread to ban suspicious ips
-        ban_thread = threading.Thread(target=self._ban_monitor)
+        ban_thread = threading.Thread(target=self._ban_monitor, daemon=True)
         ban_thread.start()

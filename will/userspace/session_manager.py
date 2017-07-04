@@ -26,8 +26,8 @@ class SessionManager:
         # Validate arguments and initialize class
         self.graph = graph
         # State thread monitors the age of sessions and determines whether they need to be rebuilt or logged out
-        state_thread = threading.Thread(target=self.state_monitor)
-        cache_thread = threading.Thread(target=self.cache_manager)
+        state_thread = threading.Thread(target=self.state_monitor, daemon=True)
+        cache_thread = threading.Thread(target=self.cache_manager, daemon=True)
         state_thread.start()
         cache_thread.start()
         self._cache_threads.append(state_thread)

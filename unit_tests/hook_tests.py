@@ -1,16 +1,25 @@
 # Internal imports
 from will.API import hooks
 from will.userspace import sessions
+from will.schema import *
+import create_db
+
 
 # Builtin imports
 import unittest
 from unittest.mock import *
 import copy
+import uuid
 
 # External imports
 import falcon
 import bcrypt
 import itsdangerous
+from sqlalchemy.orm import sessionmaker
+
+s_key = create_db.db_init(None, None, None, None, "super-secret", "web-official", debug=True)
+engine = create_db.engine
+db = sessionmaker(bind=engine)
 
 
 def mock_request(auth={}, doc={}, **kwargs):
@@ -29,40 +38,111 @@ def mock_request(auth={}, doc={}, **kwargs):
     base_class.context.update(kwargs)
     return base_class
 
+def basic_user(
+        username="holden",
+        password="password",
+        first_name="James",
+        last_name="Holden",
+        admin=False,
+        settings=None,
+        encrypt_pw=True,):
+        """
+        A method to create a standard user
 
-def mock_session(return_value=None, side_effect=None):
-    """
-    Reach into the hooks file and change it's `graph.session` class to a mock method that returns what the tests
-    need it to return
-    :param return_value: 
-    
-    """
-    hooks.graph = MagicMock()
-    mock_copy = copy.deepcopy(MagicMock)
-    hooks.graph.session = mock_copy
-    if side_effect:
-        # Give an option to return it with a side ffect instead of a return value
-        assert not return_value
-        hooks.graph.session.run = MagicMock(side_effect=side_effect)
-    else:
-        hooks.graph.session.run = MagicMock(return_value=return_value)
+        :param username: The username of the user
+        :param password: The password of the user
+        :param first_name: The first name of the user
+        :param last_name: The last name of the user
+        :param settings: The users settings
+        :param encrypt_pw: A bool defining whether or not to hash the users password with the standard hashing algo
+        :return user: An instantiated schema.User class
+        """
+        if encrypt_pw:
+            password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        if settings is None:
+            settings = {
+                "email": "will@willbeddow.com",
+                "location":
+                    {
+                        "latitude": 44.970468,
+                        "longitude": -93.262148
+                    },
+                "temp_unit": "C",
+                "timezone": "US/Eastern"
+            }
+        return User(
+            username=username,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            settings=settings,
+            admin=admin)
+
+def basic_client(
+        client_id="rocinate",
+        official=False,
+        client_secret=None,
+        hash_secret=True,
+        scope="command",
+        validate_scope=True):
+        """
+        Generate a client with standard settings
+
+        :param client_id: The clients unique identifier
+        :param official: A bool defining whether the client is official
+        :param client_secret: The secret key for the client. Will be automatically generated if left as none
+        :param hash_secret: A bool defining whether to hash the clients secret key with the standard hashing algo
+        :param scope: The scope of the rel
+        :param validate_scope: A bool defining whether the scope should be automatically validated
+        :return client: An instantiated schema.Client
+        """
+        if client_secret is None:
+            client_secret = str(uuid.uuid4())
+        if hash_secret:
+            client_secret = bcrypt.hashpw(client_secret.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        if validate_scope:
+            assert scope in hooks.scopes.keys()
+        client = Client(client_id=client_id, client_secret=client_secret, scope=scope, official=official)
+        return client
 
 
-class UserAuthTests(unittest.TestCase):
+class DBTest(unittest.TestCase):
+
+    def setUp(self):
+        self.session = db()
+        print ("Starting transaction")
+        self.session.begin_nested()
+        hooks.db = MagicMock(return_value=self.session)
+
+    def tearDown(self):
+        print ("Deleting user")
+        self.session.rollback()
+        self.session.close()
+
+
+class UserAuthTests(DBTest):
+
+    def setUp(self):
+        DBTest.setUp(self)
+        hashed_correct_pw = bcrypt.hashpw("rocinate".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        user = User(
+            username="holden",
+            password=hashed_correct_pw,
+            first_name="James",
+            last_name="holden",
+            settings={})
+        self.session.add(user)
 
     def test_successful_login(self):
         """
         Mock the authentication and test a successful authentication flow
-        
+
         """
+        print ("Test 1")
         correct_auth = {
             "username": "holden",
             "password": "rocinate"
         }
-        # Create an encrypted hash of the password to put in the mock database
-        hashed_correct_pw = bcrypt.hashpw(correct_auth["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-        # Pretend that the user exists
-        mock_session([{"username": "holden", "password":  hashed_correct_pw}])
         fake_request = mock_request(correct_auth)
         # If the hook fails it'll throw a falcon error
         hooks.user_auth(fake_request, MagicMock(), None, None)
@@ -72,14 +152,13 @@ class UserAuthTests(unittest.TestCase):
         """
         Don't submit a password and assert that it raises the correct http error
         """
+        print ("Test 2")
         incorrect_auth = {
             "username": "holden",
             "password": "tycho"
         }
         fake_request = mock_request(incorrect_auth)
-        hashed_correct_pw = bcrypt.hashpw("rocinate".encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
         # Pretend that the user exists
-        mock_session([{"username": "holden", "password": hashed_correct_pw}])
         with self.assertRaises(falcon.HTTPError) as exception:
             hooks.user_auth(fake_request, MagicMock(), None, None)
 
@@ -87,12 +166,13 @@ class UserAuthTests(unittest.TestCase):
         """
         Submit a username that the mocked database won't find, and assert that it raises the correct http error
         """
+        print("Test 4")
         incorrect_auth = {
             "username": "lionelpolanski",
             "password": "OPA4Lyfe"
         }
+
         fake_request = mock_request(incorrect_auth)
-        mock_session([])
         with self.assertRaises(falcon.HTTPError) as exception:
             hooks.user_auth(fake_request, MagicMock(), None, None)
 
@@ -100,6 +180,7 @@ class UserAuthTests(unittest.TestCase):
         """
         Don't submit username or password in the authentication and assert that it raises the correct http error
         """
+        print ("test 5")
         fake_request = mock_request()
         with self.assertRaises(falcon.HTTPError) as exception:
             hooks.user_auth(fake_request, MagicMock(), None, None)
@@ -225,7 +306,7 @@ class SessionAuthTest(unittest.TestCase):
         # Mock the important aspects of a session object
         session_mock = MagicMock()
         session_mock.session_id = "ubiquitous"
-        session_mock.client = "donnager"
+        session_mock.client_id = "donnager"
         sessions.sessions.update({
             session_mock.session_id: session_mock
         })
@@ -280,7 +361,7 @@ class CalculateScopeTests(unittest.TestCase):
         self.assertTrue(scope_resp)
 
 
-class CheckScopeTests(unittest.TestCase):
+class CheckScopeTests(DBTest):
     """
     Tests for the internal method hooks._scope_check that determines whether scope data submitted in a valid 
     authenticated requests matches the corresponding scope permissions in the database
@@ -291,6 +372,7 @@ class CheckScopeTests(unittest.TestCase):
         """
         Mock out hooks.session_auth so that it doesn't interfere with the testing
         """
+        super().setUp()
         self.session_auth_copy = hooks.session_auth
         hooks.session_auth = MagicMock()
 
@@ -298,6 +380,7 @@ class CheckScopeTests(unittest.TestCase):
         """
         Restore hooks.session_auth
         """
+        super().tearDown()
         hooks.session_auth = self.session_auth_copy
 
     def test_valid_scope(self):
@@ -306,7 +389,13 @@ class CheckScopeTests(unittest.TestCase):
         """
         method_required_scope = "command"
         # Mock the database query to return the scope we want it to
-        mock_session([{"scope": "command"}])
+        user = basic_user()
+        self.session.add(user)
+        client = basic_client()
+        assoc = Association(scope="command")
+        assoc.user = user
+        client.users.append(assoc)
+        self.session.add(client)
         hooks._scope_check(
             mock_request(auth={"username": "holden", "client_id": "rocinate"}),
             MagicMock(),
@@ -321,7 +410,13 @@ class CheckScopeTests(unittest.TestCase):
         """
         method_required_scope = "settings_change"
         # Mock the database query to return a lower scope
-        mock_session([{"scope": "settings_read"}])
+        user = basic_user()
+        self.session.add(user)
+        client = basic_client()
+        assoc = Association(scope="settings_read")
+        assoc.user = user
+        client.users.append(assoc)
+        self.session.add(client)
         fake_request = mock_request(auth={"username": "holden", "client_id": "rocinate"})
         try:
             hooks._scope_check(fake_request, MagicMock(), None, None, method_required_scope)
@@ -336,14 +431,21 @@ class CheckScopeTests(unittest.TestCase):
         Test the function behavior when the database returns an invalid scope 
         """
         method_required_scope = "settings_change"
-        # Mock the database query to return a scope that doens't exist
-        mock_session([{"scope": "nonexistent_scope"}])
-        fake_request = mock_request(auth={"username": "holden", "client_id": "rocinate"})
+        user = basic_user()
+        self.session.add(user)
+        client = basic_client()
+        assoc = Association(scope="nonexistent_scope")
+        assoc.user = user
+        client.users.append(assoc)
+        self.session.add(client)
+        # Mock the database query to return a scope that doesn't exist
+        fake_request = mock_request(auth={"username": "holden", "client_id": "rocinate", "password": "password"})
         try:
             hooks._scope_check(fake_request, MagicMock(), None, None, method_required_scope)
             # If it doesn't throw the required error, the test should fail
             self.fail("The scope check method didn't raise an error when the database returned a bad scope")
         except falcon.HTTPError as exception:
+            print(fake_request.context["result"])
             self.assertEqual(exception.status, falcon.HTTP_INTERNAL_SERVER_ERROR)
             self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "SCOPE_INTERNAL_ERROR")
 
@@ -365,7 +467,7 @@ class CheckScopeTests(unittest.TestCase):
             self.assertEqual(invalid_request.context["result"]["errors"][0]["id"], "USERNAME_NOT_FOUND")
 
 
-class ClientIsOfficialTests(unittest.TestCase):
+class ClientIsOfficialTests(DBTest):
 
     """
     Test that the hook which checks whether the client is noted as official works properly
@@ -376,6 +478,7 @@ class ClientIsOfficialTests(unittest.TestCase):
         """
         Mock out hooks.client_auth while this test is running
         """
+        super().setUp()
         self.client_auth_copy = hooks.client_auth
         hooks.client_auth = MagicMock()
 
@@ -383,6 +486,7 @@ class ClientIsOfficialTests(unittest.TestCase):
         """
         Restore hooks.client_auth from the copy
         """
+        super().tearDown()
         hooks.client_auth = self.client_auth_copy
 
     def test_official_client(self):
@@ -390,7 +494,8 @@ class ClientIsOfficialTests(unittest.TestCase):
         Test a valid official client
         """
         # Mock the session so that it will return that the client is official
-        mock_session([{"official": True}])
+        client = basic_client(official=True)
+        self.session.add(client)
         correct_client_id = "rocinate"
         fake_request = mock_request(auth={"client_id": correct_client_id})
         hooks.client_is_official(fake_request, MagicMock(), None, None)
@@ -402,7 +507,8 @@ class ClientIsOfficialTests(unittest.TestCase):
         """
         bad_client_id = "anubis"
         fake_request = mock_request(auth={"client_id": bad_client_id})
-        mock_session([{"official": False}])
+        client = basic_client(client_id="anubis")
+        self.session.add(client)
         try:
             hooks.client_is_official(fake_request, MagicMock(), None, None)
             # The test should fail if the required error isn't thrown
@@ -412,13 +518,14 @@ class ClientIsOfficialTests(unittest.TestCase):
             self.assertEqual(fake_request.context["result"]["errors"][0]["id"], "CLIENT_UNOFFICIAL")
 
 
-class UserIsAdminTests(unittest.TestCase):
+class UserIsAdminTests(DBTest):
     _scope_check_copy = None
 
     def setUp(self):
         """
         Mock hooks._scope_check for just this function
         """
+        super().setUp()
         self._scope_check_copy = hooks._scope_check
         hooks._scope_check = MagicMock()
 
@@ -426,6 +533,7 @@ class UserIsAdminTests(unittest.TestCase):
         """
         Restore hooks._scope_check from the copy
         """
+        super().tearDown()
         hooks._scope_check = self._scope_check_copy
 
     def test_valid_user(self):
@@ -435,7 +543,8 @@ class UserIsAdminTests(unittest.TestCase):
         admin_user = {"username": "holden"}
         fake_request = mock_request(auth=admin_user)
         # Mock the database query to say that the user is an admin
-        mock_session([{"admin": True}])
+        user = basic_user(admin=True)
+        self.session.add(user)
         hooks.user_is_admin(fake_request, MagicMock(), None, None)
         self.assert_(True)
 
@@ -446,7 +555,8 @@ class UserIsAdminTests(unittest.TestCase):
         invalid_user = {"username": "amos"}
         fake_request = mock_request(auth=invalid_user)
         # Mock the database sssion to say that the user isn't dn admin
-        mock_session([{"admin": False}])
+        user = basic_user(username="amos", admin=False)
+        self.session.add(user)
         try:
             hooks.user_is_admin(fake_request, MagicMock(), None, None)
             self.fail("User is admin hook did not reject a non administrator user")
@@ -488,7 +598,7 @@ class ScopeHookTests(unittest.TestCase):
         self._scope_check_mock.assert_called_with(None, None, None, None, "command")
 
 
-class ClientUserAuthTests(unittest.TestCase):
+class ClientUserAuthTests(DBTest):
     """
     Tests for the method hooks.client_user_auth that authenticates both the client and the user
     """
@@ -498,10 +608,12 @@ class ClientUserAuthTests(unittest.TestCase):
         """
         Mock hooks.client_auth for the scope of the method
         """
+        super().setUp()
         self.client_auth_copy = hooks.client_auth
         hooks.client_auth = MagicMock()
 
     def tearDown(self):
+        super().tearDown()
         hooks.client_auth = self.client_auth_copy
 
     def test_access_token_missing(self):
@@ -538,7 +650,6 @@ class ClientUserAuthTests(unittest.TestCase):
         """
         fake_request = mock_request(auth={"access_token": "token", "username": "lionelpolanski"})
         # Mock the session to return no users
-        mock_session([])
         try:
             hooks.client_user_auth(fake_request, MagicMock(), None, None)
             # If an HTTPError isn't raised the test should fail
@@ -555,7 +666,8 @@ class ClientUserAuthTests(unittest.TestCase):
         """
         fake_request = mock_request(auth={"access_token": "token", "username": "holden"})
         # Mock the session to return the user
-        mock_session([{"username": "holden"}])
+        user = basic_user()
+        self.session.add(user)
         # Mock itsdangerous to raise a bad signature error
         itsdangerous_signer_copy = copy.deepcopy(hooks.signer)
         hooks.signer = MagicMock()
@@ -577,15 +689,8 @@ class ClientUserAuthTests(unittest.TestCase):
         Assert that the method throws the correct error when it receives a request from a user that's not properly
         linked with the client
         """
-        # A hacky way to have different values for different mocked db queries inside the method
-        def session_side_effect(param, _):
-            # If it's the first one, return that the user exists
-            if param.endswith("return (u)"):
-                return ([{"username": "holden"}])
-            # If it's the other query, return that there's no rel
-            else:
-                return ([])
-        mock_session(side_effect=session_side_effect)
+        user = basic_user()
+        self.session.add(user)
         fake_request = mock_request(auth={"access_token": "token", "username": "holden", "client_id": "rocinate"})
         # Mock itsdangerous to return what we want it do
         itsdangerous_signer_copy = hooks.signer
@@ -607,17 +712,13 @@ class ClientUserAuthTests(unittest.TestCase):
         """
         Test an invalid access token
         """
-
-        # A hacky way to have different values for different mocked db queries inside the method
-        def session_side_effect(param, _):
-            # If it's the first one, return that the user exists
-            if param.endswith("return (u)"):
-                return ([{"username": "holden"}])
-            # If it's the other query, return that there's no rel
-            else:
-                # The hashed value of "not_token"
-                return ([{"access_token": "$2b$12$oFr1SU2H5PKM7Der91GnAOVX4zxv6bDokeLF7zUFhHPJoScXi11la"}])
-        mock_session(side_effect=session_side_effect)
+        user = basic_user()
+        self.session.add(user)
+        client = basic_client()
+        assoc = Association(access_token="$2b$12$oFr1SU2H5PKM7Der91GnAOVX4zxv6bDokeLF7zUFhHPJoScXi11la")
+        assoc.user = user
+        client.users.append(assoc)
+        self.session.add(client)
         fake_request = mock_request(auth={"access_token": "token", "username": "holden", "client_id": "rocinate"})
         # Mock itsdangerous to return what we want it do
         itsdangerous_signer_copy = hooks.signer
@@ -639,18 +740,14 @@ class ClientUserAuthTests(unittest.TestCase):
         """
         Submit a valid username, and a valid rel
         """
+        user = basic_user()
+        self.session.add(user)
+        client = basic_client()
+        assoc = Association(access_token="$2b$12$g59RaPDZRoIMV/cpnaElOOqi37vPCeeyxe5GQX7gDpLPhRZZ3vsYG")
+        assoc.user = user
+        client.users.append(assoc)
+        self.session.add(client)
 
-        # A hacky way to have different values for different mocked db queries inside the method
-        def session_side_effect(param, _):
-            # If it's the first one, return that the user exists
-            if param.endswith("return (u)"):
-                return ([{"username": "holden"}])
-            # If it's the other query, return that there's no rel
-            else:
-                # The encyrpted value of "token"
-                return ([{"access_token": "$2b$12$g59RaPDZRoIMV/cpnaElOOqi37vPCeeyxe5GQX7gDpLPhRZZ3vsYG"}])
-
-        mock_session(side_effect=session_side_effect)
         fake_request = mock_request(auth={"access_token": "token", "username": "holden",  "client_id": "rocinate"})
         # Mock itsdangerous to return what we want it do
         itsdangerous_signer_copy = hooks.signer
@@ -664,7 +761,7 @@ class ClientUserAuthTests(unittest.TestCase):
             hooks.signer = itsdangerous_signer_copy
 
 
-class ClientAuthTests(unittest.TestCase):
+class ClientAuthTests(DBTest):
     """
     Tests for the method hooks._generic_client_auth, which authenticates just a client
     """
@@ -689,7 +786,6 @@ class ClientAuthTests(unittest.TestCase):
         """
         fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "super-secret"})
         # Mock the session to not find the client
-        mock_session([])
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
         hooks.signer.unsign = MagicMock(return_value=b"valid")
@@ -708,9 +804,10 @@ class ClientAuthTests(unittest.TestCase):
         """
         Submit a client_secret parameter that's unsigned, an assert that it raises the correct http error
         """
-        fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "super-secret"})
         # Mock the database to find the client
-        mock_session([{"client_id": "anubis"}])
+        client = basic_client(client_id="anubis")
+        self.session.add(client)
+        fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "super-secret"})
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
         hooks.signer.unsign = MagicMock(side_effect=itsdangerous.BadSignature("oops"))
@@ -730,13 +827,11 @@ class ClientAuthTests(unittest.TestCase):
         """
         Submit a client secret key that has a valid signature, but is invalid
         """
-        fake_request = mock_request(auth={"client_"
-                                          "id": "anubis", "client_secret": "super-secret"})
+        fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "super-secret"})
         # Mock the session to not find the client
         # The hash of "secret"
-        mock_session([{
-            "client_secret": "$2b$12$WNFp8f2wqiCEZ/x8SKUGp.H4cOq09OAk.kZh7kxaywN65wpgruxiC"
-        }])
+        client = basic_client(client_id="anubis", client_secret="something-else")
+        self.session.add(client)
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
         hooks.signer.unsign = MagicMock(return_value=b"super-secret")
@@ -758,9 +853,8 @@ class ClientAuthTests(unittest.TestCase):
         fake_request = mock_request(auth={"client_id": "anubis", "client_secret": "secret"})
         # Mock the session to not find the client
         # The hash of "secret"
-        mock_session([{
-            "client_secret": "$2b$12$WNFp8f2wqiCEZ/x8SKUGp.H4cOq09OAk.kZh7kxaywN65wpgruxiC"
-        }])
+        client = basic_client(client_id="anubis", client_secret="secret")
+        self.session.add(client)
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
         hooks.signer.unsign = MagicMock(return_value=b"secret")
@@ -778,11 +872,9 @@ class ClientAuthTests(unittest.TestCase):
         :return: 
         """
         fake_request = mock_request(auth={"origin_client_id": "anubis", "origin_client_secret": "secret"})
-        # Mock the session to not find the client
         # The hash of "secret"
-        mock_session([{
-            "client_secret": "$2b$12$WNFp8f2wqiCEZ/x8SKUGp.H4cOq09OAk.kZh7kxaywN65wpgruxiC"
-        }])
+        client = basic_client(client_id="anubis", client_secret="secret")
+        self.session.add(client)
         itsdangerous_signer_copy = hooks.signer
         hooks.signer = MagicMock()
         hooks.signer.unsign = MagicMock(return_value=b'secret')

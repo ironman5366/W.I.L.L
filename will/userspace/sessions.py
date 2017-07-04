@@ -7,13 +7,15 @@ import queue
 # Internal imports
 from will.core import arguments
 from will import tools
+from will.userspace import notifications
+from will.schema import *
 
 # External imports
 import falcon
 
 log = logging.getLogger()
 
-graph = None
+db = None
 
 sessions = {}
 
@@ -28,6 +30,7 @@ notification_manager = None
 # Pull the user data from the database, find what plugins they have enabled, and cache all the data for the user
 
 # TODO: use notification manager
+
 
 class Command:
 
@@ -96,7 +99,7 @@ class Session:
         :param dynamic: A dict of dynamic variables
         """
         # Make sure the graph has been loaded before the class is instantiated
-        assert graph
+        assert db
         self.username = username
         self.dynamic = dynamic
         self.client_id = client_id
@@ -189,7 +192,7 @@ class Session:
 
     def notification(self, message, trigger_time, title="", scope="all"):
         # TODO: check scope
-        not_object = Notification(message, title, trigger_time, scope)
+        not_object = notifications.Notification(message, title, trigger_time, scope)
         notification_manager.notify(not_object)
 
     def _call_plugin(self, plugin, command_obj, method="exec"):
@@ -403,12 +406,8 @@ class Session:
         if self._user_data:
             return self._user_data
         else:
-            session = graph.session()
-            user_node = session.run(
-                "MATCH (u:User {username: {username}}) RETURN (u)",
-                {"username": self.username}
-            )
-            session.close()
+            session = db()
+            user_node = session.query(User).filter_by(username=self.username).one_or_none()
             if user_node:
                 user_data = user_node[0]
                 self._user_data = user_data
@@ -428,7 +427,7 @@ class Session:
     def build_arguments(self):
         for argument in arguments.argument_list:
             # Build the argument
-            instantiated_argument = argument(self.user_data, self.client_id, self, graph)
+            instantiated_argument = argument(self.user_data, self.client_id, self, db)
             self.arguments.update({type(instantiated_argument).__name__, instantiated_argument})
         self.instantiated = True
 

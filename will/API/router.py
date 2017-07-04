@@ -39,7 +39,7 @@ routes = {
         }
     },
     "clients": {
-        "routes": ["/clients"],
+        "routes": ["/clients", "/clients/{client_id}"],
         "versions": {
             "v1": v1.Clients()
         }
@@ -49,6 +49,13 @@ routes = {
         "versions": {
             "v1": v1.Commands()
         }
+    },
+    "status": {
+        "routes": ["/status"],
+        "versions":
+            {
+                "v1": v1.APIStatus()
+            }
     }
 }
 

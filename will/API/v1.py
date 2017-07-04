@@ -1,13 +1,14 @@
 # Builtin imports
 import logging
 import uuid
-import time
+import datetime
 
 # Internal imports
 from will.API import hooks
 from will.userspace import sessions
 from will import tools
-from will import transactions
+from will.schema import *
+import will
 
 # External imports
 import falcon
@@ -21,8 +22,39 @@ db = None
 timestampsigner = None
 signer = None
 
+# Refreshed by API/__init__.py after routes are processed.
+start_time = datetime.datetime.now()
+
+api_version = "1"
 
 # TODO: use the db with transactions!
+
+
+class APIStatus:
+    """
+    Output the basic status of the API
+    """
+
+    @property
+    def report(self):
+        """
+        Generate an uptime report
+        """
+        time_run = (datetime.datetime.now()-start_time).total_seconds()
+        report_str = "API version {0} running on W.I.L.L version {1}, up for {2} seconds,".format(
+            api_version, will.version, time_run)
+        report_data = {
+            "data":
+                {
+                    "type": "success",
+                    "id": "GENERATED_REPORT",
+                    "text": report_str
+                }
+        }
+        return report_data
+
+    def on_get(self, req, resp):
+        req.context["result"] = self.report
 
 
 class Oauth2Step:
@@ -48,30 +80,25 @@ class Oauth2Step:
     def on_post(self, req, resp):
         raise NotImplementedError
 
+    @falcon.before(hooks.client_is_official)
     @falcon.before(hooks.user_auth)
     def on_delete(self, req, resp):
         """
-        As an authenticated user, terminate a relationship with a client
+        As an authenticated user, terminate a relationship with a client, using an official interface
         """
-        step_rels = {
-            "user_token": "AUTHORIZED",
-            "access_token": "USES"
-        }
-        if self._step_id in step_rels.keys():
-            step_rel = step_rels[self._step_id]
+        step_rels = ["user_token", "access_token"]
+        if self._step_id in step_rels:
             auth = req.context["auth"]
-            if "client_id" in auth.keys():
-                client_id = auth["client_id"]
-                with db.session() as session:
-                    user_rels = session.read_transaction(
-                        transactions.get_user_client_rels,
-                        client_id,
-                        auth["username"],
-                        step_rel)
+            auth_keys = auth.keys()
+            if "origin_client_id" in auth_keys:
+                if "client_id" in auth_keys:
+                    client_id = auth["origin_client_id"]
+                    session = db()
+                    user_rels = session.query(Association).filter_by(username=auth["username"], client_id=client_id).one_or_none()
                     if user_rels:
                         # Delete the relationship
-                        rel = user_rels[0]
-                        session.write_transaction(transactions.delete_rel, rel.id, step_rel)
+                        session.delete(user_rels)
+                        session.commit()
                         req.context["result"] = {
                             "data":
                                 {
@@ -95,16 +122,26 @@ class Oauth2Step:
                                     "status": resp.status
                                 }]
                         }
+                else:
+                    resp.status = falcon.HTTP_BAD_REQUEST
+                    req.context["result"] = {
+                        "errors":
+                            [{
+                                "type": "error",
+                                "id": "CLIENT_ID_NOT_FOUND",
+                                "text": "A DELETE request to this method must include a client id",
+                                "status": resp.status
+                            }]
+                    }
             else:
-                resp.status = falcon.HTTP_NOT_FOUND
+                resp.status = falcon.HTTP_BAD_REQUEST
                 req.context["result"] = {
-                    "errors":
-                        [{
-                            "type": "error",
-                            "id": "CLIENT_ID_NOT_FOUND",
-                            "text": "A DELETE request to this method must include a client id",
-                            "status": resp.status
-                        }]
+                    "errors": [{
+                        "type": "error",
+                        "id": "ORIGIN_CLIENT_ID_NOT_FOUND",
+                        "text": "A DELETE method to this request must include a data/origin_client_id key",
+                        "status": resp.status
+                    }]
                 }
         # The passed step id (DELETE /api/v1/oauth2/step_id) was not recognized
         else:
@@ -135,16 +172,14 @@ class AccessToken(Oauth2Step):
             signed_auth_token = auth["user_token"]
             username = auth["username"]
             # Make sure the user exists
-            session = db.session()
+            session = db()
             # Check if an AUTHORIZED relationship exists between the user and the client
-            rels = session.run("MATCH (u:User {username: {username}})"
-                               "MATCH (c:Client {client_id: {client_id}})"
-                               "MATCH (u)-[r:AUTHORIZED]->(c) return(r)",
-                               {"username": username,
-                                "client_id": auth["origin_client_id"]})
-            if rels:
+
+            user_rels = session.query(Association).filter_by(username=auth["username"],
+                                                             client_id=auth["origin_client_id"]).one_or_none()
+            if user_rels:
+                rel = user_rels.user_token
                 # Validation
-                rel = rels[0]
                 log.debug("Starting client connection process for client {0} and user {1}".format(
                     auth["origin_client_id"], username
                 ))
@@ -154,27 +189,17 @@ class AccessToken(Oauth2Step):
                     log.debug("Token for user {0} provided by client {1} unsigned successfully".format(
                         username, auth["client_id"]
                     ))
-                    if unsigned_auth_token == rel["user_token"]:
-                        log.debug("Token check successful. Permanently connecting user {0} and client"
+                    if bcrypt.checkpw(unsigned_auth_token.encode('utf-8'), rel.encode('utf-8')):
+                        log.info("Token check successful. Permanently connecting user {0} and client"
                                   " {1}".format(username, auth["client_id"]))
                         # Generate a secure token, sign it, and encrypt it in the database
                         final_token = str(uuid.uuid4())
                         # Sign the unencrypted version for the client
-                        signed_final_token = (final_token.encode('utf-8')).decode('utf-8')
+                        signed_final_token = (signer.sign(final_token.encode('utf-8'))).decode('utf-8')
                         # Encrypt it and put in the database
                         encrypted_final_token = bcrypt.hashpw(
                             signed_final_token.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                        session.run(
-                            "MATCH (u:User {username:{username}})"
-                            "MATCH (c:Client {client_id:{client_id}})"
-                            "MERGE (u)-[:USES {scope: {scope}, {access_token: {access_token}}]->(c)",
-                            {
-                                "username": username,
-                                "client_id": auth["client_id"],
-                                "scope": rel["scope"],
-                                "access_token": encrypted_final_token
-                            }
-                        )
+                        user_rels.access_token = encrypted_final_token
                         # Return the signed token to the client
                         req.context["result"] = {
                             "data":
@@ -214,10 +239,8 @@ class AccessToken(Oauth2Step):
                     }
                 # Regardless of whether the token was valid, we want to delete the temporary auth connection
                 finally:
-                    session.run("MATCH (u:User {username: {username}})"
-                                "MATCH (c:Client {client_id: {client_id}})"
-                                "MATCH (u)-[r:AUTHORIZED]->(c)"
-                                "DETACH DELETE (r)")
+                    user_rels.user_token = None
+                    session.commit()
 
             else:
                 resp.status = falcon.HTTP_UNAUTHORIZED
@@ -232,7 +255,6 @@ class AccessToken(Oauth2Step):
                             "status": resp.status
                         }]
                 }
-            session.close()
         else:
             resp.status = falcon.HTTP_UNAUTHORIZED
             req.context["result"] = {
@@ -274,36 +296,26 @@ class UserToken(Oauth2Step):
         if "scope" in doc.keys():
             scope = doc["scope"]
             # Assert that the client and user both exist
-            session = db.session()
-            clients = session.run("MATCH (c:Client {client_id: {client_id}}) return (c)",
-                                  {"client_id": client_id})
-            if clients:
-                # Get the callback url for the client and make a call to it
-                client = clients[0]
-                callback_url = client["callback_url"]
+            session = db()
+            client = session.query(Client).filter_by(client_id=client_id).one_or_none()
+            if client:
                 # Use uuid4 for a random id.
                 unsigned_id = str(uuid.uuid4())
                 # Sign the id with a timestamp. When checking the key we'll check for a max age of 5 minutes
                 signed_id = timestampsigner.sign(unsigned_id.encode('utf-8'))
                 # Put the unsigned id and the scope in the database connected to the user
-                # Once the client resubmits the access token, the AUTHORIZED relationship will be destroyed and
-                # Replaced with a permanent USED one
-                # TODO: do this in a transaction
-                session.run("MATCH (u:User {username: {username}})"
-                            "MATCH (c:Client {client_id: {client_id}})"
-                            "MERGE (u)-[:AUTHORIZED {scope: {scope}, user_token: {auth_token}}]->(c)",
-                            {
-                                "username": username,
-                                "client_id": client_id,
-                                "scope": scope,
-                                "auth_token": unsigned_id
-                            }
-                            )
+                a = Association(user_token=unsigned_id, scope=scope)
+                user = session.query(User).filter_by(username=username).one_or_none()
+                client = session.query(Client).filter_by(client_id=client_id).one_or_none()
+                a.user = user
+                a.client = client
+                client.users.append(a)
+                session.commit()
                 req.context["result"] = {"data":
                                              {"id": "USER_AUTHORIZATION_TOKEN",
                                               "type": "success",
-                                              "token": signed_id,
-                                              "callback_url": callback_url}}
+                                              "token": signed_id}
+                                         }
             else:
                 resp.status = falcon.HTTP_UNAUTHORIZED
                 req.context["result"] = {"errors":
@@ -323,7 +335,7 @@ class UserToken(Oauth2Step):
 
 
 class Users:
-    @falcon.before(hooks.session_auth)
+
     @falcon.before(hooks.client_can_change_settings)
     def on_put(self, req, resp):
         """
@@ -347,12 +359,9 @@ class Users:
             log.debug("Updating settings for user {}".format(username))
             change_settings = doc["settings"]
             # Find the user in the database
-            session = db.session()
-            users = session.run("MATCH (u:User {username: {username}})"
-                                "return (u)",
-                                {"username": username})
-            user = users[0]
-            user_settings = user["settings"]
+            session = db()
+            user = session.query(User).filter_by(username=username).one_or_none()
+            user_settings = user.settings
             updated_settings = user_settings
             changed_settings = 0
             new_settings = 0
@@ -367,9 +376,6 @@ class Users:
                         "status": resp.status
                     }]
                 }
-                # Close the DB session before exiting the method
-                session.close()
-                return
 
             for setting, setting_value in change_settings.items():
                 if setting in user_settings.keys():
@@ -377,10 +383,12 @@ class Users:
                         if not tools.location_validator(setting_value):
                             # Throw a validation error
                             throw_validation_error(setting)
+                            return
                     elif setting == "email":
                         if not validators.url(setting_value):
                             # Throw a validation error
                             throw_validation_error(setting)
+                            return
                     changed_settings += 1
                     log.debug("Updating setting {0} for user {1} from {2} to {3}".format(
                         setting, username, user_settings[setting], setting_value
@@ -396,11 +404,8 @@ class Users:
             log.info("Updating settings for user {0}. Changing {1} settings and creating {2} for a total of {3} "
                      "changes".format(username, changed_settings, new_settings, changed_settings + new_settings
                                       ))
-            session.run("MATCH (u:User {username: {username}})"
-                        "SET u.settings={settings}",
-                        {"username": username,
-                         "settings": updated_settings})
-            session.close()
+            user.settings = updated_settings
+            session.commit()
             # Rebuild session
             user_session = req.context["session"]
             user_session.reload()
@@ -423,48 +428,47 @@ class Users:
                         "status": resp.status
                     }]
             }
-
+            
+    @falcon.before(hooks.param_username_decode)
     @falcon.before(hooks.client_can_read_settings)
-    @falcon.before(hooks.session_auth)
-    def on_get(self, req, resp):
+    def on_get(self, req, resp, username):
         """
         Get information about a user
         
         :param req: 
         :param resp: 
         """
-        auth = req.context["auth"]
-        username = auth["username"]
         log.debug("Fetching data about user {}".format(username))
         # Start a db session and return nonsensitive user data
-        session = db.session()
-        matching_users = session.run("MATCH (u:User {username:{username}})"
-                                     "return (u)",
-                                     {"username": username})
-        session.close()
+        session = db()
+        user = session.query(User).filter_by(username=username).one_or_none()
         # We know the user exists because they passed the client user auth hook
-        user = matching_users[0]
-        user_fields = ["first_name", "last_name", "username", "email", "settings"]
         user_data = {}
         # Put the users data into a dictionary that will be returned in a "data" key
-        for d in user_fields:
-            user_data.update({d: user[d]})
+        user_data.update({
+            "first_name": user.first_name,
+            "last_name":  user.last_name,
+            "username":  user.username,
+            "settings": user.settings
+        })
         req.context["result"] = {
             "data":
                 {
                     "type": "success",
+                    "id": "USER_DATA_FETCHED",
                     "text": "Fetched user data for user {}".format(username),
                     "user_data": user_data
                 }
         }
 
-    @falcon.before(hooks.session_auth)
     @falcon.before(hooks.client_is_official)
+    @falcon.before(hooks.user_auth)
     def on_delete(self, req, resp):
         """
         Delete a user
-        :return: 
         """
+        # Check if the user exists
+        session = db()
         auth = req.context["auth"]
         username = auth["username"]
         log.info("Deleting user {}".format(username))
@@ -472,12 +476,10 @@ class Users:
         for session in sessions.sessions.values():
             if session.username == username:
                 session.logout()
-        session = db.session()
+        user = session.query(User).filter(username=username).one_or_none()
         # Delete the user in the database
-        session.run("MATCH (u:User {username: {username}})"
-                    "DETACH DELETE (u)",
-                    {"username": username})
-        session.close()
+        session.delete(user)
+        session.commit()
         req.context["result"] = {
             "data":
                 {
@@ -557,10 +559,10 @@ class Users:
         # If the data was validated successfully, create the user in the database
         # At the same time create an authorization token for the official client
         else:
-            session = db.session()
+            session = db()
             # Check to see if the username already exists
-            users_found = session.run("MATCH (u:User {username: {username})",
-                                      {"username": doc["username"]})
+
+            users_found = session.query(User).filter_by(username=doc["username"]).one_or_none()
             if users_found:
                 resp.status = falcon.HTTP_CONFLICT
                 req.context["result"] = {
@@ -577,36 +579,27 @@ class Users:
                 log.info("Creating user {}".format(doc["username"]))
                 # Hash the users password
                 hashed_password = bcrypt.hashpw(doc["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                auth = req.context["auth"]
-                client_id = auth["client_id"]
                 # Use oauth code to generate a access token for the official client.
                 # Generate a secure token, sign it, and encrypt it in the database
                 final_token = str(uuid.uuid4())
                 # Sign the unencrypted version for the client
-                signed_final_token = signer.sign(final_token.encode('utf-8'))
+                signed_final_token = signer.sign(final_token.encode('utf-8')).decode('utf-8')
                 # Encrypt it and put in the database
-                encrypted_final_token = bcrypt.hashpw(signed_final_token, bcrypt.gensalt()).decode('utf-8')
-                session.run(
-                    "MATCH (c:Client {client_id: {client_id})"
-                    "CREATE (u:User {"
-                    "admin: false, "
-                    "username: {username}, "
-                    "password: {password}, "
-                    "first_name: {first_name}, "
-                    "last_name: {last_name},"
-                    "settings:  {settings}"
-                    "created: {created}})-[:USES {scope: 'admin', access_token: {access_token}})->(c)",
-                    {
-                        "client_id": client_id,
-                        "username": doc["username"],
-                        "password": hashed_password,
-                        "first_name": doc["first_name"],
-                        "last_name": doc["last_name"],
-                        "settings": doc["settings"],
-                        "created": time.time(),
-                        "access_token": encrypted_final_token
-                    }
+                encrypted_final_token = bcrypt.hashpw(final_token.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                user = User(
+                    username=doc["username"],
+                    password=hashed_password,
+                    first_name=doc["first_name"],
+                    last_name=doc["last_name"],
+                    settings=doc["settings"],
+                    created=datetime.datetime.now(),
                 )
+                association = Association(access_token=encrypted_final_token, scope="admin")
+                official_client = session.query(Client).filter_by(official=True).one()
+                association.client = official_client
+                user.clients.append(association)
+                session.add(user)
+                session.commit()
                 req.context["result"] = {
                     "data":
                         {
@@ -616,72 +609,53 @@ class Users:
                             "access_token": signed_final_token
                         }
                 }
-            session.close()
 
 
 class Sessions:
     @falcon.before(hooks.client_user_auth)
-    def on_post(self, req, resp, null_session_id):
+    def on_post(self, req, resp):
         """
         Create a session
         
         """
-        if null_session_id:
-            resp.status = falcon.HTTP_BAD_REQUEST
-            req.context["result"] = {
-                "errors":
-                    [{
-                        "type": "error",
-                        "id": "NO_SESSION_ID_ON_CREATE",
-                        "text": "POST requests to this method cannot include session id paths",
-                        "status": resp.status
-                    }]
-            }
-        else:
-            # Doc will be used for dynamic variables
-            doc = req.context["doc"]
-            auth = req.context["auth"]
-            username = auth["username"]
-            client = auth["client_id"]
-            # Instantiate a session class
-            log.debug("Starting session for user {0} on client {1}, with dynamic data {2}"
-                      "".format(username, client, doc))
-            dynamic_acceptable = {"location": tools.location_validator}
-            d_keys = dynamic_acceptable.keys()
-            if doc:
-                doc_errors = []
-                for k, v in doc.items():
-                    if k in d_keys:
-                        if not dynamic_acceptable[k](v):
-                            error = {
-                                "type": "error",
-                                "id": "DYNAMIC_{}_INVALID".format(k.upper()),
-                                "text": "Submitted value for dynamic setting {} failed validation".format(k)
-                            }
-                            doc_errors.append(error)
-                    else:
+        # Doc will be used for dynamic variables
+        doc = req.context["doc"]
+        auth = req.context["auth"]
+        username = auth["username"]
+        client = auth["client_id"]
+        # Instantiate a session class
+        log.debug("Starting session for user {0} on client {1}, with dynamic data {2}"
+                  "".format(username, client, doc))
+        dynamic_acceptable = {"location": tools.location_validator}
+        d_keys = dynamic_acceptable.keys()
+        # Dynamic settings are optional
+        if doc:
+            doc_errors = []
+            for k, v in doc.items():
+                if k in d_keys:
+                    if not dynamic_acceptable[k](v):
                         error = {
                             "type": "error",
-                            "id": "DYNAMIC_{}_NOT_FOUND".format(k.upper()),
-                            "text": "Could not find a dynamic setting that matched {}".format(k)
+                            "id": "DYNAMIC_{}_INVALID".format(k.upper()),
+                            "text": "Submitted value for dynamic setting {} failed validation".format(k)
                         }
                         doc_errors.append(error)
-                if doc_errors:
-                    req.context["result"] = {"errors": doc_errors}
-                    return
-            session_class = sessions.Session(username, client, doc)
-            # Sign the session id
-            unsigned_session_id = session_class.session_id.encode('utf-8')
-            session_id = signer.sign(unsigned_session_id).decode('utf-8')
-            req.context["result"] = {
-                "data":
-                    {
-                        "type": "success",
-                        "id": "SESSION_CREATED",
-                        "session_id": session_id,
-                        "text": "Successfully created a session for user {0} on client {1}".format(username, client)
-                    }
-            }
+            if doc_errors:
+                req.context["result"] = {"errors": doc_errors}
+                return
+        session_class = sessions.Session(username, client, doc)
+        # Sign the session id
+        unsigned_session_id = session_class.session_id.encode('utf-8')
+        session_id = signer.sign(unsigned_session_id).decode('utf-8')
+        req.context["result"] = {
+            "data":
+                {
+                    "type": "success",
+                    "id": "SESSION_CREATED",
+                    "session_id": session_id,
+                    "text": "Successfully created a session for user {0} on client {1}".format(username, client)
+                }
+        }
 
     @falcon.before(hooks.session_auth)
     def on_delete(self, req, resp, session_id):
@@ -714,11 +688,8 @@ class Commands:
         :param resp: 
 
         """
-        auth = req.context["auth"]
         doc = req.context["doc"]
         session = req.context["session"]
-        # Try to unsign the session is, throw an error if it's invalid
-        # Check to see if the session id is valid
         if "command" in doc.keys():
             command = doc["command"]
             try:
@@ -767,36 +738,28 @@ class Commands:
 class Clients:
     @falcon.before(hooks.client_is_official)
     @falcon.before(hooks.origin_client_auth)
-    def on_get(self, req, resp):
+    def on_get(self, req, resp, origin_client_id):
         """
         On a request from an official client, return data about the client.
         :param req:
-        :param resp:  
+        :param resp:
+        :param origin_client_id:
         """
-        auth = req.context["auth"]
-        origin_client_id = auth["origin_client_id"]
         # Match the client in the database
-        session = db.session()
-        clients = session.run("MATCH (c:Client {client_id: {client_id}} return (c)", {"client_id": origin_client_id})
-        client = clients[0]
-        client_callback = client["callback_url"]
+        session = db()
+        client = session.query(Client).filter_by(client_id=origin_client_id).one_or_none()
         # Get the number of users that use it
-        users = session.run("MATCH (c:Client {client_id: {client_id})"
-                            "MATCH (u)-[:USES]->(c)"
-                            "return (u)",
-                            {"client_id": origin_client_id})
-        user_num = len(users)
+        user_num = len(client.users)
         req.context["result"] = {"data":
                                      {"user_num": user_num,
                                       "id": "CLIENT_DATA_FETCHED",
-                                      "text": "Client {0} has a callback url of {1}, and has {2} users.".format(
-                                          origin_client_id, client_callback, user_num
+                                      "text": "Client {0} has {1} users.".format(
+                                          origin_client_id, user_num
                                       )}}
-        session.close()
 
     @falcon.before(hooks.client_is_official)
     @falcon.before(hooks.origin_client_auth)
-    def on_delete(self, req, resp):
+    def on_delete(self, req, resp, *args):
         """
         Delete a client
         Preconditions: The request is coming from an official client, and the other client has authenticated
@@ -809,10 +772,9 @@ class Clients:
         # Start a neo4j session
         session = db.session()
         try:
-            session.run("MATCH (c:Client {client_id: {client_id}}),"
-                        "detach"
-                        "delete (c)",
-                        {"client_id": client_id})
+            client = session.filter_by(client_id=client_id).one_or_none()
+            session.delete(client)
+            session.commit()
             req.context["result"] = {
                 "data":
                     {"type": "success",
@@ -824,7 +786,7 @@ class Clients:
             session.close()
 
     @falcon.before(hooks.client_is_official)
-    def on_post(self, req, resp):
+    def on_post(self, req, resp, *args):
         """
         Create a client.
          The hooks before the function makes sure that the client has permission to do this
@@ -877,9 +839,8 @@ class Clients:
             if id not in reserved_client_ids:
                 scope = data["scope"]
                 # Check if the submitted id is already in the database
-                session = db.session()
-                matching_clients = session.run("MATCH (c:Client {client_id:{id}})",
-                                               {"id": id})
+                session = db()
+                matching_clients = session.query(Client).filter_by(client_id=id).all()
                 # If a client with that name already exists:
                 if matching_clients:
                     resp.status = falcon.HTTP_CONFLICT
@@ -914,16 +875,9 @@ class Clients:
                             # Sign the key. This version will be returned to the user
                             signed_secret_key = signer.sign(raw_secret_key).decode('utf-8')
                             # Put the client in the database
-                            session.run("CREATE (c:Client "
-                                        "{client_id: {client_id}, "
-                                        "official: false, "
-                                        "secret_key: {hashed_secret}, "
-                                        "scope: {scope}})",
-                                        {
-                                            "client_id": id,
-                                            "hashed_secret": hashed_secret_key,
-                                            "scope": scope
-                                        })
+                            new_client = Client(client_id=id, client_secret=hashed_secret_key, official=False)
+                            session.add(new_client)
+                            session.commit()
                             log.debug("Created client {} in database".format(id))
                             # Return the data to the user
                             req.context["result"] = {

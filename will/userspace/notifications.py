@@ -10,7 +10,7 @@ import requests
 
 # Internal imports
 from will import tools
-from will import transactions
+from will.schema import *
 
 log = logging.getLogger()
 
@@ -19,7 +19,7 @@ class Notification:
 
     _mail_api = None
 
-    def __init__(self, message, title, trigger_time, scope, graph, user_data, summary=None, uid=None, created=None):
+    def __init__(self, message, title, trigger_time, scope, db, user_data, summary=None, uid=None, created=None):
         """
         Create a Notification object
 
@@ -27,7 +27,7 @@ class Notification:
         :param title: The title of the notification
         :param trigger_time: When the notification should be sent, in epoch time
         :param scope: The scope of the notification
-        :param graph: The db
+        :param db: The db
         :param user_data: Information about the user the notification is being sent to
         :param summary: The summary text of the notification
         :param uid: The unique identifier for the notification
@@ -37,7 +37,7 @@ class Notification:
         self.title = tools.ascii_encode("W.I.L.L - " + title)
         self.message = tools.ascii_encode(message)
         self.scope = scope
-        self.graph = graph
+        self.db = db
         self._summary = summary
         if created:
             self.created = created
@@ -70,10 +70,10 @@ class Notification:
         """
         Send an email to the user
         """
-        mailgun_key, mailgun_url = tools.load_key("mailgun", self.graph, load_url=True)
-        email = self.user_data["settings"]["email"]
-        first_name = self.user_data["first_name"]
-        last_name = self.user_data["last_name"]
+        mailgun_key, mailgun_url = tools.load_key("mailgun", self.db, load_url=True)
+        email = self.user_data.settings["email"]
+        first_name = self.user_data.first_name
+        last_name = self.user_data.last_name
         return requests.post(
             mailgun_url,
             auth=("api", mailgun_key),
@@ -106,15 +106,15 @@ class NotificationHandler:
     running = True
     _notifications = {}
 
-    def __init__(self, graph):
+    def __init__(self,db):
         """
-        :param graph: The DB instance
+        :param db: The DB instance
         """
-        self.graph = graph
+        self.db = db
         # Pull the notifications from the database
         self._pull_notificatons()
         # Start the notification monitoring thread
-        wait_thread = threading.Thread(target=self._wait_notifications)
+        wait_thread = threading.Thread(target=self._wait_notifications, daemon=True)
         wait_thread.start()
 
     def notify(self, not_object):
@@ -128,45 +128,37 @@ class NotificationHandler:
         # If the notification is due for less than 5 minutes, don't bother putting it into the database
         if not_object.trigger_time - time.time() > 300:
             # Pull the necessary information out of the notification and format it accordingly
-            not_user = not_object.user_data["username"]
-            not_created = not_object.created
-            not_created_timestamp = not_created.timestamp()
             # Insert the notification into the db
-            with self.graph.session() as session:
-                session.write_transaction(
-                    transactions.create_notification,
-                    not_user,
-                    not_object.message,
-                    not_object.title,
-                    not_object.trigger_time,
-                    not_object.scope,
-                    not_created_timestamp,
-                    not_object.summary,
-                    not_object.uid
-                    )
+            session = self.db()
+            notification_store = NotificationStore(uid=not_uid, message=not_object.message, title=not_object.title,
+                                                   trigger_time=not_object.trigger_time, scope=not_object.scope,
+                                                   created=not_object.created, summary=not_object.summary)
+            notification_store.user_id = not_object.user_data.username
+            session.add(notification_store)
+            session.commit()
+            session.close()
+
 
     def _pull_notificatons(self):
         """
         Pull all notifications for each user
         """
-        session = self.graph.session()
-        notifications = session.run("MATCH (u:User)-[:SET]->(n:Notification)"
-                                    "return u,n")
+        session = self.db()
+        notifications = session.query(NotificationStore).all()
         if notifications:
             for notification in notifications:
-                user_set = notification["u"]
-                not_object = notification["n"]
-                datetime_instance = datetime.datetime.fromtimestamp(not_object.created)
+                user_set = notification.user_id
+                datetime_instance = notification.created
                 not_class = Notification(
-                    not_object.message,
-                    not_object.title,
-                    not_object.trigger_time,
-                    not_object.scope,
+                    notification.message,
+                    notification.title,
+                    notification.trigger_time,
+                    notification.scope,
                     user_set,
-                    not_object.summary,
-                    not_object.uid,
+                    notification.summary,
+                    notification.uid,
                     datetime_instance)
-                self._notifications.update({not_object.uid: not_class})
+                self._notifications.update({notification.uid: not_class})
             # Instantiate a `Notification` class for each one
         else:
             log.info("No notifications found from DB")

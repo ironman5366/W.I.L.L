@@ -43,16 +43,17 @@ class Argument:
         """
         raise NotImplementedError("Argument parent class must not be called directly")
 
-    def __init__(self, user_data, client, session, graph):
+    def __init__(self, user_data, client, session, db):
         """
         Instantiate an argument and start a build
         
         :param user_data: The users database entry
         :param client: The client that started the session
         :param session: The instantiated session object that the commiserate commands will run through
+        :param db: The database instance
         """
         self.errors = []
-        self._graph = graph
+        self._db = db
         self._user_data = user_data
         self._client = client
         self._session = session
@@ -115,7 +116,7 @@ class APIKey(Argument):
 
     def build(self):
         if self._loaded_keys.empty():
-            key, url = tools.load_key(self.key_name, self._graph, load_url=self.load_url)
+            key, url = tools.load_key(self.key_name, self._db, load_url=self.load_url)
             if key:
                 if self.load_url:
                     self._url = url

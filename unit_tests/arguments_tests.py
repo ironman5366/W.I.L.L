@@ -3,9 +3,21 @@ from unittest.mock import *
 import unittest
 import datetime
 
+# External imports
+from sqlalchemy.orm import sessionmaker
+
 # Internal imports
 from will.core import arguments
+from will.schema import *
+import create_db
 
+timestamp_signer = None
+signer = None
+s_key = create_db.db_init(None, None, None, None, "super-secret", "web-official", debug=True)
+engine = create_db.engine
+db = sessionmaker(bind=engine)
+
+# TODO: make this less of a dumpster fire
 
 class BaseArgumentTests(unittest.TestCase):
     """
@@ -33,7 +45,7 @@ class BaseArgumentTests(unittest.TestCase):
                 }}
 
     def load_graph(self):
-        return MagicMock()
+        return db
 
     def load_session(self):
         return MagicMock()
@@ -45,16 +57,25 @@ class BaseArgumentTests(unittest.TestCase):
         """
         Build the argument with mocked values
         """
+        self.session = db()
+        api_keys = self.session.query(APIKey).all()
+        print("Found {0} APIKeys".format(len(api_keys)))
+        self.session.begin_nested()
         self._session = self.load_session()
         self._user_data = self.load_user_data()
         self._graph = self.load_graph()
         self._client = self.load_client()
+        print("Building with desired build status {}".format(self._desired_build_status))
         self._instance = self.base_class(
             self._user_data, self._client, self._session, self._graph)
         # If the class being tested is a parent class, it may not be necessary to have a build pass
         self.assertEqual(self._instance._build_status, self._desired_build_status)
         if self._check_no_errors:
             self.assertEqual(self._instance.errors, [])
+
+    def tearDown(self):
+        self.session.rollback()
+        self.session.close()
 
     def test_re_build(self):
         self._instance.build()
@@ -81,28 +102,45 @@ class APIKeyArgumentTests(BaseArgumentTests):
     key_found = False
     _key_value = "my-key"
     _desired_build_status = None
+    key_name = None
+    _mocked_keys = ["wolfram", "weather"]
+
+    @classmethod
+    def setUpClass(cls):
+        print("Setting up class")
+        session = db()
+        for key_type in cls._mocked_keys:
+            key_class = APIKey(key_type=key_type, value="my-key", usages=0, max_usages=9000, refresh=9000,
+                               timestamp=datetime.datetime.now())
+            session.add(key_class)
+        session.commit()
+
+    @classmethod
+    def tearDownClass(cls):
+        print("Tearing down class")
+        session = db()
+        api_keys = session.query(APIKey).all()
+        [session.delete(a) for a in api_keys]
+        session.commit()
 
     def setUp(self):
         """
         Build the argument with mocked values
         """
-        self._session = self.load_session()
-        self._user_data = self.load_user_data()
-        self._graph = self.load_graph()
-        self._client = self.load_client()
-        self._instance = self.base_class(
-            self._user_data, self._client, self._session, self._graph)
-        if self._instance.key_name:
+        if self.key_found:
             self._key_found = True
             self._desired_build_status = "successful"
             self._check_no_errors = True
         else:
-            self._desired_build_status = "No valid API keys found of type {}".format(self._instance.key_name)
+            self._desired_build_status = "No valid API keys found of type {}".format(self.key_name)
             self._key_found = False
             self._check_no_errors = False
+        super().setUp()
+        print("Building, desired build status is {}".format(self._desired_build_status))
         # If the class being tested is a parent class, it may not be necessary to have a build pass
         self.assertEqual(self._instance._build_status, self._desired_build_status)
         if self._check_no_errors:
+            print("Checking that no errors occured")
             self.assertEqual(self._instance.errors, [])
 
     def load_session(self):
@@ -125,11 +163,13 @@ class APIKeyArgumentTests(BaseArgumentTests):
 class WeatherAPIKeyTest(APIKeyArgumentTests):
     base_class = arguments.WeatherAPI
     key_found = True
+    key_name = "weather"
 
 
 class WolframAPIKeyTest(APIKeyArgumentTests):
     base_class = arguments.WolframAPI
     key_found = True
+    key_name = "wolfram"
 
 
 class CommandObjectTests(BaseArgumentTests):

@@ -6,7 +6,6 @@ from will import exceptions
 import unittest
 from unittest.mock import *
 
-
 class InstanceTest(unittest.TestCase):
     def test_load(self):
         """

@@ -4,9 +4,10 @@ import logging
 # External imports
 import spacy
 
-log = logging.getLogger()
+# Internal imports
+from will.schema import *
 
-command_nums = {}
+log = logging.getLogger()
 
 parser = None
 
@@ -46,28 +47,26 @@ def location_validator(l):
         return False
 
 
-def load_key(key_name, graph, load_url=False):
+def load_key(key_name, db, load_url=False):
     """
     Load an API key from the database
 
     :param key_name: The name of the key to load
-    :param graph: The datbase instance
+    :param db: The database instance
     :param load_url: A bool defining whether to load the key
     :return key_value, key_url: The API key and optionally a url
     """
-    with graph.session() as session:
-        valid_keys = session.run("MATCH (a:APIKey {name: {name}) WHERE a.usages < a.max_usages or a.max_usages is "
-                                 "null",
-                                 {"name": key_name})
-        if valid_keys:
-            key = valid_keys[0]
-            # Increment the key usage
-            key_value = key["value"]
-            session.run("MATCH (a:APIKey {value: {value}}) SET a.usages = a.usages+1",
-                        {"value": key_value})
-            key_url = None
-            if load_url:
-                key_url = key["url"]
-            return key_value, key_url
-        else:
-            return False, False
+    session = db()
+    valid_keys = session.query(APIKey).filter(APIKey.key_type == key_name, APIKey.usages < APIKey.max_usages).all()
+    if valid_keys:
+        key = valid_keys[0]
+        # Increment the key usage
+        key_value = key.value
+        key.usages += 1
+        key_url = None
+        if load_url:
+            key_url = key.url
+        session.commit()
+        return key_value, key_url
+    else:
+        return False, False
