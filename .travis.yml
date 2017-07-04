@@ -9,6 +9,7 @@ python:
 
 # command to install dependencies
 install:
+  - apt-get install -y build-essential
   - pip install -r requirements.txt
   - python -m spacy download en
 
