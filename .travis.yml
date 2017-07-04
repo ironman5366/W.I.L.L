@@ -1,6 +1,9 @@
 language: python
 sudo: required
 cache: pip
+
+group: deprecated-2017Q2
+
 python:
   - "3.5"
   - "3.5-dev" # 3.5 development branch
@@ -9,7 +12,6 @@ python:
 
 # command to install dependencies
 install:
-  - sudo apt-get install -y build-essential
   - pip install -r requirements.txt
   - python -m spacy download en
 
