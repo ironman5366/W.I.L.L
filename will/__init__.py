@@ -1,4 +1,4 @@
-#Builtin imports
+# Builtin imports
 import datetime
 import json
 import logging
@@ -11,7 +11,7 @@ from will.core import Core
 from will.exceptions import *
 from will import tools, userspace, API
 
-version = "4.0-alpha+54"
+version = "4.0-alpha+58"
 author = "Will Beddow"
 
 log = None
@@ -77,7 +77,7 @@ class will:
                                      "file is in JSON format")
 
     def kill(self):
-        """uniquuniquuniquununiquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquuniquiqu
+        """
         Kill all running parts of W.I.L.L. For each individual components this usually consists of setting variables
         which threads monitor to false, and ending running services.
         """

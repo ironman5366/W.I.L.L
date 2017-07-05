@@ -6,7 +6,7 @@ import time
 
 # External imports
 from sqlalchemy.orm import sessionmaker
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, event
 from sqlalchemy.exc import SQLAlchemyError
 import itsdangerous
 import bcrypt
@@ -51,7 +51,22 @@ def db_init(db_url, db_port, db_username, db_password, secret_key, client_name, 
                 time.sleep(1)
                 db_connect(connection_url, n+1)
     engine = db_connect(connection_url)
-    if not debug:
+    if debug:
+        if sys.version_info[1] < 6:
+            # If using the outdated pysqlite driver,
+            # manually handle the connect and begin statements to prevent errors in python versions < 3.6
+            @event.listens_for(engine, "connect")
+            def do_connect(dbapi_connection, connection_record):
+                # disable pysqlite's emitting of the BEGIN statement entirely.
+                # also stops it from emitting COMMIT before any DDL.
+                dbapi_connection.isolation_level = None
+
+            @event.listens_for(engine, "begin")
+            def do_begin(conn):
+                # emit our own BEGIN
+                conn.execute("BEGIN")
+    else:
+        # Otherwise, don't modify transactions, but create the production MySQL table
         engine.execute("CREATE DATABASE `W.I.L.L`")  # create db
         engine.execute("USE `W.I.L.L`")
     Base.metadata.create_all(engine) 
