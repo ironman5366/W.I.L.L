@@ -581,6 +581,7 @@ class Users:
                 hashed_password = bcrypt.hashpw(doc["password"].encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                 # Use oauth code to generate a access token for the official client.
                 # Generate a secure token, sign it, and encrypt it in the database
+                # TODO: !!! Use the secrets module to generate this shit
                 final_token = str(uuid.uuid4())
                 # Sign the unencrypted version for the client
                 signed_final_token = signer.sign(final_token.encode('utf-8')).decode('utf-8')
@@ -770,20 +771,16 @@ class Clients:
         client_id = auth["origin_client_id"]
         log.debug("Deleting client {}".format(client_id))
         # Start a neo4j session
-        session = db.session()
-        try:
-            client = session.filter_by(client_id=client_id).one_or_none()
-            session.delete(client)
-            session.commit()
-            req.context["result"] = {
-                "data":
-                    {"type": "success",
-                     "id": "CLIENT_DELETED",
-                     "text": "Successfully deleted client {}".format(client_id)}
-            }
-        # No matter what, close the session
-        finally:
-            session.close()
+        session = db()
+        client = session.query(Client).filter_by(client_id=client_id).one_or_none()
+        session.delete(client)
+        session.commit()
+        req.context["result"] = {
+            "data":
+                {"type": "success",
+                 "id": "CLIENT_DELETED",
+                 "text": "Successfully deleted client {}".format(client_id)}
+        }
 
     @falcon.before(hooks.client_is_official)
     def on_post(self, req, resp, *args):
