@@ -1,7 +1,6 @@
 # Builtin imports
 import sys
 import time
-import base64
 # External imports
 import requests
 

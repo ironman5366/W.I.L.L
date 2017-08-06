@@ -27,8 +27,11 @@ after_success:
 jobs:
   include:
     - stage: Deploy
+      # Install integration testing dependencies
+      install: pip install -r integration_tests/requirements.txt
+      # Build the docker image
       install: docker build -t willassistant/core:"$TRAVIS_BRANCH" .
-      # Unit testing
+      # Unit test the built docker image
       script: docker run willassistant/core:"$1" /bin/sh -c "cd /W.I.L.L/unit_tests; nosetests *.py;"
       # Integration testing
       script: sh create_tests.sh "$DB_PASSWORD" "$TRAVIS_BRANCH"
