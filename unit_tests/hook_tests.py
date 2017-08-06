@@ -110,12 +110,11 @@ class DBTest(unittest.TestCase):
 
     def setUp(self):
         self.session = db()
-        print ("Starting transaction")
+        self.session.commit()
         self.session.begin_nested()
         hooks.db = MagicMock(return_value=self.session)
 
     def tearDown(self):
-        print ("Deleting user")
         self.session.rollback()
         self.session.close()
 

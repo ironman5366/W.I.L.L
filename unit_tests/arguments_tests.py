@@ -19,6 +19,7 @@ db = sessionmaker(bind=engine)
 
 # TODO: make this less of a dumpster fire
 
+
 class BaseArgumentTests(unittest.TestCase):
     """
     Test the base argument class, and also provide a parent method for other argument tests to inherit from
@@ -58,14 +59,12 @@ class BaseArgumentTests(unittest.TestCase):
         Build the argument with mocked values
         """
         self.session = db()
-        api_keys = self.session.query(APIKey).all()
-        print("Found {0} APIKeys".format(len(api_keys)))
+        self.session.commit()
         self.session.begin_nested()
         self._session = self.load_session()
         self._user_data = self.load_user_data()
         self._graph = self.load_graph()
         self._client = self.load_client()
-        print("Building with desired build status {}".format(self._desired_build_status))
         self._instance = self.base_class(
             self._user_data, self._client, self._session, self._graph)
         # If the class being tested is a parent class, it may not be necessary to have a build pass

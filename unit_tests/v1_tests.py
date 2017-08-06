@@ -169,18 +169,14 @@ def basic_assoc(user=None, client=None, stage="access", token="token", hashtoken
 class DBTest(unittest.TestCase):
     def setUp(self):
         self.session = db()
-        assoc_query = self.session.query(Association).filter_by(username="holden", client_id="rocinate").all()
-        print("{0} associations before transaction in {1} tests".format(len(assoc_query), type(self).__name__))
+        self.session.commit()
         self.session.begin_nested()
         hooks.db = MagicMock(return_value=self.session)
         v1.db = MagicMock(return_value=self.session)
 
     def tearDown(self):
         self.session.rollback()
-        assoc_query = self.session.query(Association).filter_by(username="holden", client_id="rocinate").all()
-        print("{0} associations after transaction in {1} tests".format(len(assoc_query), type(self).__name__))
         self.session.close()
-
 
 
 def mock_request(auth={}, doc={}, **kwargs):

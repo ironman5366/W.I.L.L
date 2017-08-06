@@ -60,6 +60,7 @@ def test_user_create():
     access_token = json_data["data"]["access_token"]
     return access_token
 
+
 def test_start_session(access_token):
     api_path = "/api/v1/sessions"
     req_auth = {
@@ -92,7 +93,7 @@ def test_user_exists(session_id):
     print("Submitting with headers {}".format(req_headers))
     req_path = instance_url+api_path
     resp = requests.get(req_path, headers=req_headers)
-    print (resp.text)
+    print(resp.text)
 
 if __name__ == "__main__":
     # Wait for the API to be up

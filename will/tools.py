@@ -37,10 +37,7 @@ def location_validator(l):
     if type(l) == dict:
         l_keys = l.keys()
         if "latitude" in l_keys and "longitude" in l_keys:
-            if type(l["latitude"]) == float and type(l["longitude"]) == float:
-                return True
-            else:
-                return False
+            return type(l["latitude"]) == float and type(l["longitude"]) == float
         else:
             return False
     else:
@@ -57,6 +54,7 @@ def load_key(key_name, db, load_url=False):
     :return key_value, key_url: The API key and optionally a url
     """
     session = db()
+    session.commit()
     valid_keys = session.query(APIKey).filter(APIKey.key_type == key_name, APIKey.usages < APIKey.max_usages).all()
     if valid_keys:
         key = valid_keys[0]
@@ -69,4 +67,5 @@ def load_key(key_name, db, load_url=False):
         session.commit()
         return key_value, key_url
     else:
+        session.commit()
         return False, False

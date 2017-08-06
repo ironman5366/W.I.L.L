@@ -911,8 +911,6 @@ class Clients:
                                     "text": "Unrecognized scope {0}".format(scope)
                                 }]
                         }
-                # No matter what, close the session
-                session.close()
             else:
                 resp.status = falcon.HTTP_BAD_REQUEST
                 req.context["result"] = {
