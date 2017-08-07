@@ -28,7 +28,7 @@ jobs:
   include:
     - stage: Deploy
       # Install integration testing dependencies and build the docker image
-      install: pip install -r integration_tests/requirements.txt && docker build -t willassistant/core:"$TRAVIS_BRANCH" .
+      install: pip install -r requirements.txt && docker build -t willassistant/core:"$TRAVIS_BRANCH" .
       # Unit test the built docker image
       script: docker run willassistant/core:"$1" /bin/sh -c "cd /W.I.L.L/unit_tests; nosetests *.py;"
       # Integration testing
