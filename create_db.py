@@ -19,6 +19,7 @@ log = logging.getLogger()
 # Lazy hack to make an embedded memory db accessible from unit testing
 engine = None
 
+
 def db_init(db_url, db_port, db_username, db_password, secret_key, client_name, debug=False):
     """
     Initialize the db

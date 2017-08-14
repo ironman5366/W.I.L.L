@@ -17,6 +17,7 @@ install:
 
 services:
   - docker
+  - mysql
 
 # Rerun the tests out of the container to get coverage data
 script: nosetests --with-coverage unit_tests
@@ -30,7 +31,7 @@ jobs:
       # Install integration testing dependencies and build the docker image
       install: pip install -r requirements.txt && docker build -t willassistant/core:"$TRAVIS_BRANCH" .
       # Unit test the built docker image
-      script: docker run willassistant/core:"$1" /bin/sh -c "cd /W.I.L.L/unit_tests; nosetests *.py;"
+      script: docker run willassistant/core:"$TRAVIS_BRANCH" /bin/sh -c "cd /W.I.L.L/unit_tests; nosetests *.py;"
       # Integration testing
       script: sh create_tests.sh "$DB_PASSWORD" "$TRAVIS_BRANCH"
       # If both stages, pass, push the newly built image to docker hub

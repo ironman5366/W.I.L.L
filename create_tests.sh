@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Create a fresh environment for integration testing
 echo "Creating db"
-sudo docker run -d --publish "3306":"3306" --rm --name=mysql_container -e MYSQL_ROOT_PASSWORD="$1" mysql
+# sudo docker run -d --publish "3306":"3306" --rm --name=mysql_container -e MYSQL_ROOT_PASSWORD="$1" mysql
 # Wait for the db to build
 echo "Waiting for db to build"
 sleep 10
@@ -28,4 +28,4 @@ if [ "$3" = "--local" ]; then
 else
    sudo docker kill will_container
 fi
-sudo docker kill mysql_container
+# sudo docker kill mysql_container
