@@ -1,5 +1,7 @@
 # W.I.L.L 3.1
 
+# The W.I.L.L Project has been retired and development has stopped. Read more here: https://willbeddow.com/page/wheres-w-i-l-l
+
 ## Welcome to W.I.L.L
 W.I.L.L is an open source personal assistant that aims to be free, easy to use, and expandable by the user.
 It runs on a python based plugin framework accessible by a JSON API that let's you access it from a variety of different platforms.
